@@ -2,9 +2,13 @@
 //! cargo run -p yyplayer-app --example ui-preview -- --output docs/ui-preview.png
 
 #[path = "../src/controller.rs"]
+#[allow(dead_code)]
 mod controller;
 #[path = "../src/demo.rs"]
 mod demo;
+#[path = "../src/services.rs"]
+#[allow(dead_code)]
+mod services;
 
 use std::cell::RefCell;
 use std::path::PathBuf;

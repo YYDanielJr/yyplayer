@@ -1,36 +1,225 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
+use crate::controller::AppController;
 use player_core::{PlaybackCommand, PlaybackEngine};
 use player_mpv::MpvEngine;
-use player_ui::UiShell;
-
-use crate::controller::AppController;
+use player_ui::{UiAction, UiShell};
+use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
+use slint::{ComponentHandle, Timer, TimerMode};
+use std::cell::RefCell;
+use std::path::PathBuf;
+use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let platform = player_platform::current();
-    let engine = MpvEngine::default();
-    let controller = Rc::new(RefCell::new(AppController::new(engine, platform)));
+    slint::BackendSelector::new()
+        .backend_name("winit".into())
+        .renderer_name("femtovg".into())
+        .select()?;
+    let controller = Rc::new(RefCell::new(AppController::live(
+        MpvEngine::start(),
+        player_platform::current(),
+    )));
     let ui = UiShell::new()?;
+    player_ui::presenter::attach(
+        ui.component(),
+        controller.borrow_mut().engine_mut().render_endpoint(),
+    )?;
     ui.project(&controller.borrow().view_model());
-
-    let projector = ui.projector();
-    let dispatcher = controller.clone();
-    ui.bind(Rc::new(move |action| {
-        let state = {
-            let mut controller = dispatcher.borrow_mut();
+    let weak = ui.component().as_weak();
+    let dispatch_controller = controller.clone();
+    let project = ui.projector();
+    let dispatch_weak = weak.clone();
+    let dispatch = Rc::new(move |action| {
+        let request = {
+            let mut controller = dispatch_controller.borrow_mut();
             controller.dispatch(action);
-            controller.view_model()
+            controller.take_window_request()
         };
-        projector(&state);
-    }));
+        if let Some(window) = dispatch_weak.upgrade() {
+            apply_window_mode(&window, request);
+        }
+        project(&dispatch_controller.borrow().view_model());
+    });
+    ui.bind(dispatch.clone());
+    ui.bind_controls(dispatch);
 
+    let dropped = Rc::new(RefCell::new(Vec::new()));
+    let event_dropped = dropped.clone();
+    let keyboard_controller = controller.clone();
+    let keyboard_weak = weak.clone();
+    let mut modifiers = winit::keyboard::ModifiersState::empty();
+    ui.component()
+        .window()
+        .on_winit_window_event(move |_, event| {
+            use winit::event::{ElementState, WindowEvent};
+            match event {
+                WindowEvent::ModifiersChanged(changed) => modifiers = changed.state(),
+                WindowEvent::Focused(false) => keyboard_controller.borrow_mut().cancel_hold(),
+                WindowEvent::DroppedFile(path) => event_dropped.borrow_mut().push(path.clone()),
+                WindowEvent::KeyboardInput {
+                    event,
+                    is_synthetic: false,
+                    ..
+                } => {
+                    if let Some(window) = keyboard_weak.upgrade()
+                        && let Some(chord) = key_chord(&event.logical_key, modifiers)
+                    {
+                        let consumed = keyboard_controller.borrow_mut().key(
+                            &chord,
+                            event.state == ElementState::Pressed,
+                            event.repeat,
+                            window.get_shortcuts_blocked(),
+                        );
+                        if consumed {
+                            return EventResult::PreventDefault;
+                        }
+                    }
+                }
+                _ => {}
+            }
+            EventResult::Propagate
+        });
+
+    let paths = std::env::args_os()
+        .skip(1)
+        .map(PathBuf::from)
+        .collect::<Vec<_>>();
+    if !paths.is_empty() {
+        controller.borrow_mut().prepare_paths(paths);
+    }
+    let timer = Timer::default();
+    let tick_controller = controller.clone();
+    let tick_weak = weak.clone();
+    let project = ui.projector();
+    let started = Instant::now();
+    // Optional deterministic developer verification; defaults never alter normal playback.
+    let quit_after = std::env::var("YYPLAYER_SMOKE_SECONDS")
+        .ok()
+        .and_then(|seconds| seconds.parse::<f64>().ok())
+        .filter(|seconds| seconds.is_finite() && *seconds > 0.0);
+    let smoke_script = std::env::var_os("YYPLAYER_SMOKE_SCRIPT").is_some();
+    let diagnostics = std::env::var_os("YYPLAYER_DIAGNOSTICS").map(PathBuf::from);
+    let mut actions = 0u8;
+    let mut checkpoints = Vec::new();
+    timer.start(TimerMode::Repeated,Duration::from_millis(60),move || {
+        let Some(window) = tick_weak.upgrade() else { return; };
+        let mut controller = tick_controller.borrow_mut();
+        if window.get_shortcuts_blocked() { controller.cancel_hold(); }
+        let paths = std::mem::take(&mut *dropped.borrow_mut()); if !paths.is_empty() { controller.prepare_paths(paths); }
+        controller.tick();
+        if smoke_script {
+            let seconds = started.elapsed().as_secs_f64();
+            if actions == 0 && seconds > 1.5 { controller.dispatch(UiAction::Control("speed".into(),"1.5x".into())); actions = 1; }
+            if actions == 1 && seconds > 2.5 { controller.dispatch(UiAction::SetVolume(35.0)); actions = 2; }
+            if actions == 2 && seconds > 3.5 { controller.dispatch(UiAction::Control("mute".into(),"".into())); controller.dispatch(UiAction::RequestPlayback); actions = 3; }
+            if actions == 3 && seconds > 4.5 { controller.dispatch(UiAction::RequestPlayback); controller.dispatch(UiAction::Control("speed".into(),"1x".into())); actions = 4; }
+            if actions == 4 && seconds > 5.5 { controller.dispatch(UiAction::Control("forward".into(),"".into())); actions = 5; }
+            if actions == 5 && seconds > 6.5 { controller.dispatch(UiAction::Control("window-mode".into(),"1".into())); actions = 6; }
+            if actions == 6 && seconds > 7.5 { controller.dispatch(UiAction::Control("fullscreen".into(),"".into())); actions = 7; }
+            if actions == 7 && seconds > 8.5 { controller.dispatch(UiAction::Control("escape".into(),"".into())); actions = 8; }
+            if actions == 8 && seconds > 9.5 { controller.dispatch(UiAction::RequestPlayback); actions = 9; }
+            if actions == 9 && seconds > 10.5 {
+                controller.dispatch(UiAction::Control("decode-scope".into(),"2".into()));
+                controller.dispatch(UiAction::Control("decode-mode".into(),"1".into()));
+                controller.dispatch(UiAction::Control("save-decode".into(),"".into()));
+                actions = 10;
+            }
+            if actions == 10 && seconds > 12.5 { controller.dispatch(UiAction::RequestPlayback); actions = 11; }
+        }
+        let request = controller.take_window_request();
+        apply_window_mode(&window,request);
+        window.window().with_winit_window(|native| controller.native_window_mode(native.fullscreen().is_some(),native.is_maximized()));
+        project(&controller.view_model());
+        if checkpoints.len() < 60 && checkpoints.len() <= started.elapsed().as_secs() as usize {
+            let snapshot = controller.engine_mut().snapshot();
+            checkpoints.push(serde_json::json!({ "seconds": started.elapsed().as_secs_f64(), "phase": format!("{:?}",snapshot.phase), "speed": snapshot.speed, "position": snapshot.position.map(|value| value.as_secs_f64()), "volume": snapshot.volume, "muted": snapshot.muted, "hwdec": snapshot.hwdec, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "frames": window.get_render_frames(), "error": snapshot.error }));
+        }
+        if !window.get_render_ready() && window.get_render_error().is_empty() { window.window().request_redraw(); }
+        if quit_after.is_some_and(|seconds| started.elapsed().as_secs_f64() >= seconds) {
+            if let Some(path) = diagnostics.as_ref() {
+                let snapshot = controller.engine_mut().snapshot();
+                let data = serde_json::json!({ "phase": format!("{:?}",snapshot.phase), "position": snapshot.position.map(|position| position.as_secs_f64()), "duration": snapshot.duration.map(|duration| duration.as_secs_f64()), "speed": snapshot.speed, "volume": snapshot.volume, "muted": snapshot.muted, "runtime": snapshot.runtime, "hwdec": snapshot.hwdec, "video": snapshot.video, "devices": snapshot.devices.iter().map(|device| &device.name).collect::<Vec<_>>(), "tracks": snapshot.tracks.len(), "render_frames": window.get_render_frames(), "render_error": window.get_render_error().as_str(), "error": snapshot.error, "media_info": snapshot.info, "script_steps": actions, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "checkpoints": checkpoints });
+                let _ = std::fs::write(path,serde_json::to_vec_pretty(&data).unwrap());
+            }
+            let _ = slint::quit_event_loop();
+        }
+    });
     let result = ui.run();
-    // No native resources exist yet. Keep an explicit shutdown entry for S03.
+    timer.stop();
+    drop(timer);
+    controller.borrow_mut().cancel_hold();
     let _ = controller
         .borrow_mut()
         .engine_mut()
         .submit(PlaybackCommand::Shutdown);
+    ui.component().window().hide()?;
+    drop(ui); // RenderingTeardown releases render lease before worker destroys core.
+    controller.borrow_mut().finish_services();
+    let shutdown = controller.borrow_mut().engine_mut().finish();
     result?;
+    shutdown?;
     Ok(())
+}
+fn apply_window_mode(window: &player_ui::AppWindow, mode: Option<i32>) {
+    if let Some(mode) = mode {
+        window.window().set_fullscreen(mode == 2);
+        if mode != 2 {
+            window.window().set_maximized(mode == 1);
+        }
+    }
+}
+fn key_chord(
+    key: &winit::keyboard::Key,
+    modifiers: winit::keyboard::ModifiersState,
+) -> Option<String> {
+    use winit::keyboard::{Key, NamedKey};
+    let key = match key {
+        Key::Named(named) => match named {
+            NamedKey::Space => "Space".into(),
+            NamedKey::ArrowLeft => "Left".into(),
+            NamedKey::ArrowRight => "Right".into(),
+            NamedKey::ArrowUp => "Up".into(),
+            NamedKey::ArrowDown => "Down".into(),
+            NamedKey::Enter => "Enter".into(),
+            NamedKey::Escape => "Escape".into(),
+            NamedKey::Tab => "Tab".into(),
+            NamedKey::Home => "Home".into(),
+            NamedKey::End => "End".into(),
+            NamedKey::PageUp => "PageUp".into(),
+            NamedKey::PageDown => "PageDown".into(),
+            NamedKey::Backspace => "Backspace".into(),
+            NamedKey::Delete => "Delete".into(),
+            NamedKey::Insert => "Insert".into(),
+            key => {
+                let key = format!("{key:?}");
+                if key.starts_with('F')
+                    && key[1..]
+                        .parse::<u8>()
+                        .is_ok_and(|number| (1..=24).contains(&number))
+                {
+                    key
+                } else {
+                    return None;
+                }
+            }
+        },
+        Key::Character(text) if text.as_str() == " " => "Space".into(),
+        Key::Character(text) => match text.as_str() {
+            "+" => "Plus".into(),
+            "-" => "Minus".into(),
+            _ => text.to_uppercase(),
+        },
+        _ => return None,
+    };
+    let mut chord = String::new();
+    if modifiers.control_key() {
+        chord.push_str("Ctrl+");
+    }
+    if modifiers.alt_key() {
+        chord.push_str("Alt+");
+    }
+    if modifiers.shift_key() {
+        chord.push_str("Shift+");
+    }
+    chord.push_str(&key);
+    Some(chord)
 }

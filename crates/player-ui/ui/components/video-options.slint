@@ -1,0 +1,51 @@
+import { ScrollView, ComboBox, SpinBox, CheckBox, Button, LineEdit, TextEdit } from "std-widgets.slint";
+import { Theme } from "../theme.slint";
+import { TrackRow } from "../models.slint";
+import { QueueRow } from "media.slint";
+export component VideoOptions inherits Rectangle {
+    in property <[string]> devices; in property <int> device-index;
+    in property <[string]> audio-tracks; in property <int> audio-index;
+    in property <[string]> subtitle-tracks; in property <int> subtitle-index;
+    in property <[string]> chapters; in property <string> info;
+    in property <int> decode-mode; in property <int> decode-threads; in property <int> decode-scope;
+    in property <bool> deinterlace; in property <bool> deband; in property <string> decode-origin;
+    in property <[TrackRow]> queue; in property <int> selected-id;
+    callback control(string,string);
+    background: Theme.sidebar;
+    ScrollView {
+        width: parent.width; height: parent.height; viewport-width: self.width;
+        VerticalLayout {
+            padding: 20px; spacing: 12px;
+            HorizontalLayout { height: 30px; Text { text: "播放选项"; color: Theme.text; font-size: 18px; font-weight: 600; horizontal-stretch: 1; } Button { text: "关闭"; clicked => { root.control("panel", ""); } } }
+            Button { text: "停止播放"; clicked => { root.control("stop", ""); } }
+            Text { text: "音频输出设备"; color: Theme.muted; height: 20px; }
+            ComboBox { model: root.devices; current-index: root.device-index; selected(value) => { root.control("device", "" + self.current-index); } }
+            Text { text: "音轨 / 字幕"; color: Theme.muted; height: 20px; }
+            ComboBox { model: root.audio-tracks; current-index: root.audio-index; selected(value) => { root.control("audio-track", "" + self.current-index); } }
+            ComboBox { model: root.subtitle-tracks; current-index: root.subtitle-index; selected(value) => { root.control("subtitle-track", "" + self.current-index); } }
+            Button { text: "加载外挂字幕"; clicked => { root.control("subtitle-file", ""); } }
+            HorizontalLayout { Text { text: "字幕延迟（秒）"; color: Theme.muted; vertical-alignment: center; } LineEdit { text: "0"; edited(value) => { root.control("subtitle-delay", value); } } }
+            HorizontalLayout { Text { text: "音频延迟（秒）"; color: Theme.muted; vertical-alignment: center; } LineEdit { text: "0"; edited(value) => { root.control("audio-delay", value); } } }
+            ComboBox { model: root.chapters; current-index: -1; selected(value) => { root.control("chapter", "" + self.current-index); } }
+            HorizontalLayout { Button { text: "上一帧"; clicked => { root.control("frame-back", ""); } } Button { text: "下一帧"; clicked => { root.control("frame", ""); } } Button { text: "截图"; clicked => { root.control("screenshot", ""); } } }
+            HorizontalLayout { CheckBox { text: "单文件循环"; toggled => { root.control("loop", self.checked ? "yes" : "no"); } } Button { text: "A / B / 清除"; clicked => { root.control("ab-loop", ""); } } }
+            ComboBox { model: ["原始比例", "16:9", "4:3", "2.35:1"]; selected(value) => { root.control("aspect", "" + self.current-index); } }
+            Rectangle { height: 1px; background: Theme.border; }
+            Text { text: "解码与画面"; color: Theme.text; font-size: 16px; font-weight: 600; height: 26px; }
+            Text { text: "当前规则：" + root.decode-origin; color: Theme.muted; wrap: word-wrap; height: 34px; font-size: 11px; }
+            scope := ComboBox { model: ["全局", "当前文件夹", "当前文件"]; current-index: root.decode-scope; selected(value) => { root.control("decode-scope", "" + self.current-index); } }
+            mode := ComboBox { model: ["自动（安全硬解）", "软件解码", "硬件优先（允许 copy 回退）"]; current-index: root.decode-mode; selected(value) => { root.control("decode-mode", "" + self.current-index); } }
+            HorizontalLayout { Text { text: "解码线程（0 自动）"; color: Theme.muted; vertical-alignment: center; } SpinBox { value: root.decode-threads; minimum: 0; maximum: 32; edited(value) => { root.control("decode-threads", "" + value); } } }
+            CheckBox { text: "去隔行"; checked: root.deinterlace; toggled => { root.control("deinterlace", self.checked ? "yes" : "no"); } }
+            CheckBox { text: "去色带"; checked: root.deband; toggled => { root.control("deband", self.checked ? "yes" : "no"); } }
+            Button { text: "保存并重新加载当前媒体"; primary: true; clicked => { root.control("save-decode", ""); } }
+            Button { text: "清除该范围覆盖 / 全局恢复默认"; clicked => { root.control("clear-decode", ""); } }
+            Text { text: "硬解可因 codec / GPU / 驱动限制回退。\n实际运行路径见媒体信息。"; color: Theme.faint; height: 36px; font-size: 11px; }
+            Button { text: "编辑播放快捷键"; clicked => { root.control("settings", ""); } }
+            Text { text: "媒体与解码信息"; color: Theme.text; font-size: 16px; height: 30px; }
+            TextEdit { text: root.info; read-only: true; height: 510px; font-size: 11px; }
+            Text { text: "当前队列"; color: Theme.text; font-size: 16px; height: 30px; }
+            for track in root.queue: QueueRow { track: track; selected: root.selected-id == track.item-id; clicked => { root.control("queue", "" + track.item-id); } }
+        }
+    }
+}

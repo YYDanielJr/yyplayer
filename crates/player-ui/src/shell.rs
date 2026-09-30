@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use slint::{ComponentHandle, ModelRc, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
 
 use crate::{AppWindow, TrackRow, view_model::ShellViewModel};
 
@@ -15,6 +15,8 @@ pub enum UiAction {
     Next,
     SetVolume(f32),
     ToggleFavorite,
+    Control(String, String),
+    ShortcutEdited(i32, String),
 }
 
 pub struct UiShell {
@@ -55,6 +57,16 @@ impl UiShell {
             .on_toggle_favorite(move || dispatch(UiAction::ToggleFavorite));
     }
 
+    pub fn bind_controls(&self, dispatch: Rc<dyn Fn(UiAction)>) {
+        let control = dispatch.clone();
+        self.window.on_control(move |action, value| {
+            control(UiAction::Control(action.into(), value.into()))
+        });
+        self.window.on_shortcut_edited(move |index, value| {
+            dispatch(UiAction::ShortcutEdited(index, value.into()))
+        });
+    }
+
     pub fn project(&self, state: &ShellViewModel) {
         project(&self.window, state);
     }
@@ -80,21 +92,33 @@ impl UiShell {
     }
 }
 
-fn rows(items: &[crate::view_model::MediaPreview]) -> ModelRc<TrackRow> {
-    Rc::new(VecModel::from(
-        items
-            .iter()
-            .map(|item| TrackRow {
-                item_id: item.id,
-                title: item.title.as_str().into(),
-                artist: item.artist.as_str().into(),
-                collection: item.collection.as_str().into(),
-                duration: item.duration.as_str().into(),
-                cover: item.cover,
-            })
-            .collect::<Vec<_>>(),
-    ))
-    .into()
+fn rows(
+    current: ModelRc<TrackRow>,
+    items: &[crate::view_model::MediaPreview],
+) -> ModelRc<TrackRow> {
+    let next = items
+        .iter()
+        .map(|item| TrackRow {
+            item_id: item.id,
+            title: item.title.as_str().into(),
+            artist: item.artist.as_str().into(),
+            collection: item.collection.as_str().into(),
+            duration: item.duration.as_str().into(),
+            cover: item.cover,
+        })
+        .collect::<Vec<_>>();
+    if let Some(model) = current.as_any().downcast_ref::<VecModel<TrackRow>>()
+        && model.row_count() == next.len()
+    {
+        for (index, row) in next.into_iter().enumerate() {
+            if model.row_data(index).as_ref() != Some(&row) {
+                model.set_row_data(index, row);
+            }
+        }
+        current
+    } else {
+        Rc::new(VecModel::from(next)).into()
+    }
 }
 
 fn project(window: &AppWindow, state: &ShellViewModel) {
@@ -107,6 +131,79 @@ fn project(window: &AppWindow, state: &ShellViewModel) {
     window.set_volume(state.volume_percent);
     window.set_favorite(state.favorite);
     window.set_status_message(state.status.as_str().into());
-    window.set_tracks(rows(&state.tracks));
-    window.set_queue(rows(&state.queue));
+    window.set_tracks(rows(window.get_tracks(), &state.tracks));
+    window.set_queue(rows(window.get_queue(), &state.queue));
+    window.set_recent(rows(window.get_recent(), &state.recent));
+    window.set_playing(state.playing);
+    window.set_has_media(state.has_media);
+    window.set_has_video(state.has_video);
+    window.set_position_text(state.position_text.as_str().into());
+    window.set_progress(state.progress);
+    window.set_seekable(state.seekable);
+    window.set_muted(state.muted);
+    window.set_speed_index(state.speed_index);
+    window.set_speed_text(state.speed_text.as_str().into());
+    window.set_media_info(state.info.as_str().into());
+    if !same_strings(&window.get_device_names(), &state.device_names) {
+        window.set_device_names(strings(&state.device_names));
+    }
+    window.set_device_index(state.device_index);
+    if !same_strings(&window.get_audio_tracks(), &state.audio_tracks) {
+        window.set_audio_tracks(strings(&state.audio_tracks));
+    }
+    window.set_audio_index(state.audio_index);
+    if !same_strings(&window.get_subtitle_tracks(), &state.subtitle_tracks) {
+        window.set_subtitle_tracks(strings(&state.subtitle_tracks));
+    }
+    window.set_subtitle_index(state.subtitle_index);
+    if !same_strings(&window.get_chapters(), &state.chapters) {
+        window.set_chapters(strings(&state.chapters));
+    }
+    window.set_panel_open(state.panel_open);
+    window.set_fullscreen_mode(state.fullscreen);
+    window.set_window_mode(state.window_mode);
+    if window.get_settings_revision() != state.settings_revision as i32 {
+        window.set_settings_revision(state.settings_revision as i32);
+        window.set_decode_mode(state.decode_mode);
+        window.set_decode_threads(state.decode_threads);
+        window.set_deinterlace(state.deinterlace);
+        window.set_deband(state.deband);
+        window.set_decode_scope(state.decode_scope);
+        window.set_shortcut_rows(
+            Rc::new(VecModel::from(
+                state
+                    .short_bindings
+                    .iter()
+                    .map(|(action, binding)| crate::ShortcutRow {
+                        action: action.as_str().into(),
+                        binding: binding.as_str().into(),
+                    })
+                    .collect::<Vec<_>>(),
+            ))
+            .into(),
+        );
+        window.set_seek_step(state.seek_step);
+        window.set_volume_step(state.volume_step);
+        window.set_hold_ms(state.hold_ms);
+        window.set_hold_speed(state.hold_speed.as_str().into());
+    }
+    window.set_decode_origin(state.decode_origin.as_str().into());
+}
+
+fn strings(values: &[String]) -> ModelRc<slint::SharedString> {
+    Rc::new(VecModel::from(
+        values
+            .iter()
+            .map(|value| value.as_str().into())
+            .collect::<Vec<_>>(),
+    ))
+    .into()
+}
+fn same_strings(model: &ModelRc<slint::SharedString>, values: &[String]) -> bool {
+    model.row_count() == values.len()
+        && values.iter().enumerate().all(|(index, value)| {
+            model
+                .row_data(index)
+                .is_some_and(|row| row.as_str() == value)
+        })
 }

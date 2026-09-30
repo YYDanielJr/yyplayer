@@ -3,3 +3,14 @@
 *.log
 third_party/mpv/*/
 !third_party/mpv/README.md
+docs/validation/*.mp4
+docs/validation/*.mkv
+docs/validation/*.wav
+docs/validation/*.ppm
+docs/validation/*settings*.json
+docs/validation/*.txt
+docs/validation/*.json
+!docs/validation/controls-playback.json
+!docs/validation/software-playback.json
+!docs/validation/release-playback.json
+docs/validation/source-frame.png

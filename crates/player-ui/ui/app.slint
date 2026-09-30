@@ -1,190 +1,116 @@
-import { ScrollView, Palette } from "std-widgets.slint";
+import { ScrollView, Palette, Button, ComboBox } from "std-widgets.slint";
 import { Theme, Icons } from "theme.slint";
-import { Icon, IconButton, NavItem, ActionButton, Badge } from "components/controls.slint";
+import { Icon, NavItem, ActionButton } from "components/controls.slint";
 import { QueueRow } from "components/media.slint";
 import { PlayerBar } from "components/player-bar.slint";
+import { VideoOptions } from "components/video-options.slint";
 import { MusicPage } from "pages/music.slint";
 import { VideoPage } from "pages/video.slint";
 import { RecentPage } from "pages/recent.slint";
 import { SettingsPage } from "pages/settings.slint";
-export { TrackRow } from "models.slint";
-import { TrackRow } from "models.slint";
-
+export { TrackRow, ShortcutRow } from "models.slint";
+import { TrackRow, ShortcutRow } from "models.slint";
 export component AppWindow inherits Window {
-    title: "YYPlayer";
-    preferred-width: 1240px;
-    preferred-height: 900px;
-    min-width: 1000px;
-    min-height: 720px;
-    background: Theme.background;
-    default-font-family: "Microsoft YaHei UI";
-    default-font-size: 13px;
+    title: root.has-media ? root.selected-title + " · YYPlayer" : "YYPlayer";
+    preferred-width: 1240px; preferred-height: 900px; min-width: 1000px; min-height: 640px;
+    background: Theme.background; default-font-family: "Microsoft YaHei UI"; default-font-size: 12px;
     init => { Palette.color-scheme = ColorScheme.dark; }
-
-    in property <int> page;
-    in property <int> selected-id;
-    in property <string> selected-title;
-    in property <string> selected-artist;
-    in property <string> selected-duration;
-    in property <int> selected-cover;
-    in property <float> volume;
-    in property <bool> favorite;
-    in property <string> status-message;
-    in property <[TrackRow]> tracks;
-    in property <[TrackRow]> queue;
-    callback navigate(int);
-    callback search-changed(string);
-    callback select-preview(int);
-    callback open-file();
-    callback request-playback();
-    callback previous();
-    callback next();
-    callback volume-changed(float);
-    callback toggle-favorite();
-
+    in property <int> page; in property <int> selected-id;
+    in property <string> selected-title; in property <string> selected-artist; in property <string> selected-duration;
+    in property <int> selected-cover; in property <float> volume; in property <bool> favorite;
+    in property <string> status-message; in property <[TrackRow]> tracks; in property <[TrackRow]> queue;
+    in property <[TrackRow]> recent;
+    in property <bool> playing; in property <bool> has-media; in property <bool> has-video;
+    in property <string> position-text; in property <float> progress; in property <bool> seekable;
+    in property <bool> muted; in property <int> speed-index; in property <string> speed-text;
+    in property <string> media-info; in property <[string]> device-names; in property <int> device-index;
+    in property <[string]> audio-tracks; in property <int> audio-index;
+    in property <[string]> subtitle-tracks; in property <int> subtitle-index; in property <[string]> chapters;
+    in property <bool> panel-open; in property <bool> fullscreen-mode; in property <int> window-mode;
+    in property <int> decode-mode; in property <int> decode-threads; in property <bool> deinterlace;
+    in property <bool> deband; in property <int> decode-scope; in property <string> decode-origin;
+    in property <[ShortcutRow]> shortcut-rows; in property <int> seek-step; in property <int> volume-step;
+    in property <int> hold-ms; in property <string> hold-speed; in property <int> settings-revision;
+    in-out property <image> video-frame; in-out property <bool> render-ready; in-out property <string> render-error;
+    in-out property <int> render-frames;
+    out property <float> video-width: root.width / 1px - (root.panel-open ? 370 : 0);
+    out property <float> video-height: root.height / 1px - 70 - (root.fullscreen-mode ? 0 : 52) - (root.status-message != "" ? 24 : 0);
+    out property <bool> shortcuts-blocked: root.page == 3 || root.panel-open || search.has-focus;
+    callback navigate(int); callback search-changed(string); callback select-preview(int);
+    callback open-file(); callback request-playback(); callback previous(); callback next();
+    callback volume-changed(float); callback toggle-favorite(); callback control(string,string);
+    callback shortcut-edited(int,string);
     VerticalLayout {
         spacing: 0px;
         HorizontalLayout {
-            spacing: 0px;
-            vertical-stretch: 1;
-            Rectangle {
-                width: 180px;
-                background: Theme.sidebar;
-                Rectangle { x: parent.width - 1px; y: 0px; width: 1px; height: parent.height; background: #252d31; }
+            vertical-stretch: 1; spacing: 0px;
+            if root.page != 1 && !root.fullscreen-mode: Rectangle {
+                width: 180px; background: Theme.sidebar;
                 VerticalLayout {
-                    padding: 16px;
-                    spacing: 6px;
-                    HorizontalLayout {
-                        height: 68px;
-                        padding-left: 9px;
-                        spacing: 10px;
-                        Icon { icon: Icons.brand; tint: Theme.accent; width: 25px; }
-                        VerticalLayout {
-                            alignment: center;
-                            spacing: 4px;
-                            Text { text: "YYPlayer"; color: Theme.text; font-size: 19px; font-weight: 700; }
-                            Text { text: "音乐 · 视频"; color: Theme.faint; font-size: 10px; }
-                        }
-                    }
-                    Rectangle { height: 16px; }
-                    Text { text: "你的空间"; color: Theme.faint; font-size: 10px; height: 26px; x: 12px; }
+                    padding: 16px; spacing: 6px;
+                    Text { text: "YYPlayer"; color: Theme.text; font-size: 23px; font-weight: 700; height: 76px; vertical-alignment: center; }
                     NavItem { text: "音乐空间"; icon: Icons.music; selected: root.page == 0; clicked => { root.navigate(0); } }
                     NavItem { text: "视频剧场"; icon: Icons.video; selected: root.page == 1; clicked => { root.navigate(1); } }
                     NavItem { text: "最近打开"; icon: Icons.clock; selected: root.page == 2; clicked => { root.navigate(2); } }
-                    Rectangle { height: 22px; }
-                    Rectangle { height: 1px; background: #283034; }
-                    Rectangle { height: 12px; }
-                    Text { text: "本地媒体"; color: Theme.faint; font-size: 10px; height: 26px; x: 12px; }
                     NavItem { text: "打开文件"; icon: Icons.folder; clicked => { root.open-file(); } }
                     Rectangle { vertical-stretch: 1; }
                     NavItem { text: "设置"; icon: Icons.settings; selected: root.page == 3; clicked => { root.navigate(3); } }
-                    Text { text: "0.0.1   /   Made with Slint"; color: Theme.faint; font-size: 9px; height: 30px; vertical-alignment: center; horizontal-alignment: center; }
+                    Text { text: "0.1.0-dev · libmpv"; color: Theme.faint; font-size: 10px; height: 28px; horizontal-alignment: center; }
                 }
             }
             VerticalLayout {
-                horizontal-stretch: 1;
-                spacing: 0px;
+                horizontal-stretch: 1; spacing: 0px;
                 HorizontalLayout {
-                    height: 88px;
-                    padding-left: 28px;
-                    padding-right: 28px;
-                    spacing: 18px;
+                    visible: !root.fullscreen-mode;
+                    height: root.fullscreen-mode ? 0px : (root.page == 1 ? 52px : 84px); padding-left: 24px; padding-right: 24px; spacing: 12px;
                     VerticalLayout {
-                        alignment: center;
-                        horizontal-stretch: 1;
-                        spacing: 5px;
-                        Text { text: root.page == 0 ? "音乐空间" : (root.page == 1 ? "视频剧场" : (root.page == 2 ? "最近打开" : "设置")); color: Theme.text; font-size: 22px; font-weight: 600; }
-                        Text { text: root.page == 0 ? "日常的声音，自己的节奏。" : (root.page == 1 ? "留一点时间，给喜欢的影像。" : (root.page == 2 ? "上一次的精彩，从这里继续。" : "让每一次视听，都更合心意。")); color: Theme.muted; font-size: 10px; }
+                        horizontal-stretch: 1; alignment: center; spacing: 4px;
+                        Text { text: root.page == 1 ? root.selected-title : (root.page == 0 ? "音乐空间" : (root.page == 2 ? "最近打开" : "设置")); color: Theme.text; font-size: root.page == 1 ? 14px : 22px; font-weight: 600; overflow: elide; }
+                        if root.page != 1: Text { text: root.status-message; color: Theme.muted; font-size: 10px; overflow: elide; }
                     }
-                    if root.page == 0: VerticalLayout {
-                        width: 150px;
-                        alignment: center;
-                        Rectangle {
-                            height: 36px;
-                            border-radius: 8px;
-                            background: Theme.surface;
-                            HorizontalLayout {
-                                padding-left: 10px;
-                                padding-right: 10px;
-                                spacing: 8px;
-                                Icon { icon: Icons.search; width: 15px; tint: Theme.faint; }
-                                input := TextInput { color: Theme.text; font-size: 11px; single-line: true; horizontal-stretch: 1; vertical-alignment: center; accessible-label: "搜索示例曲目"; edited => { root.search-changed(self.text); } }
-                            }
-                            if input.text == "": Text { x: 33px; height: parent.height; text: "搜索示例曲目"; color: Theme.faint; font-size: 11px; vertical-alignment: center; }
+                    search := TextInput { visible: root.page == 0; width: root.page == 0 ? 140px : 0px; single-line: true; color: Theme.text; vertical-alignment: center; accessible-label: "搜索曲目"; edited => { root.search-changed(self.text); } }
+                    VerticalLayout { width: 110px; alignment: center; Button { text: "打开文件"; clicked => { root.open-file(); } } }
+                    if root.page == 1: VerticalLayout { width: 85px; alignment: center; Button { text: "媒体库"; clicked => { root.navigate(0); } } }
+                    if root.page == 1: VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value) => { root.control("window-mode", "" + self.current-index); } } }
+                    VerticalLayout { width: 100px; alignment: center; Button { text: root.panel-open ? "关闭选项" : "播放选项"; clicked => { root.control("panel", ""); } } }
+                }
+                if root.page == 0: MusicPage { tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); } }
+                if root.page == 1: VideoPage { frame: root.video-frame; has-media: root.has-media; has-video: root.has-video; render-ready: root.render-ready; render-error: root.render-error; open-file => { root.open-file(); } control(action,value) => { root.control(action,value); } }
+                if root.page == 2: Rectangle {
+                    ScrollView { width: parent.width; height: parent.height; viewport-width: self.width;
+                        VerticalLayout { padding: 24px; spacing: 10px;
+                            if root.recent.length == 0: Text { text: "还没有打开的文件"; color: Theme.muted; height: 60px; }
+                            for track in root.recent: QueueRow { track: track; clicked => { root.control("open-recent", "" + track.item-id); } }
                         }
                     }
-                    if root.page != 3: VerticalLayout { width: 122px; alignment: center; ActionButton { text: "打开文件"; icon: Icons.plus; clicked => { root.open-file(); } } }
                 }
-                if root.page == 0: MusicPage { tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } }
-                if root.page == 1: VideoPage { open-file => { root.open-file(); } }
-                if root.page == 2: RecentPage { open-file => { root.open-file(); } }
-                if root.page == 3: SettingsPage { }
-                Rectangle {
-                    height: 32px;
-                    HorizontalLayout {
-                        padding-left: 28px;
-                        padding-right: 28px;
-                        spacing: 7px;
-                        Rectangle { width: 4px; height: 4px; y: (parent.height - self.height) / 2; border-radius: 2px; background: Theme.faint; }
-                        Text { text: root.status-message; color: Theme.faint; font-size: 10px; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
-                    }
+                if root.page == 3: SettingsPage {
+                    bindings: root.shortcut-rows; seek-step: root.seek-step; volume-step: root.volume-step; hold-ms: root.hold-ms; hold-speed: root.hold-speed;
+                    edit-binding(index,value) => { root.shortcut-edited(index,value); }
+                    control(action,value) => { root.control(action,value); }
+                }
+                if root.page != 1 || root.status-message != "": Rectangle {
+                    height: root.page == 1 ? 24px : 28px; background: root.page == 1 ? #101719 : transparent;
+                    Text { x: 24px; width: parent.width - 48px; height: parent.height; text: root.status-message; color: Theme.muted; font-size: 10px; vertical-alignment: center; overflow: elide; }
                 }
             }
-            Rectangle {
-                width: 232px;
-                background: #171d21;
-                Rectangle { x: 0px; y: 0px; width: 1px; height: parent.height; background: #252d31; }
-                VerticalLayout {
-                    padding-left: 16px;
-                    padding-right: 16px;
-                    padding-top: 24px;
-                    padding-bottom: 20px;
-                    spacing: 12px;
-                    HorizontalLayout {
-                        height: 28px;
-                        Text { text: "播放队列"; color: Theme.text; font-size: 14px; font-weight: 600; horizontal-stretch: 1; vertical-alignment: center; }
-                        Badge { text: "" + root.queue.length; }
-                    }
-                    Text { text: "示例队列 · 点击预览"; color: Theme.faint; font-size: 10px; height: 24px; }
-                    ScrollView {
-                        vertical-stretch: 1;
-                        viewport-width: self.width;
-                        VerticalLayout {
-                            spacing: 6px;
-                            for track in root.queue: QueueRow {
-                                track: track;
-                                selected: root.selected-id == track.item-id;
-                                clicked => { root.select-preview(track.item-id); }
-                            }
-                            Rectangle { vertical-stretch: 1; }
-                        }
-                    }
-                    Rectangle {
-                        height: 88px;
-                        border-radius: 9px;
-                        background: #1d2728;
-                        VerticalLayout {
-                            padding: 14px;
-                            spacing: 8px;
-                            HorizontalLayout { spacing: 8px; Icon { icon: Icons.headphones; tint: Theme.accent; width: 16px; } Text { text: "听见更多细节"; color: Theme.accent; font-size: 11px; font-weight: 600; } }
-                            Text { text: "输出设备与声音调整，\n在设置里轻松管理。"; color: Theme.muted; font-size: 10px; }
-                        }
-                    }
-                }
+            if root.panel-open: VideoOptions {
+                width: 370px; devices: root.device-names; device-index: root.device-index;
+                audio-tracks: root.audio-tracks; audio-index: root.audio-index; subtitle-tracks: root.subtitle-tracks; subtitle-index: root.subtitle-index;
+                chapters: root.chapters; info: root.media-info; decode-mode: root.decode-mode; decode-threads: root.decode-threads;
+                decode-scope: root.decode-scope; decode-origin: root.decode-origin; deinterlace: root.deinterlace; deband: root.deband;
+                queue: root.queue; selected-id: root.selected-id;
+                control(action,value) => { root.control(action,value); }
             }
         }
         PlayerBar {
-            title: root.selected-title;
-            artist: root.selected-artist;
-            duration: root.selected-duration;
-            cover: root.selected-cover;
-            volume: root.volume;
-            favorite: root.favorite;
-            play => { root.request-playback(); }
-            previous => { root.previous(); }
-            next => { root.next(); }
-            volume-changed(value) => { root.volume-changed(value); }
-            toggle-favorite => { root.toggle-favorite(); }
+            compact: root.page == 1; playing: root.playing; has-media: root.has-media; seekable: root.seekable;
+            title: root.selected-title; artist: root.selected-artist; duration: root.selected-duration; position: root.position-text;
+            progress: root.progress; cover: root.selected-cover; volume: root.volume; favorite: root.favorite; muted: root.muted;
+            speed-index: root.speed-index; speed-text: root.speed-text;
+            play => { root.request-playback(); } previous => { root.previous(); } next => { root.next(); }
+            volume-changed(value) => { root.volume-changed(value); } toggle-favorite => { root.toggle-favorite(); }
+            control(action,value) => { root.control(action,value); }
         }
     }
 }

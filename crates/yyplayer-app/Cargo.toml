@@ -14,6 +14,12 @@ player-core.workspace = true
 player-mpv.workspace = true
 player-platform.workspace = true
 player-ui.workspace = true
+slint.workspace = true
+serde_json.workspace = true
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "async-std"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
 
 [dev-dependencies]
 slint = { workspace = true, features = ["renderer-software", "software-renderer-path"] }

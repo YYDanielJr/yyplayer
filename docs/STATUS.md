@@ -1,67 +1,59 @@
 # YYPlayer 进度与证据
 
-## 当前状态
+更新：2026-10-01。当前交付为 **Windows 视频播放开发预览**，原始框架于 2026-09-30 完成。本轮先记录目标并初始化 Git，旧框架基线 `d10a4e8` 位于 main，开发位于 dev。
 
-- 2026-09-30：完成规划，随后按用户要求交付 **v0.0.1 Rust / Slint 框架与 UI 预览**。最初目录为空，未发现 Git 仓库。
-- 五个 crate 已建立：player-core、player-mpv、player-platform、player-ui、yyplayer-app。
-- 音乐 / 视频 / 最近打开 / 设置四页、主题、SVG 资源、示例队列与底部控制栏已实现。导航 / 搜索 / 选择 / 前后切换 / 收藏图标 / 音量预览连接到统一 controller，仅为内存中的界面交互。
-- 真实播放、媒体导入、输出设备、独占、EQ、字幕、硬解、系统集成、配置保存和媒体库未实现。占位 MpvEngine 返回 NotConnected，真实快照保持 Idle，能力全部 false。
-- Slint / slint-build 固定 1.17.1，Cargo.lock 已生成；普通应用为 Winit / FemtoVG / accessibility。软件截图及 PNG 编码为开发依赖。
-- 开发机：Windows，Rust 1.97.0 / Cargo 1.97.0，x86_64-pc-windows-msvc。工具链文件暂用已安装 stable；workspace MSRV 1.92 未单独验证。
-- 启动命令见 README“当前框架与快速启动”；版本与范围决定见 [ADR 0000](adr/0000-framework-preview.md)。
+## 本轮实际实现
 
-## 本轮改动与检查
+- 五个 crate 沿用：core 新增设置 / 快捷键 / 状态机；mpv 新增固定 runtime manifest、校验脚本、受控 loader、FFI、worker / render 租约；ui 新增 GPU 呈现和真实共用控件；app 新增事件 / controller / 文件对话框 / 原子持久化。
+- 本地音视频实际播放，多文件打开 / 拖放 / CLI / 最近文件、队列、暂停 / 停止 / seek、音量 / 静音 / 倍速、输出设备、轨道 / 外挂字幕 / 延迟、章节 / 逐帧 / PNG / 循环 / 比例均已接入。
+- 视频页紧凑、普通 / 最大化 / 全屏；音乐与视频共用 PlayerBar。音乐库专辑 / 封面仍为标注的示例，没有虚构实际文件 / 进度 / 设备状态。
+- 快捷键可配置；上下音量、左右短按默认 5 秒、长按默认 3x 后恢复；焦点 / 对话框 / 页面 / 媒体变化取消临时加速。实际运行信息包含请求与实际硬解路径。
+- 全局 → 最深祖先文件夹 → 单文件完整解码规则（后者优先）；自动 / 软件 / 硬件优先、线程 / 去隔行 / 去色带，保存并重载保留暂停 / 位置。设置与最近 30 个文件后台原子保存。
+- 正常视频 libmpv OpenGL → RGBA8 GPU FBO → Slint 借用纹理，不每帧 CPU 回读。开发预览路径决定见 [ADR 0001](adr/0001-libmpv-video.md)；原框架决定见 [ADR 0000](adr/0000-framework-preview.md)。
 
-改动：workspace / 锁文件 / 工具链文件 / .gitignore、五个 crate 的前后端代码、Slint 组件与页面、原创 SVG 图标和封面、开发截图例子、third_party/mpv/README、README / AGENTS / STATUS / ADR。
+## 实际验证
 
-| 实际执行 | 结果与适用范围 |
+本机 Windows 11 / Rust 1.97.0 / Slint 1.17.1，固定 mpv v0.41.0-1087-ge470f8986，RTX 5060 Laptop。详细 runtime / 驱动 / fixture hash 与未测场景见 [Windows 视频报告](validation/video-windows.md)。
+
+| 实际执行 | 结果 |
 | --- | --- |
-| `cargo check --workspace` | 首次受网络限制失败；获取依赖后定位并修复 Slint 编译错误。不是播放验收。 |
-| `cargo check --workspace --offline` | 通过，五个 crate 可编译。 |
-| `cargo fmt --all`、`cargo fmt --all -- --check` | 最终格式检查通过。 |
-| `cargo build --locked -p yyplayer-app --offline` | 最终 debug 构建通过，生成 target/debug/yyplayer.exe。 |
-| `cargo run --locked -p yyplayer-app --example ui-preview --offline -- --output docs/ui-preview.png` | 运行实际 Slint 组件、保存 PNG 并正常退出；人工查看音乐页，修复控件对齐、布局循环和装饰线位置。 |
+| 获取固定 runtime、archive / DLL SHA256、ABI 核对 | 通过，本地 DLL 可实际加载；二进制不提交。 |
+| cargo test --locked --workspace --all-targets --offline | 通过，5 个独立边界测试，services 在例子 target 复用，总 6 次执行。 |
+| cargo clippy --locked --workspace --all-targets --offline -- -D warnings | 通过。 |
+| cargo build --locked -p yyplayer-app --offline | Debug 通过。 |
+| cargo build --locked --release -p yyplayer-app --offline | Release 通过。 |
+| cargo fmt --all -- --check / git diff --check | 通过。 |
+| scripts/Test-Video.ps1 -SkipBuild | 真机通过 11 动作 / 暂停软解重载 / 规则持久化 / 独立软解 / 正常退出。 |
+| release 成品 7 秒运行 | NVDEC、192 次 render、进度 6.333 秒、无错误、exit 0。 |
+| 真实 GPU UI 截图与源帧对照 | 修复方向与 slider fill，对照确认；见 [截图](video-ui.png)。 |
 
-[音乐页截图](ui-preview.png) 为 2170 × 1575 物理像素（1240 × 900 逻辑像素，环境缩放 175%）。截图使用 Winit 软件渲染器；普通 FemtoVG 应用已经编译，生产 GPU 显示、其他页面交互与多屏 DPI 尚未做完整运行验收。
+脚本走生产 controller / 内核 / native window，不等于 OS 键盘 / 对话框逐项操作验收。所有功能广泛素材 / 设备矩阵和稳定性仍待补齐。此前探索阶段未通过的 render 日志不作为最终 Pass 证据；本轮固定构建的 ns/us 差异已写 ADR 和单测。
 
-遵照用户“只要框架、不要过多检验”的范围，未执行完整 clippy / tests / release，也未执行音视频播放、USB DAC、HDR、性能、长时运行或跨平台验收。没有 libmpv runtime build ID 或媒体 fixture hash；本轮没有下载播放内核。
+## 阶段状态
 
-## 任务状态
-
-| 任务 | 状态 | 证据 / 待办 |
+| 任务 | 状态 | 本轮证据 / 剩余 |
 | --- | --- | --- |
-| 文档规划 | Done | README 完整规格 / S00–S14 / 37 个验收场景；AGENTS 开发规则。 |
-| 本轮：前后端框架与 UI | Done（限定范围） | 五个 crate、四页 Slint UI、controller 绑定、锁文件、debug 构建与音乐页截图；不包含真实播放。 |
-| S00 | In progress | 工程 / 基本窗口 / 同版本 UI 编译器已建立；具体工具链固定、libmpv manifest / loader / 获取脚本、release 运行待完成。 |
-| S01 | Not started | 音频 probe；需内置声卡与实际 USB DAC。 |
-| S02A / S02B | Not started | GL / Windows 原生视频 probe 与 ADR。 |
-| S03 / S04 | In progress（仅框架） | 基本类型 / controller / 页面已建；真实 engine worker、异步状态、队列语义、导入与持久化未实现。 |
-| S05–S08 | Not started | Windows v0.1 实现与发行验收。 |
-| S09–S12 | Not started | Windows 日用功能、HDR、性能定型。 |
-| S13 | Not started | macOS / Wayland / X11 仅有 cfg 边界，未做跨平台编译与真机适配。 |
-| S14 | Not started | Windows v1.0 稳定性与正式发行。 |
+| 完整规划 / 原 UI 框架 | Done（各自限定范围） | README / AGENTS / ADR 0000；旧音乐布局截图 ui-preview.png。 |
+| 本轮：视频功能实现 | Done（开发预览范围） | 实际 engine / GPU / 控件 / 快捷键 / 规则 / 保存；目标见 README 顶部，资格限制见验证报告。 |
+| S00 | Partially verified | 可追溯 runtime、loader、锁文件、debug / release 已有；具体 toolchain pin、发行许可 / 依赖闭包未完成，MSRV 未测试。 |
+| S01 | In progress（共享音频输出） | 观察实际 WASAPI；独占 / USB DAC / bit-perfect / EQ 未实现与验证。 |
+| S02A | Partially verified | GL 合成本机 NVDEC / 软件播放、方向 / 帧数 / 退出通过；广泛格式、性能、跨平台待验。 |
+| S02B | Not started | Windows HWND / D3D11 / HDR 专项仍是候选。 |
+| S03 / S04 | In progress（真实实现） | worker、异步 UI、会话队列、导入、设置 / 最近保存已有；复杂竞态、DB、正式队列语义、库待补齐。 |
+| S05–S08 | In progress（部分功能） | 日常视频功能及控制已接；独占 / EQ / 发行 / 设备丢失策略 / 全素材矩阵未完成。 |
+| S09–S12 | Not started（专项） | 完整音乐库、gapless、续播、系统媒体键、HDR、性能定型未完成。 |
+| S13 | Not started | 仅 cfg / 库入口 / 设置路径预留，macOS / Wayland / X11 未编译 / 实机验证。 |
+| S14 | Not started | 安装 / 卸载、许可、长时稳定性与正式发布未完成。 |
 
-## 下一具体步骤
+## 接续步骤
 
-1. 补齐 S00：选择可追溯 Windows x64 libmpv 构建，建立 manifest / checksum / 获取脚本 / 受控 loader，固定具体 Rust 版本并验证。
-2. 建立独立 Engine worker、有界命令通道和快照投递，再允许真实引擎接入 controller；UI 回调不得直接同步调用 libmpv。
-3. 完成 S01 / S02 的真实音频和呈现 probe。通过后逐步使用真实状态替换 demo，不把示例数据写入媒体库或设备设置。
+1. 按验证报告人工用例补齐 OS 快捷键 / 对话框、多轨字幕、解码优先级、快速连续切文件 / EOF / 重播、窗口与设备变化。
+2. 固定 Rust release toolchain 并核对锁定依赖的 MSRV；选择应用 / Slint 许可和合格 runtime 对应源码 / notices，验证 portable 包依赖闭包。
+3. S01 的实际 USB DAC 独占、设备失联安全策略与 EQ；设备选择不能代替这些功能。
+4. 性能基准和原生 / HDR 资格，再执行跨平台编译及真机矩阵。
 
-暂无阻塞本轮交付的问题。Windows 最低系统版本、字体回退、可访问性、多屏布局、音视频硬件及跨平台能力仍需后续证据。
+无阻塞本轮开发预览的已知问题。尚未完成的资格条件不能写“支持所有平台 / 格式”“零拷贝”“HDR 输出”“独占已确认”。
 
-## 后续每轮记录模板
+## 后续每轮记录
 
-```text
-日期：
-任务 / 子步骤：
-前置检查：
-改动文件：
-检查命令 / 结果（实际执行）：
-运行环境 / runtime build ID：
-验收 ID / 素材 hash / 结果 / 证据路径：
-限制 / 未验证环境：
-已知缺陷 / 阻塞：
-下一具体步骤：
-```
-
-状态允许 Not started、In progress、Partially verified、Done、Blocked；硬件条件暂缺时记录条件，不把未测结果写成 Pass。阻塞不妨碍推进不依赖该条件的其他明确任务。
+记录日期、具体任务、修改范围、真实执行的检查、runtime / 驱动 / fixture hash、证据路径、未验条件、已知问题、下一具体动作。状态允许 Not started、In progress、Partially verified、Done、Blocked；用户范围优先，但不得把没跑过的检查写为通过。

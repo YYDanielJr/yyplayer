@@ -3,6 +3,7 @@
 mod bootstrap;
 mod controller;
 mod demo;
+mod services;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     bootstrap::run()

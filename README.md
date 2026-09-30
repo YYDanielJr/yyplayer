@@ -1,55 +1,116 @@
 # YYPlayer：Rust + Slint 音视频播放器
 
-> 更新日期：2026-09-30。已建立可运行的 Rust workspace 与 Slint 界面框架，当前是 **v0.0.1 界面预览**。真实播放、libmpv 加载、设备独占、EQ 和视频呈现尚未接入。下方完整规划仍是后续实施规格；[AGENTS.md](AGENTS.md) 是开发约束；[docs/STATUS.md](docs/STATUS.md) 记录实际进度。
+> 更新日期：2026-10-01。已从界面框架升级为 **Windows 视频播放开发预览**：真实 libmpv 播放、GPU 合成、设备 / 轨道选择、可配置快捷键及分级解码设置已接入。仍不是正式发行包；独占 / EQ / HDR 输出及其他平台验收留待后续。开发规则见 [AGENTS](AGENTS.md)，实际进度与证据见 [STATUS](docs/STATUS.md)。
 
-## 当前框架与快速启动
+## 当前实现与快速启动
 
-### 本轮视频功能目标（2026-09-30）
+### 本轮视频功能目标（实现前记录于 2026-09-30）
 
-用户要求本轮在真实 libmpv 内核上实现视频播放，并先初始化 Git，将既有框架保存为基线，在新 `dev` 分支开发。目标如下：
+1. 在真实 libmpv 上提供本地媒体打开 / 拖放 / 队列、播放暂停、进度、音量静音、倍速、输出设备、音轨字幕、媒体信息，以及窗口 / 最大化 / 全屏；优先给视频留空间。
+2. 综合哔哩哔哩与 PotPlayer 习惯：上下调音量，左右短按跳转默认 5 秒、长按临时默认 3 倍、释放恢复；可设置键位、步长、阈值和临时速度；编辑文本、打开选项及失焦时避免误触 / 残留加速。
+3. 显示素材信息和实际解码路径；支持全局、最近祖先文件夹、单文件解码策略及线程、去隔行、去色带；保存后重载当前文件，保留位置 / 暂停状态。
+4. 音视频共享播放控件，视频使用紧凑控制栏，音乐保留原有视觉；持久化设置和最近文件，错误可见。
+5. 先初始化 Git 并保留旧框架基线，再在新的 `dev` 分支编写；完成后更新文档。禁止把未测平台 / 设备或请求硬解写成已通过。
 
-1. 播放页提供打开媒体、队列、播放 / 暂停、进度、音量 / 静音、倍速、输出设备、音轨 / 字幕、媒体信息；支持普通窗口、最大化、全屏，优先把空间留给视频。
-2. 快捷键参考哔哩哔哩与 PotPlayer：上下调音量、左右短按 seek（默认 5 秒）、长按右键临时加速（默认 3 倍）、释放恢复原倍速，空格暂停，F / Enter 全屏，Esc 退出全屏。快捷键、步长、长按阈值和临时速度可配置；文本输入时不抢键，窗口失焦恢复临时速度。
-3. 展示实际 codec、分辨率、帧率、时长、轨道和当前软解 / 硬解路径；“请求硬解”不能当作“已启用硬解”。解码策略支持全局 → 最近祖先文件夹 → 单文件覆盖，允许自动 / 软件 / 硬件优先及相关选项；保存与重载当前文件时保持位置 / 暂停状态。
-4. 音视频共用一套真实播放命令和控件，视频页使用紧凑控制栏；保留音乐页视觉布局。媒体和设置持久化、错误恢复、运行时获取说明与验证记录随代码更新。
-5. 不把 mpv 构建、设备、GPU 或跨平台未验证条件标为通过。先补齐 loader / engine worker / 呈现集成，禁止 CPU 每帧截图作为正式视频输出。
+执行结果：旧框架基线提交 `d10a4e8` 保留在 `main`，本轮开发位于 `dev`。实现决策见 [视频合成 ADR](docs/adr/0001-libmpv-video.md)，运行证据见 [视频验证报告](docs/validation/video-windows.md)。原来的完整 S00–S14 规划保留在下方，是后续规格，不能当作所有功能已完成。
 
-本段为本轮目标，完成情况与剩余边界以 STATUS 和最终交付为准。
+### Windows 运行
 
-本轮按用户要求优先建立前后端框架和 UI，只做必要编译及界面预览。这个独立交付不表示 S00 的内核基线或音视频技术关卡已完成。范围决定见 [框架 ADR](docs/adr/0000-framework-preview.md)。
-
-Windows 开发需要 Rust MSVC 工具链与 Visual Studio C++ Build Tools / Windows SDK。本机使用 Rust 1.97.0、`x86_64-pc-windows-msvc`；workspace 声明 MSRV 1.92，但尚未在该最低版本验证全部锁定依赖。`rust-toolchain.toml` 暂用本机已安装的 stable，具体发布版本固定留在 S00。`slint` / `slint-build` 均固定为 **1.17.1**，应用使用 Winit + FemtoVG，关闭默认 features 并保留可访问性。
-
-在仓库根目录运行：
+需要 Rust MSVC 工具链和 Visual Studio C++ Build Tools / Windows SDK。本机使用 Rust / Cargo **1.97.0**、`x86_64-pc-windows-msvc`；Slint / slint-build 固定 **1.17.1**。工具链仍为已安装的 stable，MSRV 1.92 未专项验证。
 
 ```powershell
+# 首次克隆时获取固定、校验过的 Windows x64 运行时
+powershell -ExecutionPolicy Bypass -File scripts/Get-Mpv.ps1
 cargo run --locked -p yyplayer-app
+# 可直接带一个或多个本地文件路径
+cargo run --locked -p yyplayer-app -- "D:\Videos\example.mp4"
 ```
 
-首次构建需要获取 Cargo 依赖；这版预览无需安装 mpv。窗口默认 1240 × 900 逻辑像素，最小 1000 × 720，使用系统窗口边框。构建后也可直接运行 `target/debug/yyplayer.exe`。这不是可携带发行包。
+当前开发目录已获取运行时，无需重复下载。也可直接运行 `target/debug/yyplayer.exe`。应用缺少运行时仍显示窗口和错误提示；打开媒体需要 DLL。默认窗口 1240 × 900 逻辑像素，使用系统窗口边框。源代码、依赖和运行时获取首次需要网络，正常本地播放不需要网络。
 
-![音乐空间界面预览](docs/ui-preview.png)
+默认受控加载位置依次为可执行文件旁的 `runtime/libmpv-2.dll`、开发目录的 `third_party/mpv/windows-x64/libmpv-2.dll`；校验 DLL SHA256，检查 client API 2，不搜索 PATH。固定构建与许可边界见 [runtime 说明](third_party/mpv/README.md)。`YYPLAYER_MPV_LIBRARY` 是**显式开发者覆盖**，必须指向本机库；它绕过 manifest hash，不属于合格发行路径。macOS / Linux 仅留此库加载入口与平台边界，尚未验证编译 / 显示 / 音频适配。
 
-| 模块 | 已建立的职责与入口 |
+![真实视频页（自有测试素材）](docs/video-ui.png)
+
+### 已实现的播放功能
+
+- 多文件选择、拖放、命令行打开、最近文件列表、队列前后切换及 EOF 自动下一项。最近 30 个文件持久化，当前队列为会话数据。
+- 播放 / 暂停 / 停止、进度拖动、相对跳转、音量 0–100、静音、倍速下拉 0.5–4 倍（引擎支持 0.1–8 倍），变速开启音高修正。
+- 从内核实际枚举输出设备，选择设备；切换音轨 / 字幕、关闭字幕、打开外挂字幕、调音频 / 字幕延迟、章节跳转。
+- 上一帧 / 下一帧、保存视频 PNG 截图、单文件循环、A–B 循环、画面比例。
+- 普通窗口、最大化、全屏；双击视频切换全屏，滚轮调音量；退出全屏恢复此前窗口状态。
+- 播放选项侧板显示容器、codec、分辨率、帧率、像素 / 色彩信息、音频格式、实际 `hwdec-current`、请求策略、输出 API、掉帧与内核版本。
+- 共用 `PlayerBar`：视频高 70px、音乐高 104px。视频隐藏媒体库侧栏，全屏隐藏顶部栏；选项关闭后把区域还给视频。音频文件根据真实流信息切到音乐页，音乐库的封面 / 专辑仍是明确标注的示例内容。
+
+打开右上角“播放选项”可访问设备、轨道、信息和解码；其中“编辑播放快捷键”进入设置页。关闭选项或 Esc 返回播放；高级选项收纳在可滚动面板里。
+
+### 默认快捷键
+
+| 键位 / 操作 | 行为 |
 | --- | --- |
-| `player-core` | `types.rs`：媒体源、队列 ID、音频请求、播放命令；`state.rs`：真实播放快照；`engine.rs`：引擎 trait、能力与错误。无 GUI / OS 依赖。 |
-| `player-mpv` | `MpvEngine` 占位实现，真实快照保持 Idle，播放操作返回 NotConnected，Shutdown 可安全调用。没有 DLL / FFI。 |
-| `player-platform` | 按 cfg 分离 Windows / macOS / Linux，当前只提供平台名称；系统集成和 native handle 留待后续实现。 |
-| `player-ui` | `UiShell` 绑定操作与投影视图模型；`.slint` 页面、主题、基础控件、SVG 图标和原创示例封面。UI 不持有 mpv handle。 |
-| `yyplayer-app` | `bootstrap.rs` 组装、`controller.rs` 统一处理意图、`demo.rs` 提供独立展示数据，退出显式提交 Shutdown。 |
+| Space | 播放 / 暂停 |
+| Up / Down | 音量 ±5；按住可重复 |
+| Left / Right 短按 | 松开时向后 / 前跳 5 秒 |
+| Left / Right 长按 | 达到 350ms 后临时 3 倍，松开恢复原速度，不再额外跳转 |
+| F / Enter / 双击画面 | 切换全屏 |
+| Escape | 退出全屏或关闭选项 |
+| M | 静音 |
+| Tab | 开关播放选项 / 信息 |
+| Ctrl+O | 打开文件 |
+| D | 下一帧（暂停逐帧） |
 
-界面包含音乐空间、视频剧场、最近打开、设置四页，以及侧栏、示例队列和底部控制栏。导航、示例搜索、曲目选择、前后切换、收藏图标和音量预览能够交互，全部仅保存在当前进程内；示例标题、时长和封面不是实际媒体文件，也不会驱动播放进度。文件打开 / 播放点击会显示尚未开放提示，设备与 EQ 控件为待接入状态。
+设置页可修改 10 项键位、seek / 音量步长、长按阈值和速度，保存时检查冲突与范围。支持 Ctrl / Alt / Shift、字母数字、方向键、F1–F24、Home / End / PageUp / PageDown 等。裸 Enter / Escape 保留给窗口操作。设置页、播放选项打开及搜索输入时不抢播放快捷键；失焦、弹文件对话框、换媒体或切换窗口状态会恢复临时速度。键位显示使用规范化文本，例如 `Ctrl+Right`，并非与两个参考播放器逐键完全一致。
 
-开发截图工具复用实际 Slint 组件，通过独立的软件渲染器保存 PNG，随后退出。软件渲染器与 PNG 编码只作为开发依赖，不改变普通应用的 FemtoVG 路径；截图不证明生产 GPU 呈现或媒体播放已通过。
+### 分级解码设置与保存
+
+优先级为 **单文件 > 最深匹配的祖先文件夹 > 全局**。通过文件对话框 / 拖放异步规范化路径，按路径组件匹配，避免把相似前缀的另一个目录纳入规则；当前 UI 的文件夹规则作用于正在播放文件的父文件夹及其子目录。各级保存完整选项，不逐字段混合；清除覆盖后继承下一层，全局清除恢复默认。
+
+| 选项 | 实际含义 |
+| --- | --- |
+| 自动 | `hwdec=auto-safe`，兼容性优先 |
+| 软件解码 | `hwdec=no` |
+| 硬件优先 | `hwdec=auto-copy`，尝试 copy 硬解，仍可回退软件；不保证更快 / 零拷贝 |
+| 线程 0–32 | FFmpeg 软件解码线程，0 自动；并非所有 codec / 硬解都采纳 |
+| 去隔行 / 去色带 | 对当前输出管线启用对应处理，可能增加开销 |
+
+“保存并重新加载”保留位置和暂停状态。只改变全局规则时，已有单文件 / 文件夹规则仍优先。实际硬解能力取决于 GPU、驱动、codec 和内核；查看信息中的实际路径，不能凭设置下拉判断成功。
+
+Windows 设置位于 `%APPDATA%\YYPlayer\settings.json`；macOS 预留 `~/Library/Application Support/YYPlayer/settings.json`，Linux 预留 `$XDG_CONFIG_HOME/YYPlayer/settings.json`（未设置则 `~/.config/YYPlayer`）。保存为版本化 JSON，后台写临时文件、同步后原子替换；坏配置备份并用默认值启动，提示原因。开发 / 验证可用 `YYPLAYER_CONFIG` 指向独立文件。
+
+### 模块与线程边界
+
+| 模块 | 当前职责 |
+| --- | --- |
+| `player-core` | 命令 / 快照、分级规则、快捷键与长按状态机；无 GUI / mpv / OS 依赖。 |
+| `player-mpv` | 受控动态 loader、锁定头文件 ABI、单 worker 的 mpv 调用、64 项有界命令通道、最新快照、render 生命周期租约。 |
+| `player-platform` | Windows / macOS / Linux cfg 边界；系统媒体键、热插拔策略仍待接入。 |
+| `player-ui` | Slint 页面、共用控件、增量模型投影、当前 GL 上下文中 libmpv → RGBA8 FBO → 借用纹理。 |
+| `yyplayer-app` | controller、窗口 / 键盘事件、60ms UI 状态投影、后台文件对话框 / 路径处理与配置持久化、显式安全退出。 |
+
+正常视频不做每帧 CPU 回读 / 上传；debug 的 `YYPLAYER_UI_CAPTURE` 仅做一次开发截图。UI 回调只提交命令，普通 mpv 调用在 worker；mpv 更新回调合并唤醒，呈现器按目标时刻请求重绘。GPU 合成使用 SDR RGBA8，不承诺 HDR 显示输出或解码到显示的全程零拷贝。Windows HWND / D3D11 专项仍在规划中。
+
+### 验证与后续边界
 
 ```powershell
-cargo run --locked -p yyplayer-app --example ui-preview -- --output docs/ui-preview.png
-cargo run --locked -p yyplayer-app --example ui-preview -- --page settings --output docs/settings-preview.png
+cargo fmt --all -- --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace --all-targets
+cargo build --locked --release -p yyplayer-app
+# Windows 真机验证：需要 ffmpeg，使用隔离配置和自行生成的 24 秒测试文件
+powershell -ExecutionPolicy Bypass -File scripts/Test-Video.ps1
 ```
 
-`--page` 可取 `music`、`video`、`recent`、`settings`。默认中文字体为 Microsoft YaHei UI；跨平台字体回退效果、Wayland / X11 和 macOS 尚未实机验证。
+验证脚本驱动生产 controller / engine，记录真实状态和 GPU 帧数，检查倍速、暂停、静音、窗口、软解重载位置与持久化；它不是操作系统键盘事件自动化。长按 / 按键冲突另有状态机测试。测试素材、配置、runtime 二进制不提交；脚本不覆盖用户默认配置。详细结果与未测场景见 [验证报告](docs/validation/video-windows.md)。
 
-继续开发时先补齐 S00 的受控 runtime / loader 与工具链锁定，再进行 S01 / S02。当前 controller 使用主线程 `Rc<RefCell<_>>` 处理即时预览操作；接入实际内核前必须替换为第 5 节的有界命令通道与异步快照投递，禁止在 UI 回调里增加解码、磁盘扫描或同步 mpv 调用。
+仍待实现 / 资格验证：USB DAC 独占与 EQ、完整音乐库 / 持久化收藏、网络播放 UI、续播数据库、安装包 / 文件关联 / 系统媒体键、HDR、设备丢失安全策略、广泛格式 / 字幕矩阵、长时稳定性、性能基准及 macOS / Wayland / X11。已有设备选择并不证明独占；没有测试这些条件就不能宣称达到完整 PotPlayer 日用体验。
+
+保留框架布局截图工具（不连接真实内核）：
+
+```powershell
+cargo run --locked -p yyplayer-app --example ui-preview -- --page music --output docs/ui-preview.png
+```
+
+`--page` 支持 music / video / recent / settings，默认中文字体 Microsoft YaHei UI；其他平台字体回退仍待验证。以下完整规划中原生呈现候选已被本轮 [ADR 0001](docs/adr/0001-libmpv-video.md) 的开发预览 GL 决策细化，发行目标继续按证据推进。
 
 ## 1. 选型结论
 
@@ -126,7 +187,7 @@ Slint 的 Winit 后端支持 Windows、macOS、X11、Wayland，并提供渲染�
 
 截至规划日期，mpv 官网稳定版手册指向 **0.41.0**，Slint 在线 Rust API 文档显示 **1.18.1**。以这些版本作为技术样机候选，之后按实测锁定；此处不是已完成的兼容性认证。[mpv 稳定版入口](https://mpv.io/manual/index.html)，[Slint Rust API](https://docs.slint.dev/latest/docs/rust/slint/)
 
-框架实际选用本机已有基础依赖的 Slint **1.17.1**，与编译器同版本精确锁定并提交 Cargo.lock；1.18.1 仍是后续升级候选，不能将两版 API 混用。其余表中 runtime、通道、配置等组件仍是规划，尚未引入。
+实际选用 Slint **1.17.1**，与编译器同版本精确锁定并提交 Cargo.lock；1.18.1 仍是后续升级候选，不能将两版 API 混用。本轮已引入固定 git runtime、libloading、crossbeam-channel、glow、serde / serde_json、rfd 和最小 Windows 文件 API；表中日志 / TOML / DB 等仍属后续候选，当前配置采用版本化 JSON。
 
 | 层 | 选择 |
 | --- | --- |
@@ -150,11 +211,11 @@ Slint 的 Winit 后端支持 Windows、macOS、X11、Wayland，并提供渲染�
 
 mpv 官网列出的 Windows 二进制通常来自第三方构建，不能把它们称为 mpv 官方稳定发布包。[mpv 安装页面](https://mpv.io/installation/)
 
-建立 `third_party/mpv/runtime-manifest.toml`，每个目标平台必须记录：mpv 版本 / commit、下载地址或构建配方、压缩包 SHA-256、每个二进制的 SHA-256、DLL / dylib / so 文件名、C API 版本、架构、FFmpeg / libass / libplacebo 版本、构建选项、依赖文件和 license / 对应源码位置。
+当前建立 `third_party/mpv/manifest.json` 记录 Windows 开发运行时；正式发行时每个目标平台还必须补齐：mpv 版本 / commit、下载地址或构建配方、压缩包 SHA-256、每个二进制的 SHA-256、DLL / dylib / so 文件名、C API 版本、架构、FFmpeg / libass / libplacebo 版本、构建选项、依赖文件和 license / 对应源码位置。
 
 Windows 可以调用 MinGW 构建的 libmpv C ABI，但必须验证架构、ABI 和全部运行时依赖；不将 MinGW C++ ABI 暴露到 Rust。**有 `mpv.exe` 不等于有可嵌入的 libmpv DLL。** DLL 名称以 manifest 为准，不凭记忆假设一定叫 `mpv-2.dll`。
 
-开发目录采用 `third_party/mpv/<target>/<build-id>/`，不把大型二进制提交进 Git。开发者获取脚本必须校验 hash。最终应用自带合格运行时，不依赖用户 PATH、MSYS2 或另装 mpv。
+开发目录当前采用 `third_party/mpv/windows-x64/`，版本锁在 manifest；扩展多目标 / 多构建时采用 `third_party/mpv/<target>/<build-id>/`，不把大型二进制提交进 Git。开发者获取脚本必须校验 hash。最终应用自带合格运行时，不依赖用户 PATH、MSYS2 或另装 mpv。
 
 启动验证：库能加载 → 必需符号齐全 → `mpv_client_api_version()` 满足绑定 → 初始化成功 → 核心选项 / 属性能力齐全。任何失败显示具体缺失项，不在用户机器上自动下载“最新 DLL”。缺少 P0 能力必须阻止错误功能启用；缺少可选能力隐藏或禁用相应入口。
 
@@ -216,7 +277,7 @@ yyplayer/
 
 ### 5.1 核心数据
 
-下列为完整目标接口语义；框架只实现了基本类型与边界，详细能力以实际代码和 STATUS 为准：
+下列为完整目标接口语义；视频预览已实现其中播放、规则、快捷键和 render 桥部分，其他能力以实际代码和 STATUS 为准：
 
 | 类型 | 必需内容 |
 | --- | --- |

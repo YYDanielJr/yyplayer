@@ -25,4 +25,35 @@ pub struct PlaybackSnapshot {
     pub duration: Option<Duration>,
     pub audio_output: Option<String>,
     pub exclusive_confirmed: Option<bool>,
+    pub ready: bool,
+    pub title: String,
+    pub video: bool,
+    pub speed: f64,
+    pub volume: f32,
+    pub muted: bool,
+    pub devices: Vec<AudioDevice>,
+    pub tracks: Vec<MediaTrack>,
+    pub chapters: Vec<Chapter>,
+    pub info: String,
+    pub hwdec: String,
+    pub error: String,
+    pub runtime: String,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct AudioDevice {
+    pub id: String,
+    pub name: String,
+}
+#[derive(Clone, Debug, Default)]
+pub struct MediaTrack {
+    pub id: i64,
+    pub kind: String,
+    pub label: String,
+    pub selected: bool,
+}
+#[derive(Clone, Debug, Default)]
+pub struct Chapter {
+    pub title: String,
+    pub seconds: f64,
 }

@@ -15,6 +15,7 @@ pub struct EngineCapabilities {
 pub enum EngineError {
     NotConnected,
     Unsupported(&'static str),
+    Failed(String),
 }
 
 impl fmt::Display for EngineError {
@@ -22,6 +23,7 @@ impl fmt::Display for EngineError {
         match self {
             Self::NotConnected => formatter.write_str("播放功能尚未开放"),
             Self::Unsupported(feature) => write!(formatter, "尚不支持：{feature}"),
+            Self::Failed(message) => formatter.write_str(message),
         }
     }
 }

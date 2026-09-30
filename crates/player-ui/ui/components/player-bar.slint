@@ -1,66 +1,49 @@
+import { ComboBox } from "std-widgets.slint";
 import { Theme, Icons } from "../theme.slint";
 import { Cover } from "media.slint";
-import { Icon, IconButton, QuietSlider, Badge } from "controls.slint";
-
+import { Icon, IconButton, QuietSlider } from "controls.slint";
 export component PlayerBar inherits Rectangle {
-    in property <string> title;
-    in property <string> artist;
-    in property <string> duration;
-    in property <int> cover;
-    in property <float> volume;
-    in property <bool> favorite;
-    callback play();
-    callback previous();
-    callback next();
-    callback volume-changed(float);
-    callback toggle-favorite();
-    height: 104px;
-    background: #171d21;
-    Rectangle { x: 0px; y: 0px; height: 1px; width: parent.width; background: Theme.border; }
-    HorizontalLayout {
-        padding-left: 24px;
-        padding-right: 24px;
-        spacing: 24px;
+    in property <bool> compact; in property <bool> playing; in property <bool> has-media;
+    in property <bool> seekable; in property <bool> muted;
+    in property <string> title; in property <string> artist; in property <string> duration;
+    in property <string> position; in property <float> progress;
+    in property <int> cover; in property <float> volume; in property <bool> favorite;
+    in property <int> speed-index; in property <string> speed-text;
+    callback play(); callback previous(); callback next(); callback volume-changed(float);
+    callback toggle-favorite(); callback control(string, string);
+    height: root.compact ? 70px : 104px; background: #171d21;
+    Rectangle { x: 0px; y: 0px; width: parent.width; height: 1px; background: Theme.border; }
+    VerticalLayout {
+        padding-left: 20px; padding-right: 20px; spacing: 0px; alignment: center;
         HorizontalLayout {
-            width: 258px;
-            spacing: 12px;
-            VerticalLayout { width: 56px; alignment: center; Cover { artwork-id: root.cover; width: 56px; height: 56px; } }
+            height: 24px; spacing: 12px;
+            Text { text: root.position; width: 54px; color: Theme.muted; font-size: 10px; vertical-alignment: center; }
+            QuietSlider { value: root.progress; enabled: root.seekable; label: "播放进度"; horizontal-stretch: 1; edited(value) => { root.control("seek-percent", "" + value); } }
+            Text { text: root.duration; width: 54px; color: Theme.muted; font-size: 10px; vertical-alignment: center; horizontal-alignment: right; }
+        }
+        HorizontalLayout {
+            height: root.compact ? 42px : 72px; spacing: 12px;
+            if !root.compact: VerticalLayout { width: 48px; alignment: center; Cover { artwork-id: root.cover; width: 48px; height: 48px; } }
             VerticalLayout {
-                alignment: center;
-                spacing: 6px;
-                horizontal-stretch: 1;
+                width: root.compact ? 160px : 210px; alignment: center; spacing: 5px;
                 Text { text: root.title; color: Theme.text; font-size: 12px; font-weight: 600; overflow: elide; }
-                Text { text: root.artist; color: Theme.muted; font-size: 10px; overflow: elide; }
+                if !root.compact: Text { text: root.artist; color: Theme.muted; font-size: 10px; overflow: elide; }
             }
-            VerticalLayout { width: 36px; alignment: center; IconButton { icon: Icons.heart; label: "收藏示例曲目"; active: root.favorite; clicked => { root.toggle-favorite(); } } }
-        }
-        VerticalLayout {
-            alignment: center;
-            horizontal-stretch: 1;
-            spacing: 6px;
-            HorizontalLayout {
-                alignment: center;
-                spacing: 12px;
-                IconButton { icon: Icons.previous; label: "上一个示例"; clicked => { root.previous(); } }
-                IconButton { icon: Icons.play; label: "播放（尚未开放）"; primary: true; width: 38px; height: 38px; clicked => { root.play(); } }
-                IconButton { icon: Icons.next; label: "下一个示例"; clicked => { root.next(); } }
-            }
-            HorizontalLayout {
-                spacing: 12px;
-                height: 24px;
-                Text { text: "0:00"; color: Theme.faint; font-size: 10px; width: 30px; vertical-alignment: center; }
-                QuietSlider { value: 0; enabled: false; label: "播放进度（尚未开放）"; horizontal-stretch: 1; }
-                Text { text: root.duration; color: Theme.faint; font-size: 10px; width: 30px; vertical-alignment: center; }
-            }
-        }
-        HorizontalLayout {
-            width: 225px;
-            alignment: end;
-            spacing: 12px;
-            VerticalLayout { width: 42px; alignment: center; Badge { text: "预览"; } }
-            Icon { icon: Icons.volume; width: 18px; }
-            VerticalLayout { width: 82px; alignment: center; QuietSlider { value: root.volume; label: "预览音量"; width: 82px; edited(value) => { root.volume-changed(value); } } }
-            Text { text: round(root.volume) + "%"; color: Theme.faint; font-size: 10px; width: 32px; vertical-alignment: center; }
+            if !root.compact: VerticalLayout { width: 32px; alignment: center; IconButton { icon: Icons.heart; label: "收藏"; active: root.favorite; clicked => { root.toggle-favorite(); } } }
+            Rectangle { horizontal-stretch: 1; }
+            VerticalLayout { width: 32px; alignment: center; IconButton { icon: Icons.previous; label: "上一个"; clicked => { root.previous(); } } }
+            VerticalLayout { width: 32px; alignment: center; IconButton { icon: Icons.seek-back; label: "快退（使用设置步长）"; clicked => { root.control("back", ""); } } }
+            VerticalLayout { width: 38px; alignment: center; IconButton { icon: root.playing ? Icons.pause : Icons.play; primary: true; width: 36px; height: 36px; label: "播放 / 暂停"; clicked => { root.play(); } } }
+            VerticalLayout { width: 32px; alignment: center; IconButton { icon: Icons.seek-forward; label: "快进（使用设置步长）"; clicked => { root.control("forward", ""); } } }
+            VerticalLayout { width: 32px; alignment: center; IconButton { icon: Icons.next; label: "下一个"; clicked => { root.next(); } } }
+            Rectangle { horizontal-stretch: 1; }
+            VerticalLayout { width: 88px; alignment: center; ComboBox { model: ["0.5x", "0.75x", "1x", "1.25x", "1.5x", "2x", "3x", "4x"]; current-index: root.speed-index; selected(value) => { root.control("speed", value); } } }
+            Text { text: root.speed-text; color: Theme.accent; width: 62px; font-size: 10px; vertical-alignment: center; }
+            VerticalLayout { width: 30px; alignment: center; IconButton { icon: Icons.volume; label: "静音 / 取消静音"; active: root.muted; clicked => { root.control("mute", ""); } } }
+            VerticalLayout { width: 86px; alignment: center; QuietSlider { value: root.volume; width: 86px; label: "音量"; edited(value) => { root.volume-changed(value); } } }
+            Text { text: round(root.volume) + "%"; width: 32px; color: Theme.muted; font-size: 10px; vertical-alignment: center; }
+            VerticalLayout { width: 30px; alignment: center; IconButton { icon: Icons.sliders; label: "输出设备 / 轨道 / 解码 / 信息"; clicked => { root.control("panel", ""); } } }
+            if root.compact: VerticalLayout { width: 30px; alignment: center; IconButton { icon: Icons.grid; label: "全屏"; clicked => { root.control("fullscreen", ""); } } }
         }
     }
 }

@@ -129,8 +129,8 @@ export component QuietSlider inherits Rectangle {
     min-width: 64px;
     accessible-role: slider;
     accessible-label: root.label;
-    Rectangle { y: 10px; height: 4px; width: parent.width; border-radius: 2px; background: Theme.border; }
-    Rectangle { y: 10px; height: 4px; width: max(0px, min(parent.width, parent.width * root.value / 100)); border-radius: 2px; background: root.enabled ? Theme.accent : Theme.faint; }
+    Rectangle { x: 0px; y: 10px; height: 4px; width: parent.width; border-radius: 2px; background: Theme.border; }
+    Rectangle { x: 0px; y: 10px; height: 4px; width: max(0px, min(parent.width, parent.width * root.value / 100)); border-radius: 2px; background: root.enabled ? Theme.accent : Theme.faint; }
     if root.enabled: Rectangle { x: max(0px, min(parent.width - 10px, parent.width * root.value / 100 - 5px)); y: 7px; width: 10px; height: 10px; border-radius: 5px; background: Theme.accent; }
     focus := FocusScope {
         enabled: root.enabled;

@@ -8,6 +8,9 @@ build = "build.rs"
 
 [dependencies]
 slint.workspace = true
+player-core.workspace = true
+player-mpv.workspace = true
+glow.workspace = true
 
 [build-dependencies]
 slint-build.workspace = true

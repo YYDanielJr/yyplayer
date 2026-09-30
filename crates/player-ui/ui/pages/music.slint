@@ -8,6 +8,7 @@ export component MusicPage inherits Rectangle {
     in property <[TrackRow]> tracks;
     in property <int> selected-id;
     callback select-preview(int);
+    callback select-demo-album(int);
     background: transparent;
     ScrollView {
         width: parent.width;
@@ -43,9 +44,9 @@ export component MusicPage inherits Rectangle {
             }
             HorizontalLayout {
                 spacing: 18px;
-                AlbumCard { artwork-id: 0; title: "夜色之间"; subtitle: "YYPlayer Sessions · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-preview(0); } }
-                AlbumCard { artwork-id: 1; title: "慢下来"; subtitle: "Studio North · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-preview(1); } }
-                AlbumCard { artwork-id: 2; title: "日光片刻"; subtitle: "The Sunday Project · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-preview(2); } }
+                AlbumCard { artwork-id: 0; title: "夜色之间"; subtitle: "YYPlayer Sessions · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-demo-album(0); } }
+                AlbumCard { artwork-id: 1; title: "慢下来"; subtitle: "Studio North · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-demo-album(1); } }
+                AlbumCard { artwork-id: 2; title: "日光片刻"; subtitle: "The Sunday Project · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-demo-album(2); } }
             }
             HorizontalLayout {
                 height: 24px;
@@ -60,7 +61,7 @@ export component MusicPage inherits Rectangle {
                     selected: track.item-id == root.selected-id;
                     clicked => { root.select-preview(track.item-id); }
                 }
-                if root.tracks.length == 0: Text { text: "没有匹配的示例曲目"; color: Theme.muted; height: 60px; vertical-alignment: center; horizontal-alignment: center; font-size: 12px; }
+                if root.tracks.length == 0: Text { text: "没有匹配的曲目"; color: Theme.muted; height: 60px; vertical-alignment: center; horizontal-alignment: center; font-size: 12px; }
             }
         }
     }

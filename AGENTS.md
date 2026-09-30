@@ -1,12 +1,12 @@
 # YYPlayer 开发执行规则
 
-本文件面向后续人类开发者和代码代理。产品目标、选型依据、模块接口与逐阶段任务以 [README.md](README.md) 为准。当前已有 Rust / Slint 框架与界面预览；真实播放和系统能力未接入。不能把规划描述或示例 UI 当成已实现功能。
+本文件面向后续人类开发者和代码代理。产品目标、选型依据、模块接口与逐阶段任务以 [README.md](README.md) 为准。当前已接入 Windows libmpv 视频开发预览：真实播放、GPU 合成、分级解码设置和快捷键已实现；独占 / EQ、系统集成和跨平台验收仍未完成。不能把规划描述或示例 UI 当成已实现功能。
 
 ## 1. 接手时的执行顺序
 
 1. 读 README 中选型结论、视频呈现、音频策略与当前任务对应章节。
 2. 读 [docs/STATUS.md](docs/STATUS.md)，检查实际文件、工作区修改、runtime manifest、上一任务的验收证据。
-3. 用户没有另行指定范围时，从 S00 起按前置依赖选取第一个未完成任务。当前 UI 优先交付来自用户明确要求，范围见 `docs/adr/0000-framework-preview.md`；后续复用现有框架补齐 S00，不重新创建工程。
+3. 用户没有另行指定范围时，从 S00 起按前置依赖选取第一个未完成任务。当前 UI 优先交付来自用户明确要求，范围见 `docs/adr/0000-framework-preview.md`；本轮视频优先交付见 ADR 0001；复用现有实现并按 STATUS 补齐剩余资格验证，不重新创建工程。
 4. 写清本轮目标、涉及模块、验收方式；实现一个可审查的任务或其明确子步骤。
 5. 完成适当检查与运行验证，把结果、限制和下一具体步骤写入 STATUS。环境缺失记录待验证，完成其他独立工作。
 
@@ -17,7 +17,7 @@
 - Rust + Slint + libmpv，音视频使用统一内核和 AppController。
 - Windows 优先；首发 x64 MSVC。平台逻辑隔离，保留 macOS、Wayland、X11 空间。
 - 技术关卡必须先验证：共享 / 独占音频、GL Render API 合成、Windows HWND / D3D11 呈现。
-- Windows 默认候选是合格的原生呈现路径；GL 合成负责可叠加 UI 和跨平台候选。最终决策以 S02 的 ADR / 实测为准。
+- 当前 Windows 开发预览采用 GL Render API + Slint 借用纹理，事实与限制见 ADR 0001；HWND / D3D11 和 HDR 输出专项仍需独立验证。
 - 不默认引入第二套音频引擎、自建时钟、插件系统、网络服务或全局异步 runtime。
 
 必要选型变化写入 `docs/adr/`：背景、事实证据、候选、决定、影响和验证。不能仅因为 wrapper API 不方便换内核。
@@ -26,7 +26,7 @@
 
 - Slint 组件在主线程创建与修改，worker 使用合并投递与弱引用。
 - 普通 libmpv 调用属于 Engine 线程；UI 回调只提交命令，不能等待 Engine。
-- 当前占位引擎仅返回即时错误，controller 在主线程处理 UI 预览。实现 loader / 播放前建立 worker、命令通道与快照投递，再接通 UI；不能在当前同步回调中直接增加 libmpv 调用。
+- 已有 MpvEngine worker、64 项有界命令通道、最新快照和 render 租约。controller 仅提交命令；禁止把普通同步 mpv 调用搬到 UI / GL notifier。初始化 / 退出也必须保持该边界。
 - GL notifier / render 线程只操作允许的 render API；不能同时发普通同步 mpv 命令，不能持有 Engine 需要的锁。
 - mpv 回调只做非阻塞唤醒，不能 render、更新 UI、等待或执行重工作。
 - OpenGL render 调用串行，使用创建 render context 时相同的当前上下文。
@@ -76,8 +76,18 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 
 交付说明用中文，简述实现结果、验证、限制。不能以“已支持所有平台”“完美音质”“零拷贝”“无缝”“HDR”替代明确的适用组合与测量。
 
-## 7. 下一实现任务
+## 7. 接续当前实现
 
-补齐 README 的 **S00**：复用已有五个 crate 与 Slint 窗口，固定具体工具链版本，建立可复现 libmpv runtime manifest / loader / 获取脚本，并记录 Windows 运行结果。其后执行 S01 与 S02 能力关卡。
+先查 STATUS 与 ADR 0001。本轮用户目标已记录在 README 顶部并在 `dev` 实现；旧框架保留于 `main` 的 `d10a4e8`。用户没有明确新任务时，优先补齐当前实现的格式 / 多设备 / 生命周期资格验证和 S00 工具链 / 发行许可；再推进 S01 独占 / EQ。不要把视频预览重新降为假状态或占位引擎。
 
-当前应用可用 `cargo run --locked -p yyplayer-app` 启动界面。macOS / Linux 模块只是 cfg 边界，未做真实系统适配，不能标为已支持。
+- 固定运行时见 `third_party/mpv/manifest.json`，获取脚本 `scripts/Get-Mpv.ps1`，不要提交 DLL / archive。
+- `YYPLAYER_MPV_LIBRARY` 明确绕过 hash，仅供开发；发行路径必须受控。
+- 新增解码选项时同步更新 validate、分级规则、controller、UI、重载恢复和验证；规则是完整对象覆盖。
+- 快捷键需同时考虑输入焦点、repeat、modifier 释放、失焦、文件对话框和退出的临时速度恢复。
+- 生产 GPU 合成不得改为 CPU 图片循环；debug 单次截图与实际视频路径分开记录。
+- 固定 git runtime 的 render target 使用 ns，头文件注释为 us；修改 presenter / 运行时先核实 source 和 clock ABI，并跑时序测试 / 实机帧数，不能凭注释盲改。
+- 不在每次投影重建相同模型或覆盖用户正在编辑的表单；设置字段由 revision 驱动。
+- `scripts/Test-Video.ps1` 使用独立配置；新增验收不能改用户默认 APPDATA 设置。
+- 当前媒体位置重载已验证，快速连续打开 / EOF / 设备失联 / 睡眠 / 多屏仍需增加证据。
+
+启动命令与操作见 README。macOS / Linux 仅保留 cfg 与库覆盖入口，未编译 / 真机验收，不能标为已支持。运行报告里区分生产 controller 脚本、状态机单测和实际键盘 / 对话框人工验收。

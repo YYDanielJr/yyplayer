@@ -1,3 +1,4 @@
+use crate::settings::DecodeOptions;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -45,6 +46,27 @@ impl Default for AudioRequest {
 #[derive(Clone, Debug)]
 pub enum PlaybackCommand {
     Open(MediaSource),
+    Load {
+        source: MediaSource,
+        decode: DecodeOptions,
+        resume: Option<(f64, bool)>,
+    },
+    SeekRelative(f64),
+    SetSpeed(f64),
+    SetMute(bool),
+    SetDevice(String),
+    SetTrack {
+        kind: String,
+        id: String,
+    },
+    AddSubtitle(PathBuf),
+    SetSubtitleDelay(f64),
+    SetAudioDelay(f64),
+    SetLoop(bool),
+    FrameStep(bool),
+    Screenshot(PathBuf),
+    SetAspect(String),
+    SetAbLoop(Option<(f64, f64)>),
     ReplaceQueue(Vec<QueueItem>),
     PlayItem(QueueItemId),
     Pause,

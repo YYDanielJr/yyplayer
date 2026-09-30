@@ -7,3 +7,7 @@ publish.workspace = true
 
 [dependencies]
 player-core.workspace = true
+serde_json.workspace = true
+crossbeam-channel.workspace = true
+libloading.workspace = true
+sha2.workspace = true
