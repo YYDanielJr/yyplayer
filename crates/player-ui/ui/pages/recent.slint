@@ -1,0 +1,21 @@
+import { Theme, Icons } from "../theme.slint";
+import { Icon, ActionButton } from "../components/controls.slint";
+
+export component RecentPage inherits Rectangle {
+    callback open-file();
+    VerticalLayout {
+        alignment: center;
+        spacing: 18px;
+        Rectangle {
+            width: 76px;
+            height: 76px;
+            border-radius: 20px;
+            background: Theme.surface;
+            Icon { icon: Icons.folder; tint: Theme.accent; width: 32px; height: 32px; x: 22px; y: 22px; }
+        }
+        Text { text: "从一首歌，一部电影开始。"; color: Theme.text; font-size: 21px; font-weight: 600; horizontal-alignment: center; height: 34px; }
+        Text { text: "这里还没有播放记录。"; color: Theme.muted; font-size: 12px; horizontal-alignment: center; height: 22px; }
+        HorizontalLayout { alignment: center; ActionButton { text: "打开文件"; icon: Icons.plus; clicked => { root.open-file(); } } }
+        Rectangle { height: 48px; }
+    }
+}

@@ -1,0 +1,30 @@
+[workspace]
+members = [
+    "crates/player-core",
+    "crates/player-mpv",
+    "crates/player-platform",
+    "crates/player-ui",
+    "crates/yyplayer-app",
+]
+resolver = "3"
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.92"
+publish = false
+
+[workspace.dependencies]
+player-core = { path = "crates/player-core" }
+player-mpv = { path = "crates/player-mpv" }
+player-platform = { path = "crates/player-platform" }
+player-ui = { path = "crates/player-ui" }
+slint = { version = "=1.17.1", default-features = false, features = [
+    "std", "compat-1-2", "backend-winit", "renderer-femtovg", "accessibility",
+] }
+slint-build = "=1.17.1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"

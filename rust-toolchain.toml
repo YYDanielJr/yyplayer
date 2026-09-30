@@ -1,0 +1,5 @@
+[toolchain]
+# The installed stable toolchain is Rust 1.97.0; Slint 1.17.1 requires >= 1.92.
+# Use the installed channel during scaffolding; pin a release toolchain in S00.
+channel = "stable"
+profile = "minimal"

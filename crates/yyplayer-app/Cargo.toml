@@ -1,0 +1,20 @@
+[package]
+name = "yyplayer-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "yyplayer"
+path = "src/main.rs"
+
+[dependencies]
+player-core.workspace = true
+player-mpv.workspace = true
+player-platform.workspace = true
+player-ui.workspace = true
+
+[dev-dependencies]
+slint = { workspace = true, features = ["renderer-software", "software-renderer-path"] }
+image = { version = "=0.25.10", default-features = false, features = ["png"] }

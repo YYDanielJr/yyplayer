@@ -1,0 +1,87 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Icon, Badge } from "../components/controls.slint";
+
+component SettingRow inherits Rectangle {
+    in property <string> title;
+    in property <string> description;
+    in property <string> value;
+    height: 76px;
+    HorizontalLayout {
+        padding-left: 18px;
+        padding-right: 18px;
+        spacing: 16px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 7px;
+            horizontal-stretch: 1;
+            Text { text: root.title; color: Theme.text; font-size: 12px; }
+            Text { text: root.description; color: Theme.muted; font-size: 10px; overflow: elide; }
+        }
+        Text { text: root.value; color: Theme.faint; font-size: 11px; vertical-alignment: center; }
+    }
+}
+
+export component SettingsPage inherits Rectangle {
+    ScrollView {
+        width: parent.width;
+        height: parent.height;
+        viewport-width: self.width;
+        VerticalLayout {
+            padding-left: 28px;
+            padding-right: 28px;
+            padding-bottom: 28px;
+            spacing: 20px;
+            HorizontalLayout { height: 26px; Icon { icon: Icons.headphones; tint: Theme.accent; } Text { text: "音频输出"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-stretch: 1; } Badge { text: "待接入"; } }
+            Rectangle {
+                background: Theme.surface;
+                border-radius: 10px;
+                height: 154px;
+                VerticalLayout {
+                    spacing: 0px;
+                    SettingRow { title: "输出设备"; description: "在这里选择系统声卡或外接音频设备。"; value: "尚未连接"; }
+                    Rectangle { height: 1px; background: Theme.border; }
+                    SettingRow { title: "设备独占"; description: "共享与独占模式，将按设备独立设置。"; value: "未启用"; }
+                }
+            }
+            HorizontalLayout { height: 26px; Icon { icon: Icons.sliders; tint: Theme.accent; } Text { text: "声音调整"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-stretch: 1; } Badge { text: "布局预览"; } }
+            Rectangle {
+                background: Theme.surface;
+                border-radius: 10px;
+                height: 196px;
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 16px;
+                    HorizontalLayout { Text { text: "均衡器"; color: Theme.text; font-size: 12px; horizontal-stretch: 1; } Text { text: "关闭"; color: Theme.faint; font-size: 11px; } }
+                    HorizontalLayout {
+                        spacing: 12px;
+                        for frequency in ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"]: VerticalLayout {
+                            spacing: 8px;
+                            horizontal-stretch: 1;
+                            Rectangle {
+                                height: 80px;
+                                Rectangle { x: (parent.width - 3px) / 2; width: 3px; height: parent.height; border-radius: 2px; background: Theme.border; }
+                                Rectangle { x: (parent.width - 11px) / 2; y: 35px; width: 11px; height: 11px; border-radius: 6px; background: Theme.faint; }
+                            }
+                            Text { text: frequency; color: Theme.faint; font-size: 9px; horizontal-alignment: center; }
+                        }
+                    }
+                    Text { text: "保持原声，或按自己的喜好微调。"; color: Theme.muted; font-size: 10px; }
+                }
+            }
+            HorizontalLayout { height: 26px; Icon { icon: Icons.video; tint: Theme.accent; } Text { text: "画面与外观"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-stretch: 1; } }
+            Rectangle {
+                background: Theme.surface;
+                border-radius: 10px;
+                height: 154px;
+                VerticalLayout {
+                    spacing: 0px;
+                    SettingRow { title: "视频呈现"; description: "解码、字幕与画质设置将在后续版本开放。"; value: "待接入"; }
+                    Rectangle { height: 1px; background: Theme.border; }
+                    SettingRow { title: "外观主题"; description: "低对比深色界面，搭配薄荷绿强调色。"; value: "深色"; }
+                }
+            }
+            Text { text: "YYPlayer 0.0.1 · Made with Slint"; color: Theme.faint; font-size: 10px; height: 20px; }
+        }
+    }
+}

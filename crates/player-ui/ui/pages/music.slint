@@ -1,0 +1,67 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons, Artwork } from "../theme.slint";
+import { Icon, Badge } from "../components/controls.slint";
+import { AlbumCard, SongRow } from "../components/media.slint";
+import { TrackRow } from "../models.slint";
+
+export component MusicPage inherits Rectangle {
+    in property <[TrackRow]> tracks;
+    in property <int> selected-id;
+    callback select-preview(int);
+    background: transparent;
+    ScrollView {
+        width: parent.width;
+        height: parent.height;
+        viewport-width: self.width;
+        VerticalLayout {
+            padding-left: 28px;
+            padding-right: 28px;
+            padding-bottom: 24px;
+            spacing: 18px;
+            Rectangle {
+                height: 154px;
+                border-radius: 12px;
+                background: #203833;
+                clip: true;
+                Rectangle { x: parent.width - 188px; y: -28px; width: 214px; height: 214px; border-radius: 107px; border-width: 1px; border-color: #55766a; background: transparent; }
+                Rectangle { x: parent.width - 164px; y: -4px; width: 166px; height: 166px; border-radius: 83px; border-width: 1px; border-color: #55766a; background: transparent; }
+                Rectangle { x: parent.width - 140px; y: 20px; width: 118px; height: 118px; border-radius: 59px; background: #8db6a3; }
+                VerticalLayout {
+                    padding: 24px;
+                    spacing: 10px;
+                    alignment: start;
+                    Text { text: "A SPACE FOR YOUR SOUND"; color: #a5c0b2; font-size: 9px; height: 14px; }
+                    Text { text: "好声音，值得慢慢听。"; color: Theme.text; font-size: 24px; font-weight: 600; height: 36px; }
+                    Text { text: "把音乐与影像，留在喜欢的空间。"; color: #aac0b6; font-size: 11px; height: 20px; }
+                    Rectangle { height: 4px; }
+                }
+            }
+            HorizontalLayout {
+                height: 24px;
+                Text { text: "你的专辑"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-stretch: 1; vertical-alignment: center; }
+                Badge { text: "示例内容"; }
+            }
+            HorizontalLayout {
+                spacing: 18px;
+                AlbumCard { artwork-id: 0; title: "夜色之间"; subtitle: "YYPlayer Sessions · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-preview(0); } }
+                AlbumCard { artwork-id: 1; title: "慢下来"; subtitle: "Studio North · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-preview(1); } }
+                AlbumCard { artwork-id: 2; title: "日光片刻"; subtitle: "The Sunday Project · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-preview(2); } }
+            }
+            HorizontalLayout {
+                height: 24px;
+                Text { text: "精选曲目"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-stretch: 1; vertical-alignment: center; }
+                Text { text: "" + root.tracks.length + " 首"; color: Theme.faint; font-size: 11px; vertical-alignment: center; }
+            }
+            VerticalLayout {
+                spacing: 4px;
+                for track[index] in root.tracks: SongRow {
+                    track: track;
+                    number: index + 1;
+                    selected: track.item-id == root.selected-id;
+                    clicked => { root.select-preview(track.item-id); }
+                }
+                if root.tracks.length == 0: Text { text: "没有匹配的示例曲目"; color: Theme.muted; height: 60px; vertical-alignment: center; horizontal-alignment: center; font-size: 12px; }
+            }
+        }
+    }
+}
