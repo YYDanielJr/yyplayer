@@ -89,6 +89,8 @@ Windows 设置位于 `%APPDATA%\YYPlayer\settings.json`；macOS 预留 `~/Librar
 
 正常视频不做每帧 CPU 回读 / 上传；debug 的 `YYPLAYER_UI_CAPTURE` 仅做一次开发截图。UI 回调只提交命令，普通 mpv 调用在 worker；mpv 更新回调合并唤醒，呈现器按目标时刻请求重绘。GPU 合成使用 SDR RGBA8，不承诺 HDR 显示输出或解码到显示的全程零拷贝。Windows HWND / D3D11 专项仍在规划中。
 
+2026-10-01 修复了 Slint → libmpv 的共享 OpenGL 状态交接：每次进入 mpv 创建 / 更新 / 绘制 / 释放前恢复其要求的默认状态，避免 NVDEC + 关闭去色带时出现横向彩色噪点。没有强制开启去色带、改默认解码策略或增加每帧 CPU 回读。此前“状态正常 / 帧数增加”不足以证明画质正常，现增加真实 GPU 图片比较，见 [修复与图像回归报告](docs/validation/render-state-fix.md)。
+
 ### 验证与后续边界
 
 ```powershell
@@ -98,9 +100,13 @@ cargo test --locked --workspace --all-targets
 cargo build --locked --release -p yyplayer-app
 # Windows 真机验证：需要 ffmpeg，使用隔离配置和自行生成的 24 秒测试文件
 powershell -ExecutionPolicy Bypass -File scripts/Test-Video.ps1
+# 额外检查图像质量：FFmpeg 需包含 libx265，生成自有静态 4K HEVC
+powershell -ExecutionPolicy Bypass -File scripts/Test-Render.ps1
 ```
 
 验证脚本驱动生产 controller / engine，记录真实状态和 GPU 帧数，检查倍速、暂停、静音、窗口、软解重载位置与持久化；它不是操作系统键盘事件自动化。长按 / 按键冲突另有状态机测试。测试素材、配置、runtime 二进制不提交；脚本不覆盖用户默认配置。详细结果与未测场景见 [验证报告](docs/validation/video-windows.md)。
+
+`Test-Render.ps1` 使用静态素材对比自动硬解、软件和去色带画面，由开发例子 `render-compare` 检查视频区域像素偏差；缺少实际硬解会失败并标明未验硬件，不把软件回退当作硬解通过。它只能用 debug 的一次 GPU 截图，产物保存在已忽略的 `target/render-regression/`，不在正常播放中运行。该阈值针对静态 SDR fixture，不适合任意运动素材或 HDR 画质判定。
 
 仍待实现 / 资格验证：USB DAC 独占与 EQ、完整音乐库 / 持久化收藏、网络播放 UI、续播数据库、安装包 / 文件关联 / 系统媒体键、HDR、设备丢失安全策略、广泛格式 / 字幕矩阵、长时稳定性、性能基准及 macOS / Wayland / X11。已有设备选择并不证明独占；没有测试这些条件就不能宣称达到完整 PotPlayer 日用体验。
 

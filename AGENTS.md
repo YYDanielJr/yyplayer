@@ -85,6 +85,8 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 新增解码选项时同步更新 validate、分级规则、controller、UI、重载恢复和验证；规则是完整对象覆盖。
 - 快捷键需同时考虑输入焦点、repeat、modifier 释放、失焦、文件对话框和退出的临时速度恢复。
 - 生产 GPU 合成不得改为 CPU 图片循环；debug 单次截图与实际视频路径分开记录。
+- Slint / FemtoVG 会留下 blend / active texture 等 GL 状态；进入所有 libmpv render 调用前使用 presenter 的 prepare_gl 恢复默认状态。不得删除这个边界而用默认开启去色带 / 软解掩盖画面损坏。升级渲染器后核对 render_gl.h，并重跑 Test-Render 的图片比较。
+- 播放状态、实际硬解名称和帧数只能证明运行，不能证明画面正确；涉及 GL 状态 / 纹理 / NVDEC 的修改必须比较真实 GPU 图像。Test-Render 使用自有静态 4K HEVC，不提交用户视频或其截图。
 - 固定 git runtime 的 render target 使用 ns，头文件注释为 us；修改 presenter / 运行时先核实 source 和 clock ABI，并跑时序测试 / 实机帧数，不能凭注释盲改。
 - 不在每次投影重建相同模型或覆盖用户正在编辑的表单；设置字段由 revision 驱动。
 - `scripts/Test-Video.ps1` 使用独立配置；新增验收不能改用户默认 APPDATA 设置。

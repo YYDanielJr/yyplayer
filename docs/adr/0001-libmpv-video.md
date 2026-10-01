@@ -20,6 +20,8 @@ render bridge 的原子租约保持 worker core / library 存活；RenderingTear
 
 正常播放不从 GPU 向 CPU 回读视频。debug 可选择在 35 帧后一次读取完整 UI 到 PPM，用于开发证据，不在 release 或正式视频输出中运行。
 
+2026-10-01 补充：最初集成遗漏了 `render_gl.h` 要求的入口 GL 默认状态，NVDEC + 无去色带的一次绘制路径可受 FemtoVG 遗留状态影响并产生横向噪点；软解 / 去色带的额外绘制可能掩盖问题。现在在 mpv render 创建、更新、绘制、释放前调用 `prepare_gl`，恢复 blend / scissor / depth / stencil / cull、程序 / VAO / buffer / FBO、active texture 与上传布局等；按 GL / GLES 版本避免调用不支持的状态。保留原来的 hwdec、去色带和 GPU 纹理方案，不用 glFinish 或每帧 CPU 回读。证据见 [状态交接修复](../validation/render-state-fix.md)。
+
 ## 固定构建的时钟差异
 
 固定构建 `e470f8986e` 的 `render.h` 注释说 `target_time` 为微秒，但 [vo_libmpv.c](https://github.com/mpv-player/mpv/blob/e470f8986e/video/out/vo_libmpv.c) 实际直接赋 `vo_frame.pts` 纳秒值。`mpv_get_time_us` 和 `mpv_get_time_ns` 的 ABI 均需要 handle，见 [client.c](https://github.com/mpv-player/mpv/blob/e470f8986e/player/client.c)。仅按头文件注释使用 us 曾导致更新后不继续呈现，真机帧数暴露该问题。

@@ -58,6 +58,7 @@ impl Renderer {
         let creation = || -> Result<Self, String> {
             // SAFETY: Slint guarantees current NativeOpenGL context throughout notifier.
             let gl = unsafe { glow::Context::from_loader_function_cstr(|name| get(name)) };
+            prepare_gl(&gl);
             let mut resolver = Resolver { get };
             let mut init = ffi::GlInit {
                 get_proc: resolve,
@@ -154,6 +155,7 @@ impl Renderer {
         result
     }
     fn draw(&mut self, window: &AppWindow) -> Result<(), String> {
+        prepare_gl(&self.gl);
         self.signal.pending.store(false, Ordering::Release);
         // Safe render-only API, no locking or waiting on worker.
         let flags = unsafe { (self.bridge.api.render_update)(self.render) };
@@ -301,6 +303,9 @@ impl Renderer {
                 },
                 ffi::RenderParam::end(),
             ];
+            // Texture/FBO allocation on resize also changes GL state; restore
+            // the contract again immediately before handing the context to mpv.
+            prepare_gl(&self.gl);
             let result = (self.bridge.api.render)(self.render, params.as_mut_ptr());
             self.gl.bind_framebuffer(glow::FRAMEBUFFER, None);
             self.gl.bind_texture(glow::TEXTURE_2D, None);
@@ -372,6 +377,7 @@ impl Renderer {
         }
     }
     fn destroy(mut self, window: Option<&AppWindow>) {
+        prepare_gl(&self.gl);
         if let Some(window) = window {
             window.set_video_frame(slint::Image::default());
             window.set_render_ready(false);
@@ -385,6 +391,57 @@ impl Renderer {
         }
         self.after();
         self.bridge.release();
+    }
+}
+/// libmpv's render_gl.h requires standard GL state on entry. FemtoVG leaves
+/// blending and texture unit 1 active, so do not inherit the UI's state.
+fn prepare_gl(gl: &glow::Context) {
+    let modern = gl.version().major >= 3;
+    let desktop = !gl.version().is_embedded;
+    // SAFETY: called only inside Slint's notifier, with this context current.
+    unsafe {
+        for capability in [
+            glow::BLEND,
+            glow::SCISSOR_TEST,
+            glow::DEPTH_TEST,
+            glow::STENCIL_TEST,
+            glow::CULL_FACE,
+        ] {
+            gl.disable(capability);
+        }
+        if modern {
+            gl.disable(glow::RASTERIZER_DISCARD);
+        }
+        if modern && desktop {
+            gl.disable(glow::FRAMEBUFFER_SRGB);
+        }
+        gl.color_mask(true, true, true, true);
+        gl.depth_mask(true);
+        gl.stencil_mask(u32::MAX);
+        gl.blend_equation(glow::FUNC_ADD);
+        gl.blend_func(glow::ONE, glow::ZERO);
+        gl.use_program(None);
+        if modern
+            || gl
+                .supported_extensions()
+                .contains("GL_ARB_vertex_array_object")
+        {
+            gl.bind_vertex_array(None);
+        }
+        gl.bind_buffer(glow::ARRAY_BUFFER, None);
+        if modern || desktop {
+            gl.bind_buffer(glow::PIXEL_UNPACK_BUFFER, None);
+            gl.bind_buffer(glow::PIXEL_PACK_BUFFER, None);
+        }
+        gl.bind_framebuffer(glow::FRAMEBUFFER, None);
+        gl.active_texture(glow::TEXTURE0);
+        gl.bind_texture(glow::TEXTURE_2D, None);
+        gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 4);
+        if modern || desktop {
+            gl.pixel_store_i32(glow::UNPACK_ROW_LENGTH, 0);
+            gl.pixel_store_i32(glow::UNPACK_SKIP_PIXELS, 0);
+            gl.pixel_store_i32(glow::UNPACK_SKIP_ROWS, 0);
+        }
     }
 }
 fn frame_delay_us(target: i64, now_us: i64, now_ns: i64) -> i64 {
