@@ -63,6 +63,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                     if let Some(window) = keyboard_weak.upgrade() {
                         window.set_pointer_held(false);
                         window.set_pointer_in_controls(false);
+                        window.set_pointer_in_header(false);
                     }
                 }
                 WindowEvent::CursorMoved { position, .. } => {
@@ -73,12 +74,21 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                         window.set_pointer_in_controls(
                             bottom >= 0.0 && bottom <= f64::from(window.get_controls_height()),
                         );
+                        let top = position.y / f64::from(native.scale_factor());
+                        window.set_pointer_in_header(
+                            top >= 0.0
+                                && top <= f64::from(window.get_header_height())
+                                && position.x >= 0.0
+                                && position.x / f64::from(native.scale_factor())
+                                    < f64::from(window.get_video_width()),
+                        );
                         window.invoke_pointer_activity();
                     }
                 }
                 WindowEvent::CursorLeft { .. } => {
                     if let Some(window) = keyboard_weak.upgrade() {
                         window.set_pointer_in_controls(false);
+                        window.set_pointer_in_header(false);
                     }
                 }
                 WindowEvent::MouseInput { state, button, .. } => {
@@ -113,6 +123,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
                     if let Some(window) = keyboard_weak.upgrade() {
                         window.set_pointer_in_controls(false);
+                        window.set_pointer_in_header(false);
                     }
                 }
                 WindowEvent::DroppedFile(path) => event_dropped.borrow_mut().push(path.clone()),

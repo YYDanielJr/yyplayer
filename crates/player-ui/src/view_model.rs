@@ -31,7 +31,7 @@ pub struct ShellViewModel {
     pub seekable: bool,
     pub muted: bool,
     pub speed_index: i32,
-    pub speed_text: String,
+    pub speed_choices: Vec<String>,
     pub info: String,
     pub device_names: Vec<String>,
     pub device_index: i32,

@@ -6,7 +6,7 @@
 
 - Windows 11 Pro，10.0.26300，x86_64 MSVC；Rust / Cargo 1.97.0，Slint 1.17.1。
 - NVIDIA RTX 5060 Laptop，驱动 32.0.16.1088；同时存在 AMD 860M 32.0.31041.1004 和 MuMu 虚拟显示。报告里的 NVDEC 是实际运行路径；没有据此声称 AMD / 虚拟显示合格。
-- 默认窗口 1240 × 900 逻辑像素，缩放 175%，[真实 UI 截图](../video-ui.png) 为 2170 × 1575。使用实际 FemtoVG / GL notifier 的一次开发截图，非软件 UI 预览。
+- 默认窗口 1240 × 900 逻辑像素，本轮桌面缩放 125%，[真实 UI 截图](../video-ui.png) 为 1550 × 1125；此前渲染修复使用 175% / 2170 × 1575。未由测试改变系统缩放。使用实际 FemtoVG / GL notifier 的一次开发截图，非软件 UI 预览。
 - 固定 runtime `20260928-git-e470f8986e`，实际 `mpv v0.41.0-1087-ge470f8986`、client API 2；archive SHA256 `81795d759e01016f1550fd71651a1a5d59ab5c28ef31c0b6793224e9cff39459`；DLL SHA256 `0d5b9dbecb73e179ef39dc94314ff8905fab926a80f8d60a2367d824b7254e2e`。manifest / 获取脚本 / loader 实际使用这些值。
 - 自行生成的 `testsrc2` + 440Hz sine：24 秒、H.264 / AAC、1280 × 720、30fps、48kHz 单声道。SHA256 `05aeee9d532c8b1f68150f1c9782cbab64ca44bb8f96c76d31fbc4e83a99bc59`。文件不提交；脚本给出生成命令。不同 FFmpeg 构建可能生成不同字节，重新跑时记录新 hash。
 - 所有实机脚本使用 `YYPLAYER_CONFIG` 独立 JSON，未写用户默认 APPDATA 设置。
@@ -21,14 +21,14 @@
 | `cargo build --locked --release -p yyplayer-app --offline` | Release 通过；实际执行成品并验证退出。 |
 | `scripts/Test-Video.ps1 -SkipBuild` | 通过；走生产 controller、engine、native window 与 GPU，并检查真实诊断值 / 保存文件。 |
 
-[controls-playback.json](controls-playback.json)：14 秒运行，11 个控制动作，实际 NVDEC → 软件解码；最终 Playing、13.333 秒、249 次 render、速度 1x、音量 35、静音 true、无 engine / render 错误，进程 exit 0。关键状态：
+[controls-playback.json](controls-playback.json)：14 秒运行，11 个控制动作，实际 NVDEC → 软件解码；最终 Playing、13.867 秒、270 次 render、速度 1x、音量 35、静音 true、无 engine / render 错误，进程 exit 0。关键状态：
 
 - 3 秒记录实际 1.5x；4 秒实际 Paused；5 秒恢复 1x，6 秒记录相对跳转后的进度。
 - 7 秒最大化，8 秒全屏，9 秒退出全屏恢复最大化。
-- 9.5 秒暂停，10.5 秒保存单文件 Software 规则并重载；10、11、12 秒均 Paused、位置 **11.833333 秒**；11 / 12 秒 `hwdec-current=no`。12.5 秒恢复并继续前进，规则在隔离设置文件中实际存在。
+- 9.5 秒暂停，10.5 秒保存单文件 Software 规则并重载；10、11、12 秒均 Paused、位置 **12.400000 秒**；11 / 12 秒 `hwdec-current=no`。12.5 秒恢复并继续前进，规则在隔离设置文件中实际存在。
 - 枚举 4 个设备：自动、Waves SoundGrid、Realtek、OpenAL；初始视频实际 `nvdec`、音频 API `wasapi`。这是枚举 / 输出状态证据，不是独占、各端点切换、听感或物理格式验收。
 
-[software-playback.json](software-playback.json)：从启动设置强制 Software，7 秒运行，实际 no、Playing、4.667 秒、141 次 render、音量 70、无错误、exit 0。
+[software-playback.json](software-playback.json)：从启动设置强制 Software，7 秒运行，实际 no、Playing、4.833 秒、147 次 render、音量 70、无错误、exit 0。
 
 [release-playback.json](release-playback.json)：release 普通自动策略，7 秒运行，实际 NVDEC、Playing、6.333 秒、192 次 render、音量 70、无错误、exit 0。不同运行启动耗时不同，不能把这些帧数当作跨方案性能对比。
 

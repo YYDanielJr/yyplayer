@@ -8,42 +8,49 @@ export component PlayerBar inherits Rectangle {
     in property <string> title; in property <string> artist; in property <string> duration;
     in property <string> position; in property <float> progress;
     in property <int> cover; in property <float> volume; in property <bool> favorite;
-    in property <int> speed-index; in property <string> speed-text;
+    in property <int> speed-index; in property <[string]> speed-choices;
     callback play(); callback previous(); callback next(); callback volume-changed(float);
     callback toggle-favorite(); callback control(string, string);
     height: root.compact ? 70px : 104px; background: #171d21;
     Rectangle { x: 0px; y: 0px; width: parent.width; height: 1px; background: Theme.border; }
     VerticalLayout {
-        padding-left: 20px; padding-right: 20px; spacing: 0px; alignment: center;
+        padding: 0px; padding-left: 20px; padding-right: 20px; spacing: 0px; alignment: center;
         HorizontalLayout {
             height: 24px; spacing: 12px;
             Text { text: root.position; width: 54px; color: Theme.muted; font-size: 10px; vertical-alignment: center; }
             QuietSlider { value: root.progress; enabled: root.seekable; label: "播放进度"; horizontal-stretch: 1; edited(value) => { root.control("seek-percent", "" + value); } }
             Text { text: root.duration; width: 54px; color: Theme.muted; font-size: 10px; vertical-alignment: center; horizontal-alignment: right; }
         }
-        HorizontalLayout {
-            height: root.compact ? 42px : 72px; spacing: 12px;
-            if !root.compact: VerticalLayout { width: 48px; alignment: center; Cover { artwork-id: root.cover; width: 48px; height: 48px; } }
-            VerticalLayout {
-                width: root.compact ? 160px : 210px; alignment: center; spacing: 5px;
-                Text { text: root.title; color: Theme.text; font-size: 12px; font-weight: 600; overflow: elide; }
-                if !root.compact: Text { text: root.artist; color: Theme.muted; font-size: 10px; overflow: elide; }
+        Rectangle {
+            height: root.compact ? 42px : 72px;
+            HorizontalLayout {
+                x: 0px; y: 0px; width: transport.x - 16px; height: parent.height; padding: 0px; spacing: 12px;
+                if !root.compact: VerticalLayout { width: 48px; alignment: center; Cover { artwork-id: root.cover; width: 48px; height: 48px; } }
+                VerticalLayout {
+                    horizontal-stretch: 1; alignment: center; spacing: 5px;
+                    Text { text: root.title; color: Theme.text; font-size: 12px; font-weight: 600; overflow: elide; }
+                    if !root.compact: Text { text: root.artist; color: Theme.muted; font-size: 10px; overflow: elide; }
+                }
+                if !root.compact: VerticalLayout { width: 36px; alignment: center; IconButton { icon: Icons.heart; label: "收藏"; active: root.favorite; clicked => { root.toggle-favorite(); } } }
             }
-            if !root.compact: VerticalLayout { width: 32px; alignment: center; IconButton { icon: Icons.heart; label: "收藏"; active: root.favorite; clicked => { root.toggle-favorite(); } } }
-            Rectangle { horizontal-stretch: 1; }
-            VerticalLayout { width: 32px; alignment: center; IconButton { icon: Icons.previous; label: "上一个"; clicked => { root.previous(); } } }
-            VerticalLayout { width: 32px; alignment: center; IconButton { icon: Icons.seek-back; label: "快退（使用设置步长）"; clicked => { root.control("back", ""); } } }
-            VerticalLayout { width: 38px; alignment: center; IconButton { icon: root.playing ? Icons.pause : Icons.play; primary: true; width: 36px; height: 36px; label: "播放 / 暂停"; clicked => { root.play(); } } }
-            VerticalLayout { width: 32px; alignment: center; IconButton { icon: Icons.seek-forward; label: "快进（使用设置步长）"; clicked => { root.control("forward", ""); } } }
-            VerticalLayout { width: 32px; alignment: center; IconButton { icon: Icons.next; label: "下一个"; clicked => { root.next(); } } }
-            Rectangle { horizontal-stretch: 1; }
-            VerticalLayout { width: 88px; alignment: center; ComboBox { model: ["0.5x", "0.75x", "1x", "1.25x", "1.5x", "2x", "3x", "4x"]; current-index: root.speed-index; selected(value) => { root.control("speed", value); } } }
-            Text { text: root.speed-text; color: Theme.accent; width: 62px; font-size: 10px; vertical-alignment: center; }
-            VerticalLayout { width: 30px; alignment: center; IconButton { icon: Icons.volume; label: "静音 / 取消静音"; active: root.muted; clicked => { root.control("mute", ""); } } }
-            VerticalLayout { width: 86px; alignment: center; QuietSlider { value: root.volume; width: 86px; label: "音量"; edited(value) => { root.volume-changed(value); } } }
-            Text { text: round(root.volume) + "%"; width: 32px; color: Theme.muted; font-size: 10px; vertical-alignment: center; }
-            VerticalLayout { width: 30px; alignment: center; IconButton { icon: Icons.sliders; label: "输出设备 / 轨道 / 解码 / 信息"; clicked => { root.control("panel", ""); } } }
-            if root.compact: VerticalLayout { width: 30px; alignment: center; IconButton { icon: Icons.grid; label: "全屏"; clicked => { root.control("fullscreen", ""); } } }
+            transport := HorizontalLayout {
+                x: (parent.width - self.width) / 2; y: 0px; width: 216px; height: parent.height; padding: 0px; spacing: 8px;
+                VerticalLayout { width: 36px; padding: 0px; alignment: center; IconButton { icon: Icons.previous; label: "上一个"; clicked => { root.previous(); } } }
+                VerticalLayout { width: 36px; padding: 0px; alignment: center; IconButton { icon: Icons.seek-back; label: "快退（使用设置步长）"; clicked => { root.control("back", ""); } } }
+                VerticalLayout { width: 40px; padding: 0px; alignment: center; IconButton { icon: root.playing ? Icons.pause : Icons.play; primary: true; width: 40px; height: 40px; label: "播放 / 暂停"; clicked => { root.play(); } } }
+                VerticalLayout { width: 36px; padding: 0px; alignment: center; IconButton { icon: Icons.seek-forward; label: "快进（使用设置步长）"; clicked => { root.control("forward", ""); } } }
+                VerticalLayout { width: 36px; padding: 0px; alignment: center; IconButton { icon: Icons.next; label: "下一个"; clicked => { root.next(); } } }
+            }
+            HorizontalLayout {
+                x: transport.x + transport.width + 16px; y: 0px; width: parent.width - self.x; height: parent.height;
+                padding: 0px; spacing: 8px; alignment: end;
+                VerticalLayout { width: 88px; padding: 0px; alignment: center; ComboBox { model: root.speed-choices; current-index: root.speed-index; selected(value) => { root.control("speed", value); } } }
+                VerticalLayout { width: 30px; padding: 0px; alignment: center; IconButton { width: 30px; height: 30px; icon: Icons.volume; label: "静音 / 取消静音"; active: root.muted; clicked => { root.control("mute", ""); } } }
+                VerticalLayout { width: 86px; padding: 0px; alignment: center; QuietSlider { value: root.volume; width: 86px; label: "音量"; edited(value) => { root.volume-changed(value); } } }
+                Text { text: round(root.volume) + "%"; width: 32px; color: Theme.muted; font-size: 10px; vertical-alignment: center; }
+                VerticalLayout { width: 30px; padding: 0px; alignment: center; IconButton { width: 30px; height: 30px; icon: Icons.sliders; label: "输出设备 / 轨道 / 解码 / 信息"; clicked => { root.control("panel", ""); } } }
+                if root.compact: VerticalLayout { width: 30px; padding: 0px; alignment: center; IconButton { width: 30px; height: 30px; icon: Icons.grid; label: "全屏"; clicked => { root.control("fullscreen", ""); } } }
+            }
         }
     }
 }

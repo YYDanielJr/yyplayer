@@ -142,8 +142,10 @@ fn project(window: &AppWindow, state: &ShellViewModel) {
     window.set_progress(state.progress);
     window.set_seekable(state.seekable);
     window.set_muted(state.muted);
+    if !same_strings(&window.get_speed_choices(), &state.speed_choices) {
+        window.set_speed_choices(strings(&state.speed_choices));
+    }
     window.set_speed_index(state.speed_index);
-    window.set_speed_text(state.speed_text.as_str().into());
     window.set_media_info(state.info.as_str().into());
     if !same_strings(&window.get_device_names(), &state.device_names) {
         window.set_device_names(strings(&state.device_names));

@@ -23,7 +23,7 @@ export component AppWindow inherits Window {
     in property <[TrackRow]> recent;
     in property <bool> playing; in property <bool> has-media; in property <bool> has-video;
     in property <string> position-text; in property <float> progress; in property <bool> seekable;
-    in property <bool> muted; in property <int> speed-index; in property <string> speed-text;
+    in property <bool> muted; in property <int> speed-index; in property <[string]> speed-choices;
     in property <string> media-info; in property <[string]> device-names; in property <int> device-index;
     in property <[string]> audio-tracks; in property <int> audio-index;
     in property <[string]> subtitle-tracks; in property <int> subtitle-index; in property <[string]> chapters;
@@ -35,25 +35,30 @@ export component AppWindow inherits Window {
     in-out property <image> video-frame; in-out property <bool> render-ready; in-out property <string> render-error;
     in-out property <int> render-frames;
     out property <float> video-width: root.width / 1px - (root.panel-open ? 370 : 0);
-    out property <float> video-height: root.height / 1px - (root.immersive ? 0 : 122);
-    out property <bool> shortcuts-blocked: root.page == 3 || root.panel-open || search.has-focus;
+    out property <float> video-height: root.height / 1px - (root.immersive ? 0 : root.controls-height / 1px);
+    private property <bool> search-focused;
+    out property <bool> shortcuts-blocked: root.page == 3 || root.panel-open || (root.page == 0 && root.search-focused);
     private property <bool> immersive: root.page == 1 && root.fullscreen-mode;
     private property <bool> controls-awake: true;
     in-out property <bool> pointer-in-controls;
+    in-out property <bool> pointer-in-header;
     in-out property <bool> pointer-held;
     out property <bool> controls-visible: !root.immersive || root.controls-awake || root.panel-open || root.pointer-in-controls || root.pointer-held;
     out property <length> controls-height: root.page == 1 ? 70px : 104px;
+    out property <length> header-height: 52px;
+    out property <bool> header-visible: root.page == 1 && (root.controls-awake || root.panel-open || root.pointer-in-header || root.pointer-held);
     in-out property <bool> toast-visible;
     callback pointer-activity();
     callback dismiss-toast();
     pointer-activity => { root.controls-awake = true; hide-controls.restart(); }
     dismiss-toast => { root.toast-visible = false; }
     changed immersive => { root.pointer-activity(); }
+    changed page => { root.search-focused = false; root.pointer-activity(); }
     changed status-message => { root.toast-visible = root.status-message != ""; hide-toast.restart(); }
     changed status-revision => { root.toast-visible = root.status-message != ""; hide-toast.restart(); }
     hide-controls := Timer {
         interval: 3s;
-        running: root.immersive && root.controls-awake && !root.panel-open && !root.pointer-in-controls && !root.pointer-held;
+        running: root.page == 1 && root.controls-awake && !root.panel-open && !root.pointer-in-controls && !root.pointer-in-header && !root.pointer-held;
         triggered => { root.controls-awake = false; }
     }
     hide-toast := Timer {
@@ -65,6 +70,7 @@ export component AppWindow inherits Window {
     callback volume-changed(float); callback toggle-favorite(); callback control(string,string);
     callback shortcut-edited(int,string);
     VerticalLayout {
+        x: 0px; y: 0px; width: root.width;
         height: root.height - (root.immersive ? 0px : root.controls-height);
         spacing: 0px;
         HorizontalLayout {
@@ -85,14 +91,14 @@ export component AppWindow inherits Window {
             }
             VerticalLayout {
                 horizontal-stretch: 1; spacing: 0px;
-                HorizontalLayout {
+                if root.page != 1: HorizontalLayout {
                     visible: !root.fullscreen-mode;
-                    height: root.fullscreen-mode ? 0px : (root.page == 1 ? 52px : 84px); padding-left: 24px; padding-right: 24px; spacing: 12px;
+                    height: root.fullscreen-mode ? 0px : 84px; padding-left: 24px; padding-right: 24px; spacing: 12px;
                     VerticalLayout {
                         horizontal-stretch: 1; alignment: center; spacing: 4px;
                         Text { text: root.page == 1 ? root.selected-title : (root.page == 0 ? "音乐空间" : (root.page == 2 ? "最近打开" : "设置")); color: Theme.text; font-size: root.page == 1 ? 14px : 22px; font-weight: 600; overflow: elide; }
                     }
-                    search := TextInput { visible: root.page == 0; width: root.page == 0 ? 140px : 0px; single-line: true; color: Theme.text; vertical-alignment: center; accessible-label: "搜索曲目"; edited => { root.search-changed(self.text); } }
+                    TextInput { visible: root.page == 0; width: root.page == 0 ? 140px : 0px; single-line: true; color: Theme.text; vertical-alignment: center; accessible-label: "搜索曲目"; changed has-focus => { root.search-focused = self.has-focus; } edited => { root.search-changed(self.text); } }
                     VerticalLayout { width: 110px; alignment: center; Button { text: "打开文件"; clicked => { root.open-file(); } } }
                     if root.page == 1: VerticalLayout { width: 85px; alignment: center; Button { text: "媒体库"; clicked => { root.navigate(0); } } }
                     if root.page == 1: VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value) => { root.control("window-mode", "" + self.current-index); } } }
@@ -124,13 +130,24 @@ export component AppWindow inherits Window {
             }
         }
     }
+    if root.header-visible: Rectangle {
+        x: 0px; y: 0px; width: root.video-width * 1px; height: root.header-height; background: #101719ee;
+        HorizontalLayout {
+            padding: 0px; padding-left: 20px; padding-right: 20px; spacing: 12px;
+            Text { text: root.selected-title; color: Theme.text; font-size: 14px; font-weight: 600; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+            VerticalLayout { width: 100px; alignment: center; Button { text: "打开文件"; clicked => { root.open-file(); } } }
+            VerticalLayout { width: 85px; alignment: center; Button { text: "媒体库"; clicked => { root.navigate(0); } } }
+            VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value) => { root.control("window-mode", "" + self.current-index); } } }
+            VerticalLayout { width: 100px; alignment: center; Button { text: root.panel-open ? "关闭选项" : "播放选项"; clicked => { root.control("panel", ""); } } }
+        }
+    }
     PlayerBar {
         y: root.height - root.controls-height; width: root.width;
         visible: root.controls-visible;
         compact: root.page == 1; playing: root.playing; has-media: root.has-media; seekable: root.seekable;
         title: root.selected-title; artist: root.selected-artist; duration: root.selected-duration; position: root.position-text;
         progress: root.progress; cover: root.selected-cover; volume: root.volume; favorite: root.favorite; muted: root.muted;
-        speed-index: root.speed-index; speed-text: root.speed-text;
+        speed-index: root.speed-index; speed-choices: root.speed-choices;
         play => { root.request-playback(); } previous => { root.previous(); } next => { root.next(); }
         volume-changed(value) => { root.volume-changed(value); } toggle-favorite => { root.toggle-favorite(); }
         control(action,value) => { root.control(action,value); }

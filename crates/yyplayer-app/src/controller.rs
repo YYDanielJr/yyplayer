@@ -832,6 +832,14 @@ impl AppController {
             1.0
         };
         let rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0];
+        let mut speed_choices: Vec<_> = rates.iter().map(|rate| format!("{rate}x")).collect();
+        let speed_index = rates
+            .iter()
+            .position(|rate| (rate - speed).abs() < 0.001)
+            .unwrap_or_else(|| {
+                speed_choices.push(format!("{speed:.2}x"));
+                rates.len()
+            });
         let (_, origin) = match self.queue.get(self.selected_id as usize) {
             Some(MediaSource::Local(path)) => self.settings.resolve(path),
             _ => (self.settings.global.clone(), "全局".into()),
@@ -917,15 +925,8 @@ impl AppController {
                 .duration
                 .is_some_and(|duration| !duration.is_zero()),
             muted: snapshot.muted,
-            speed_index: rates
-                .iter()
-                .position(|rate| (rate - speed).abs() < 0.001)
-                .unwrap_or(2) as i32,
-            speed_text: if self.hold.active() {
-                format!("{speed:.1}x 长按")
-            } else {
-                format!("{speed:.2}x")
-            },
+            speed_index: speed_index as i32,
+            speed_choices,
             info: if snapshot.info.is_empty() {
                 format!("尚未加载媒体\n{}\n{}", snapshot.error, self.status)
             } else {
