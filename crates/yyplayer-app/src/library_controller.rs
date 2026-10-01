@@ -50,6 +50,9 @@ impl AppController {
                     if config == self.settings.library
                         && (id == self.library_scan || (id == 0 && self.library_songs.is_empty()))
                     {
+                        if let Some(t) = &mut self.thumbnails {
+                            t.invalidate();
+                        }
                         self.library_songs = songs;
                         if id == self.library_scan {
                             self.library_busy = false;
@@ -129,6 +132,11 @@ impl AppController {
                         "".into()
                     },
                     cover: -1,
+                    artwork: self
+                        .thumbnails
+                        .as_ref()
+                        .map(|t| t.image(&s.path))
+                        .unwrap_or_default(),
                 })
                 .collect(),
         );

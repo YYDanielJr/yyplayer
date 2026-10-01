@@ -85,6 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             callback_events.borrow_mut().push((action.clone(), value));
             let mut state = callback_state.borrow_mut();
             match action.as_str() {
+                "music-toggle" => state.page = if state.page == 4 { 0 } else { 4 },
                 "music-detail" => state.page = 4,
                 "music-browse" => state.page = 0,
                 "panel" => state.panel_open = !state.panel_open,
@@ -158,7 +159,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 7 => {
                     click(&window, size.width * 0.65, 420.0);
-                    click(&window, 65.0, 36.0);
+                    click(&window, 44.0, size.height - 40.0);
                     if state.borrow().page != 0 {
                         return Err("Collapse did not return to browse".into());
                     }

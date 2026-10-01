@@ -5,6 +5,7 @@ import { GlassSurface } from "../components/glass.slint";
 import { SongRow } from "../components/media.slint";
 import { TrackRow } from "../models.slint";
 export component MusicPage inherits Rectangle {
+    in-out property <int> visible-first; in-out property <int> visible-count;
     in property <[TrackRow]> tracks; in property <[TrackRow]> library-tracks;
     in-out property <float> column-song: 0.46; in-out property <float> column-artist: 0.24;
     in property <int> selected-id; in property <int> library-selected;
@@ -80,6 +81,13 @@ export component MusicPage inherits Rectangle {
         }
         if root.queue-view || root.library-tracks.length > 0: ListView {
             vertical-stretch: 1; viewport-width: self.width;
+            in property <bool> showing-library: !root.queue-view;
+            callback report-visible();
+            report-visible => {root.visible-first=max(0,floor(-self.viewport-y / 58px)); root.visible-count=self.showing-library ? ceil(self.height / 58px)+2 : 0;}
+            init => {self.report-visible();}
+            changed viewport-y => {self.report-visible();}
+            changed height => {self.report-visible();}
+            changed showing-library => {self.report-visible();}
             for track[index] in (root.queue-view ? root.tracks : root.library-tracks): Rectangle { height: 58px;
                 SongRow { x: 0px; y: 2px; width: parent.width - 24px - (root.queue-view ? 0px : 38px); column-song: root.column-song; column-artist: root.column-artist; height: parent.height - 4px; track: track; number: index + 1; selected: track.item-id == (root.queue-view ? root.selected-id : root.library-selected);
                     clicked => { if root.queue-view { root.select-preview(track.item-id); } else { root.control("library-play", "" + track.item-id); } }

@@ -54,7 +54,7 @@
       "muted": false,
       "phase": "Idle",
       "position": null,
-      "seconds": 0.4609671,
+      "seconds": 0.4194436,
       "speed": 0.0,
       "volume": 0.0
     },
@@ -70,7 +70,7 @@
       "muted": false,
       "phase": "Idle",
       "position": null,
-      "seconds": 1.002538,
+      "seconds": 1.0071979,
       "speed": 0.0,
       "volume": 0.0
     },
@@ -84,9 +84,9 @@
       "hwdec": "",
       "maximized": false,
       "muted": false,
-      "phase": "Idle",
+      "phase": "Loading",
       "position": null,
-      "seconds": 2.0265624,
+      "seconds": 2.0081179,
       "speed": 1.0,
       "volume": 70.0
     },
@@ -102,7 +102,7 @@
       "muted": false,
       "phase": "Playing",
       "position": 0.866667,
-      "seconds": 3.0591623,
+      "seconds": 3.0412337,
       "speed": 1.0,
       "volume": 70.0
     },
@@ -117,8 +117,8 @@
       "maximized": false,
       "muted": false,
       "phase": "Playing",
-      "position": 1.866667,
-      "seconds": 4.0316874,
+      "position": 1.833333,
+      "seconds": 4.0075068,
       "speed": 1.0,
       "volume": 70.0
     },
@@ -127,14 +127,14 @@
       "eq_filter": "",
       "error": "",
       "exclusive": false,
-      "frames": 88,
+      "frames": 87,
       "fullscreen": false,
       "hwdec": "no",
       "maximized": false,
       "muted": false,
       "phase": "Playing",
       "position": 2.866667,
-      "seconds": 5.0580023,
+      "seconds": 5.0339294,
       "speed": 1.0,
       "volume": 70.0
     },
@@ -143,14 +143,14 @@
       "eq_filter": "",
       "error": "",
       "exclusive": false,
-      "frames": 117,
+      "frames": 116,
       "fullscreen": false,
       "hwdec": "no",
       "maximized": false,
       "muted": false,
       "phase": "Playing",
       "position": 3.833333,
-      "seconds": 6.0249214,
+      "seconds": 6.0023031,
       "speed": 1.0,
       "volume": 70.0
     },
@@ -159,29 +159,28 @@
       "eq_filter": "",
       "error": "",
       "exclusive": false,
-      "frames": 148,
+      "frames": 147,
       "fullscreen": false,
       "hwdec": "no",
       "maximized": false,
       "muted": false,
       "phase": "Playing",
-      "position": 4.866667,
-      "seconds": 7.0536718,
+      "position": 4.833333,
+      "seconds": 7.0273422,
       "speed": 1.0,
       "volume": 70.0
     }
   ],
   "cover_width": 0,
+  "decorated": false,
   "device_ids": [
     "auto",
     "wasapi/{92b5bb59-5e7e-46f2-bc48-f0abf3fa8030}",
-    "wasapi/{cc868310-3450-4384-aed9-f8aaab2d8c8f}",
     "wasapi/{ea35d8dc-ccfb-4a8f-90c5-ba43dedb1c51}"
   ],
   "devices": [
     "系统默认",
     "扬声器 (Waves SoundGrid)",
-    "F27G32Q Pro (NVIDIA High Definition Audio)",
     "扬声器 (Realtek(R) Audio)"
   ],
   "duration": 24.0,
@@ -189,8 +188,19 @@
   "error": "",
   "exclusive": false,
   "file_tag_info": "文件标签：48000 Hz · 未知 bit · 1 声道 · 2853 kbps\nWASAPI 共享输出\n音频 codec：aac\n源解码 PCM：48000 Hz · \"mono\" · \"floatp\"\nAPI 输出 PCM：48000 Hz · \"stereo\" · \"float\"\n实际音频 API：wasapi\n请求设备：auto\n设备初始化记录：Selecting device '{ea35d8dc-ccfb-4a8f-90c5-ba43dedb1c51}' (扬声器 (Realtek(R) Audio))\n物理 DAC 格式：未知（不能由软件 PCM 格式推断）\n音量：70% · 倍速：1.00x\nDSP：EQ 关闭 / 平直，无 EQ 滤镜\n实际 AF 链：\n文件：E:\\SourceFiles\\rust\\yyplayer\\docs\\validation\\video-fixture.mp4\n容器：mov,mp4,m4a,3gp,3g2,mj2\n时长：24.000000 秒\n视频 codec：H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10\n解码器：h264\n分辨率：1280 × 720\n帧率：30.000000\n像素格式：yuv420p\n色彩：bt.709 / bt.709 / bt.1886\n当前解码：软件解码\nhwdec-current：no\n请求 hwdec：no\n音频 codec：aac\n采样率 / 声道：48000 / 1\n音频输出：wasapi\n掉帧：0\n倍速：1.00x\n内核：mpv v0.41.0-1087-ge470f8986\n呈现：libmpv OpenGL → RGBA8 GPU 纹理（SDR，不宣称 HDR 输出）",
+  "fonts": {
+    "ass_actual": "",
+    "families": 278,
+    "lyrics": "",
+    "subtitle_actual": "sans-serif",
+    "ui": ""
+  },
   "fullscreen": false,
   "hwdec": "no",
+  "library_columns": {
+    "artist": 0.23999999463558197,
+    "song": 0.46000000834465027
+  },
   "lyric_count": 0,
   "maximized": false,
   "media_info": "文件：E:\\SourceFiles\\rust\\yyplayer\\docs\\validation\\video-fixture.mp4\n容器：mov,mp4,m4a,3gp,3g2,mj2\n时长：24.000000 秒\n视频 codec：H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10\n解码器：h264\n分辨率：1280 × 720\n帧率：30.000000\n像素格式：yuv420p\n色彩：bt.709 / bt.709 / bt.1886\n当前解码：软件解码\nhwdec-current：no\n请求 hwdec：no\n音频 codec：aac\n采样率 / 声道：48000 / 1\n音频输出：wasapi\n掉帧：0\n倍速：1.00x\n内核：mpv v0.41.0-1087-ge470f8986\n呈现：libmpv OpenGL → RGBA8 GPU 纹理（SDR，不宣称 HDR 输出）",
@@ -198,13 +208,17 @@
   "muted": false,
   "page": 1,
   "phase": "Playing",
-  "position": 4.866667,
+  "position": 4.833333,
   "render_error": "",
-  "render_frames": 148,
+  "render_frames": 147,
   "runtime": "mpv v0.41.0-1087-ge470f8986",
   "script_steps": 0,
   "speed": 1.0,
   "tracks": 2,
   "video": true,
-  "volume": 70.0
+  "volume": 70.0,
+  "window_surface": {
+    "preference": 2,
+    "result": 0
+  }
 }

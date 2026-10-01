@@ -157,7 +157,11 @@ impl AppController {
         let number = value.parse::<f64>().ok().filter(|v| v.is_finite());
         match action {
             "output-retry" => self.apply_output(),
-            "music-detail" => {
+            "music-toggle" if self.page == 4 => {
+                self.expanded = false;
+                self.page = 0;
+            }
+            "music-toggle" | "music-detail" => {
                 if !self.engine.snapshot().video {
                     self.expanded = true;
                     self.page = 4;

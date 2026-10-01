@@ -25,6 +25,7 @@ pub fn tracks() -> Vec<MediaPreview> {
             collection: collection.into(),
             duration: duration.into(),
             cover,
+            artwork: Default::default(),
         },
     )
     .collect()

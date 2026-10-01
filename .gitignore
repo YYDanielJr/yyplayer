@@ -1,6 +1,16 @@
 /target/
 /dist/
 *.log
+*.pdb
+*.dmp
+*.yyplayer-*.tmp
+/.env
+/.env.*
+!/.env.example
+/settings*.json
+.DS_Store
+Thumbs.db
+desktop.ini
 third_party/mpv/*/
 !third_party/mpv/README.md
 docs/validation/*.mp4

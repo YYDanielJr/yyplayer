@@ -24,6 +24,7 @@ image = { version = "=0.25.10", default-features = false, features = ["png", "jp
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
+raw-window-handle = "0.6"
 
 [dev-dependencies]
 slint = { workspace = true, features = ["renderer-software", "software-renderer-path"] }

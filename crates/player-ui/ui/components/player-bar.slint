@@ -32,7 +32,7 @@ export component PlayerBar inherits Rectangle {
                     Rectangle { width: 48px; height: 48px;
                         if root.preview: Cover { artwork-id: root.cover; width: 48px; height: 48px; }
                         if !root.preview: MusicArt { artwork: root.artwork; playing: root.playing; width: 48px; height: 48px; }
-                        TouchArea { mouse-cursor: pointer; clicked => { root.control("music-detail", ""); } }
+                        TouchArea { mouse-cursor: pointer; clicked => { root.control("music-toggle", ""); } }
                     }
                 }
                 VerticalLayout {

@@ -121,3 +121,10 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 时尚模式为轻量玻璃印象；不能为折射 / 模糊截图每帧视频，不删除 prepare_gl。动态效果立即响应操作，减少动画同时停掉持续 Timer；隐藏视频控件不改 FBO 尺寸。
 - Windows 外观观察只读注册表 / DWM / 动画偏好；测试不得改系统主题来证明同步。其他平台系统外观尚未验证，记录回退。
 - Test-LibraryTheme 使用独立配置、自有 WAV 和真实 controller / GL presenter；截图不证明位准确或功耗。ui-feedback / audio-ui 的真实 Slint 点击与计时需继续回归。用户魅蓝 DSP 独占确认是用户实测，不能推断格式矩阵 / 数字捕获。
+
+## 10. 窗口表面、缩略图与保存通知接续
+
+- Windows Surface adapter 使用借用句柄和可选 DWM 提示；不以透明分层窗、window region 或 CPU 视频循环实现圆角。窗口化启用原生阴影，最大化 / 全屏关闭；macOS / Linux 保留平台边界，未验收。原生截图与 Slint 截图区分，跨屏 DPI 不由角部截图证明。
+- 音乐库可见行信息在 Slint 内更新，由 app tick 投递有界后台服务；不得在 repeater init 回调重新借用 controller。缩略图 64px / 256 项 LRU / 8 项队列与在途，缺失也缓存，重扫取消旧 generation，图片资源 revision 驱动投影。
+- recent 历史保存必须静默，与真实设置 dirty 分离；成功提示需实际设置不同且保存成功。通知 revision 独立于持久化 revision，静默写入不得复活已手动关闭的浮窗。
+- 歌词页通过左下 / 大封面返回音乐库，导入歌词位于播放选项。修改后复验 Test-UiCustomization 的封面点击 / 静默播放、ui-feedback 和导航；截图不代替 WASAPI / 位准确资格。

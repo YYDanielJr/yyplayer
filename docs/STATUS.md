@@ -1,6 +1,20 @@
 # YYPlayer 进度与证据
 
-更新：2026-10-01。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。Git 框架 `d10a4e8` 保留在历史，视频 `4eca722` 保留 main；音频 `8467ca9` 已合入 master，目录音乐库 / 主题 / UI 修复和本轮字体 / 窗口 / 列宽继续在 dev。
+更新：2026-10-02。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。Git 框架 `d10a4e8` 保留在历史，视频 `4eca722` 保留 main；音频 `8467ca9` 已合入 master，目录音乐库 / 主题 / UI 修复和本轮字体 / 窗口 / 列宽继续在 dev。
+
+## 2026-10-02：原生窗口外观、音乐库封面与歌词页精简
+
+状态：Done（本轮 Windows 开发预览实现 / 本机验证）。目标在 README 先记录；继续在 dev，未合入主分支、未发布。
+
+- platform / app 新增可选 WindowSurface adapter：窗口化 DWM 圆角 + Winit 原生阴影，最大化 / 全屏方角；借用 HWND，仅状态变化更新。原生角部截图已看到真实圆角与阴影；不改变 GL prepare_gl 或 presenter。
+- app 新增后台可见行缩略图服务，UI TrackRow / Cover 显示真实内嵌 / 同名 / 目录封面，损坏 / 无封面回退；64px、8 项队列 / 在途、256 项 LRU、重扫 generation 取消，结果按资源批次更新。
+- Persistence 排除 recent 比较实际设置变化，history dirty 与 settings dirty、通知 revision 与磁盘 revision 分离；播放静默保存历史，同值不提示，实际成功修改才显示保存浮窗，失败仍可见。
+- 大页面删除收起 / 自动跟随 / 更换歌词；自动歌词与 seek 保留，手动导入在播放选项。左下封面切换浏览 / 大页面，大封面返回音乐库；两种真实点击验证通过。
+- fmt / 严格 all-targets clippy / all-targets tests / Release 通过，20 个独立单测。Test-UiCustomization 22 阶段、ui-feedback 17 点、navigation-ui 10 点、Debug 视频 11 动作 / 265 次 render 通过。原生 Release 窗口 result=0、preference=2；最大化 / 还原回读验证通过。
+- `.gitignore` 已创建且补充本地 .env / 配置、PDB / dump / 原子临时文件 / 系统杂项。已跟踪文件 / 历史体积 / 常见密钥标记检查未发现不应上传的二进制或匹配；没有 Git 远端、根目录没有 LICENSE。GitHub 准备见 docs/PUBLISHING.md，未自动选择许可或推送。
+- 安全清理已移除 5,433,771,005 字节（约 5.06 GiB）构建 / 测试缓存，保留 Release exe 与固定 DLL；自有视频临时素材另清理。提交前工作区约 151 MiB，target 仅余 21,758,976 字节 exe。清理后独立配置启动、原生圆角回读、runtime 与正常退出再次通过。
+- 已更新 README / ADR 0005 / 本报告 / 接续规则。详细命令、图片与修正记录见 [窗口与封面验收](validation/window-artwork.md)。Windows 10 / 远程 / 贴靠、多屏 DPI 与 macOS / Linux 仍待验；未追加数字捕获或 HDR 资格。
+- 下一步：选定应用许可证和正式主分支、合并 dev，再配置仓库并推送；发行包另补 runtime notices / 对应源码 / 依赖闭包。
 
 ## 2026-10-01：字体、集成窗口控制栏与音乐库列宽
 

@@ -119,18 +119,29 @@ pub fn atomic_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
     Ok(())
 }
 pub struct Persistence {
-    pub commands: SyncSender<(u64, Settings)>,
-    pub replies: Receiver<(u64, Result<(), String>)>,
+    pub commands: SyncSender<(u64, Settings, bool)>,
+    pub replies: Receiver<(u64, Result<(), String>, bool)>,
     worker: Option<std::thread::JoinHandle<()>>,
 }
 impl Persistence {
     pub fn start(path: PathBuf) -> Self {
-        let (tx, rx) = sync_channel::<(u64, Settings)>(4);
+        let (tx, rx) = sync_channel::<(u64, Settings, bool)>(4);
         let (done_tx, done_rx) = sync_channel(4);
         let worker = std::thread::spawn(move || {
-            while let Ok((revision, settings)) = rx.recv() {
+            let preference = |settings: &Settings| {
+                let mut value = serde_json::to_value(settings).ok()?;
+                value.as_object_mut()?.remove("recent");
+                Some(value)
+            };
+            let mut prior = preference(&load(&path).0);
+            while let Ok((revision, settings, notify)) = rx.recv() {
+                let current = preference(&settings);
+                let changed = current != prior;
                 let result = atomic_save(&path, &settings);
-                if done_tx.send((revision, result)).is_err() {
+                if result.is_ok() {
+                    prior = current;
+                }
+                if done_tx.send((revision, result, notify && changed)).is_err() {
                     break;
                 }
             }
@@ -240,6 +251,39 @@ impl Dialogs {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn persistence_notifies_only_changed_preferences() {
+        let path =
+            std::env::temp_dir().join(format!("yyplayer-notice-test-{}.json", std::process::id()));
+        let mut settings = Settings::default();
+        atomic_save(&path, &settings).unwrap();
+        let service = Persistence::start(path.clone());
+        let receive = |revision, state: Settings, notify| {
+            service.commands.send((revision, state, notify)).unwrap();
+            let (received, result, notification) = service
+                .replies
+                .recv_timeout(std::time::Duration::from_secs(5))
+                .unwrap();
+            assert_eq!(received, revision);
+            (result, notification)
+        };
+        let (result, notify) = receive(1, settings.clone(), true);
+        assert!(result.is_ok() && !notify);
+        settings.recent.push(PathBuf::from("history-only.flac"));
+        let (result, notify) = receive(2, settings.clone(), true);
+        assert!(result.is_ok() && !notify);
+        assert_eq!(load(&path).0.recent, settings.recent);
+        settings.volume = 43.0;
+        let (result, notify) = receive(3, settings.clone(), true);
+        assert!(result.is_ok() && notify);
+        let (result, notify) = receive(4, settings.clone(), true);
+        assert!(result.is_ok() && !notify);
+        settings.volume = f32::NAN;
+        assert!(receive(5, settings, true).0.is_err());
+        assert_eq!(load(&path).0.volume, 43.0);
+        service.finish();
+        std::fs::remove_file(path).unwrap();
+    }
     #[test]
     fn atomic_replace_and_recover_bad_data() {
         let directory =

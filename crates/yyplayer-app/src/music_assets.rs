@@ -198,7 +198,43 @@ fn read_assets(path: &Path, override_lyrics: Option<&Path>) -> Assets {
     }
     result
 }
+pub(super) fn read_thumbnail(path: &Path) -> Option<(u32, u32, Vec<u8>)> {
+    if let Ok(file) = lofty::probe::read_from_path(path)
+        && let Some(tag) = file.primary_tag().or_else(|| file.first_tag())
+        && let Some(p) = tag
+            .pictures()
+            .iter()
+            .find(|p| p.pic_type() == lofty::picture::PictureType::CoverFront)
+            .or_else(|| tag.pictures().first())
+        && let Some(image) = decode_picture_at(p.data(), 64)
+    {
+        return Some(image);
+    }
+    for candidate in [
+        path.with_extension("jpg"),
+        path.with_extension("png"),
+        path.with_file_name("cover.jpg"),
+        path.with_file_name("cover.png"),
+        path.with_file_name("folder.jpg"),
+    ] {
+        if let Ok(file) = std::fs::File::open(candidate) {
+            let mut bytes = Vec::new();
+            if file
+                .take(16 * 1024 * 1024 + 1)
+                .read_to_end(&mut bytes)
+                .is_ok()
+                && let Some(image) = decode_picture_at(&bytes, 64)
+            {
+                return Some(image);
+            }
+        }
+    }
+    None
+}
 fn decode_picture(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
+    decode_picture_at(bytes, 1024)
+}
+fn decode_picture_at(bytes: &[u8], size: u32) -> Option<(u32, u32, Vec<u8>)> {
     if bytes.len() > 16 * 1024 * 1024 {
         return None;
     }
@@ -211,8 +247,8 @@ fn decode_picture(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
     limits.max_alloc = Some(64 * 1024 * 1024);
     reader.limits(limits);
     let decoded = reader.decode().ok()?;
-    let decoded = if decoded.width() > 1024 || decoded.height() > 1024 {
-        decoded.resize(1024, 1024, image::imageops::FilterType::Triangle)
+    let decoded = if decoded.width() > size || decoded.height() > size {
+        decoded.resize(size, size, image::imageops::FilterType::Triangle)
     } else {
         decoded
     }
@@ -222,6 +258,26 @@ fn decode_picture(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn thumbnails_preserve_aspect_and_reject_invalid_images() {
+        let image = image::DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
+            320,
+            160,
+            image::Rgba([36, 96, 180, 255]),
+        ));
+        let mut bytes = std::io::Cursor::new(Vec::new());
+        image.write_to(&mut bytes, image::ImageFormat::Png).unwrap();
+        let (w, h, pixels) = decode_picture_at(bytes.get_ref(), 64).unwrap();
+        assert_eq!((w, h, pixels.len()), (64, 32, 64 * 32 * 4));
+        assert!(decode_picture_at(b"broken picture", 64).is_none());
+        assert!(decode_picture_at(&vec![0; 16 * 1024 * 1024 + 1], 64).is_none());
+        let path =
+            std::env::temp_dir().join(format!("yy-thumbnail-{}.missing", std::process::id()));
+        let sidecar = path.with_extension("png");
+        std::fs::write(&sidecar, bytes.get_ref()).unwrap();
+        assert_eq!(read_thumbnail(&path).unwrap().0, 64);
+        std::fs::remove_file(sidecar).unwrap();
+    }
     #[test]
     fn lyrics_encodings_and_size_limit() {
         let path = std::env::temp_dir().join(format!("yy-lrc-{}.txt", std::process::id()));

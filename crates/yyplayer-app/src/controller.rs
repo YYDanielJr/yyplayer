@@ -25,6 +25,8 @@ mod library_controller;
 mod library_service;
 #[path = "music_assets.rs"]
 mod music_assets;
+#[path = "thumbnails.rs"]
+mod thumbnails;
 
 pub struct AppController {
     engine: MpvEngine,
@@ -41,6 +43,8 @@ pub struct AppController {
     decode_scope: i32,
     settings_revision: u64,
     save_revision: u64,
+    notice_revision: u64,
+    history_dirty: Option<Instant>,
     persistence: Option<Persistence>,
     dialogs: Option<Dialogs>,
     queue: Vec<MediaSource>,
@@ -74,6 +78,7 @@ pub struct AppController {
     plain_lyrics: std::rc::Rc<String>,
     pending_asset: Option<music_assets::Request>,
     library_service: Option<library_service::Service>,
+    thumbnails: Option<thumbnails::Thumbnails>,
     library_pending: Option<library_service::Request>,
     library_songs: Vec<player_core::library::Song>,
     library_rows: std::rc::Rc<Vec<MediaPreview>>,
@@ -106,6 +111,8 @@ impl AppController {
             decode_scope: 0,
             settings_revision: 1,
             save_revision: 0,
+            notice_revision: 0,
+            history_dirty: None,
             persistence: None,
             dialogs: None,
             queue: vec![],
@@ -139,6 +146,7 @@ impl AppController {
             plain_lyrics: Default::default(),
             pending_asset: None,
             library_service: None,
+            thumbnails: None,
             library_pending: None,
             library_songs: vec![],
             library_rows: Default::default(),
@@ -161,6 +169,7 @@ impl AppController {
         controller.preview = false;
         controller.font_task = Some(font_service::Task::start());
         controller.page = 0;
+        controller.thumbnails = Some(thumbnails::Thumbnails::start());
         controller.status = warning;
         controller.shortcut_draft = settings.shortcuts.clone();
         controller.decode_draft = settings.global.clone();
@@ -249,6 +258,23 @@ impl AppController {
             self.status = "界面截图模式不打开文件".into();
         }
     }
+    pub fn request_library_covers(&mut self, first: i32, count: i32) {
+        if self.page != 0 || self.preview {
+            return;
+        }
+        if let Some(thumbnails) = &mut self.thumbnails {
+            for row in self
+                .library_rows
+                .iter()
+                .skip(first.max(0) as usize)
+                .take(count.clamp(0, 64) as usize)
+            {
+                if let Some(song) = self.library_songs.get(row.id as usize) {
+                    thumbnails.request(&song.path);
+                }
+            }
+        }
+    }
     pub fn prepare_paths(&mut self, paths: Vec<PathBuf>) {
         self.dialog(DialogRequest::Paths(paths));
     }
@@ -283,7 +309,7 @@ impl AppController {
                 self.settings.recent.retain(|recent| recent != path);
                 self.settings.recent.insert(0, path.clone());
                 self.settings.recent.truncate(30);
-                self.settings_dirty = Some(Instant::now());
+                self.history_dirty = Some(Instant::now());
                 self.settings.resolve(path).0
             }
             _ => self.settings.global.clone(),
@@ -329,18 +355,24 @@ impl AppController {
         }
     }
     fn save(&mut self) {
+        self.save_with_notice(true);
+    }
+    fn save_with_notice(&mut self, notify: bool) {
         self.settings_dirty = None;
+        self.history_dirty = None;
         self.save_revision += 1;
-        if let Some(persistence) = &self.persistence {
-            match persistence
-                .commands
-                .try_send((self.save_revision, self.settings.clone()))
-            {
-                Ok(()) => self.status = "设置已提交保存".into(),
-                Err(error) => {
-                    self.status = format!("设置保存未提交：{error}");
-                    self.settings_dirty = Some(Instant::now());
-                }
+        if let Some(persistence) = &self.persistence
+            && let Err(error) =
+                persistence
+                    .commands
+                    .try_send((self.save_revision, self.settings.clone(), notify))
+        {
+            self.status = format!("设置保存未提交：{error}");
+            self.notice_revision += 1;
+            if notify {
+                self.settings_dirty = Some(Instant::now());
+            } else {
+                self.history_dirty = Some(Instant::now());
             }
         }
     }
@@ -825,17 +857,27 @@ impl AppController {
             .as_ref()
             .map(|persistence| persistence.replies.try_iter().collect())
             .unwrap_or_default();
-        for (revision, result) in replies {
+        for (revision, result, notify) in replies {
             if revision == self.save_revision {
-                self.status = match result {
-                    Ok(()) => "设置已保存".into(),
-                    Err(error) => format!("设置保存失败：{error}"),
-                };
+                match result {
+                    Ok(()) if notify => {
+                        self.status = "设置已保存".into();
+                        self.notice_revision += 1;
+                    }
+                    Err(error) => {
+                        self.status = format!("设置保存失败：{error}");
+                        self.notice_revision += 1;
+                    }
+                    _ => {}
+                }
             }
         }
         let changed = self.engine.refresh();
         self.poll_assets();
         self.poll_library();
+        if self.thumbnails.as_mut().is_some_and(|t| t.poll()) {
+            self.refresh_library();
+        }
         self.poll_fonts();
         if self.engine.snapshot().ready && !self.initial_audio {
             self.initial_audio = true;
@@ -884,6 +926,12 @@ impl AppController {
             .is_some_and(|started| started.elapsed() > Duration::from_millis(800))
         {
             self.save();
+        } else if self.settings_dirty.is_none()
+            && self
+                .history_dirty
+                .is_some_and(|t| t.elapsed() > Duration::from_millis(800))
+        {
+            self.save_with_notice(false);
         }
     }
     pub fn view_model(&self) -> ShellViewModel {
@@ -1004,7 +1052,7 @@ impl AppController {
             } else {
                 self.status.clone()
             },
-            status_revision: self.save_revision,
+            status_revision: self.notice_revision,
             tracks,
             queue,
             queue_revision,
@@ -1023,6 +1071,7 @@ impl AppController {
                     collection: String::new(),
                     duration: String::new(),
                     cover: index as i32 % 3,
+                    artwork: Default::default(),
                 })
                 .collect(),
             playing: snapshot.phase == PlaybackPhase::Playing,
@@ -1141,6 +1190,11 @@ impl AppController {
                             String::new()
                         },
                         cover: -1,
+                        artwork: if index == self.selected_id as usize {
+                            self.cover.clone()
+                        } else {
+                            Default::default()
+                        },
                     })
                     .collect()
             };
@@ -1167,8 +1221,8 @@ impl AppController {
     }
     pub fn finish_services(&mut self) {
         self.cancel_hold();
-        if self.settings_dirty.is_some() {
-            self.save();
+        if self.settings_dirty.is_some() || self.history_dirty.is_some() {
+            self.save_with_notice(self.settings_dirty.is_some());
         }
         if let Some(persistence) = self.persistence.take() {
             persistence.finish();
@@ -1178,6 +1232,9 @@ impl AppController {
         }
         self.appearance_observer = None;
         self.font_task = None;
+        if let Some(t) = self.thumbnails.take() {
+            t.finish();
+        }
         self.dialogs = None;
         self.assets_service = None;
     }

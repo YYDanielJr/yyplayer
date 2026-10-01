@@ -6,6 +6,7 @@ pub struct MediaPreview {
     pub collection: String,
     pub duration: String,
     pub cover: i32,
+    pub artwork: slint::Image,
 }
 
 #[derive(Clone, Debug, Default)]

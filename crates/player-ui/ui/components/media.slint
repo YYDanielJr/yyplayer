@@ -4,13 +4,15 @@ import { TrackRow } from "../models.slint";
 
 export component Cover inherits Image {
     in property <int> artwork-id;
-    source: root.artwork-id < 0 ? Icons.music : root.artwork-id == 1 ? Artwork.water : (root.artwork-id == 2 ? Artwork.sun : Artwork.night);
-    image-fit: contain;
-    colorize: root.artwork-id < 0 ? Theme.muted : transparent;
+    in property <image> artwork;
+    source: root.artwork.width > 0 ? root.artwork : root.artwork-id < 0 ? Icons.music : root.artwork-id == 1 ? Artwork.water : (root.artwork-id == 2 ? Artwork.sun : Artwork.night);
+    image-fit: root.artwork.width > 0 ? cover : contain;
+    colorize: root.artwork.width == 0 && root.artwork-id < 0 ? Theme.muted : transparent;
 }
 
 export component AlbumCard inherits Rectangle {
     in property <int> artwork-id;
+    in property <image> artwork;
     in property <string> title;
     in property <string> subtitle;
     callback clicked();
@@ -54,7 +56,7 @@ export component SongRow inherits Rectangle {
     background: root.fill; animate fill { duration: Theme.fast; }
     accessible-role: button; accessible-label: root.track.title + "，" + root.track.artist;
     Text { x: 12px; width: 20px; height: parent.height; text: root.number < 10 ? "0" + root.number : "" + root.number; color: Theme.faint; font-size: 11px; vertical-alignment: center; }
-    if root.width >= 520px: Cover { x: 42px; y: (parent.height - 32px) / 2; artwork-id: root.track.cover; width: 32px; height: 32px; }
+    if root.width >= 520px: Cover { x: 42px; y: (parent.height - 32px) / 2; artwork-id: root.track.cover; artwork: root.track.artwork; width: 32px; height: 32px; }
     Text { x: root.prefix; width: max(0px,root.columns * root.column-song - 12px); height: parent.height; text: root.track.title; color: root.selected ? Theme.accent-text : Theme.text; font-size: 12px; vertical-alignment: center; overflow: elide; }
     Text { x: root.prefix + root.columns * root.column-song + 6px; width: max(0px,root.columns * root.column-artist - 12px); height: parent.height; text: root.track.artist; color: Theme.muted; font-size: 11px; vertical-alignment: center; overflow: elide; }
     Text { x: root.prefix + root.columns * (root.column-song + root.column-artist) + 6px; width: max(0px,root.columns * (1 - root.column-song - root.column-artist) - 12px); height: parent.height; text: root.track.collection; color: Theme.muted; font-size: 11px; vertical-alignment: center; overflow: elide; }

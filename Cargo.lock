@@ -3748,6 +3748,7 @@ name = "player-platform"
 version = "0.0.1"
 dependencies = [
  "fontdb",
+ "raw-window-handle",
  "windows-sys 0.61.2",
 ]
 
@@ -6163,6 +6164,7 @@ dependencies = [
  "player-mpv",
  "player-platform",
  "player-ui",
+ "raw-window-handle",
  "rfd",
  "serde",
  "serde_json",

@@ -105,6 +105,7 @@ fn rows(
             collection: item.collection.as_str().into(),
             duration: item.duration.as_str().into(),
             cover: item.cover,
+            artwork: item.artwork.clone(),
         })
         .collect::<Vec<_>>();
     if let Some(model) = current.as_any().downcast_ref::<VecModel<TrackRow>>()
