@@ -1,0 +1,239 @@
+//! Bounded disk/tag/dialog worker. Replies carry identity so old lyrics never replace a new song.
+use lofty::{
+    file::{AudioFile, TaggedFileExt},
+    tag::Accessor,
+};
+use player_core::{audio::EqPreset, lyrics::Lyrics};
+use std::{
+    io::Read,
+    path::{Path, PathBuf},
+    sync::mpsc::{Receiver, SyncSender, sync_channel},
+};
+
+#[derive(Default)]
+pub struct Assets {
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    pub info: String,
+    pub cover: Option<(u32, u32, Vec<u8>)>,
+    pub lyrics: Lyrics,
+    pub warning: String,
+}
+pub enum Request {
+    Read(u64, PathBuf, Option<PathBuf>),
+    Lyrics(u64, PathBuf),
+    ImportEq,
+    ExportEq(EqPreset),
+}
+pub enum Reply {
+    Assets(u64, Box<Assets>),
+    Lyrics(u64, PathBuf, PathBuf, Lyrics),
+    Eq(EqPreset),
+    Message(String),
+}
+pub struct Service {
+    pub commands: SyncSender<Request>,
+    pub replies: Receiver<Reply>,
+}
+impl Service {
+    pub fn start() -> Self {
+        let (tx, rx) = sync_channel(4);
+        let (done, replies) = sync_channel(4);
+        std::thread::spawn(move || {
+            lofty::config::apply_global_options(
+                lofty::config::GlobalOptions::new().allocation_limit(16 * 1024 * 1024),
+            );
+            while let Ok(request) = rx.recv() {
+                let reply = match request {
+                    Request::Read(id, path, lyrics) => Some(Reply::Assets(
+                        id,
+                        Box::new(read_assets(&path, lyrics.as_deref())),
+                    )),
+                    Request::Lyrics(id, media) => rfd::FileDialog::new()
+                        .set_title("导入当前曲目的本地歌词")
+                        .add_filter("歌词", &["lrc", "txt"])
+                        .pick_file()
+                        .map(|path| match read_lyrics(&path) {
+                            Ok(lyrics) => Reply::Lyrics(id, media, path, lyrics),
+                            Err(e) => Reply::Message(e),
+                        }),
+                    Request::ImportEq => rfd::FileDialog::new()
+                        .set_title("导入 EQ（JSON / Equalizer APO 参数滤波器）")
+                        .add_filter("EQ 预设", &["json", "txt"])
+                        .pick_file()
+                        .map(|path| {
+                            match read_text(&path, 256_000).and_then(|text| {
+                                EqPreset::import(
+                                    &text,
+                                    &path.file_stem().unwrap_or_default().to_string_lossy(),
+                                )
+                            }) {
+                                Ok(eq) => Reply::Eq(eq),
+                                Err(e) => Reply::Message(e),
+                            }
+                        }),
+                    Request::ExportEq(eq) => rfd::FileDialog::new()
+                        .set_title("导出 EQ 预设")
+                        .set_file_name("YYPlayer-EQ.json")
+                        .add_filter("JSON", &["json"])
+                        .save_file()
+                        .map(|path| {
+                            let result = eq
+                                .validate()
+                                .and_then(|_| {
+                                    serde_json::to_vec_pretty(&eq).map_err(|e| e.to_string())
+                                })
+                                .and_then(|data| crate::services::atomic_bytes(&path, &data));
+                            Reply::Message(match result {
+                                Ok(()) => "EQ 预设已导出".into(),
+                                Err(e) => format!("导出失败：{e}"),
+                            })
+                        }),
+                };
+                if let Some(reply) = reply
+                    && done.send(reply).is_err()
+                {
+                    break;
+                }
+            }
+        });
+        Self {
+            commands: tx,
+            replies,
+        }
+    }
+}
+fn read_text(path: &Path, limit: usize) -> Result<String, String> {
+    let file =
+        std::fs::File::open(path).map_err(|e| format!("无法读取 {}：{e}", path.display()))?;
+    let mut bytes = Vec::new();
+    file.take(limit as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| e.to_string())?;
+    if bytes.len() > limit {
+        return Err("文件超出大小限制".into());
+    }
+    if bytes.starts_with(&[0xff, 0xfe]) {
+        return Ok(encoding_rs::UTF_16LE.decode(&bytes[2..]).0.into_owned());
+    }
+    if bytes.starts_with(&[0xfe, 0xff]) {
+        return Ok(encoding_rs::UTF_16BE.decode(&bytes[2..]).0.into_owned());
+    }
+    match String::from_utf8(bytes) {
+        Ok(s) => Ok(s.trim_start_matches('\u{feff}').into()),
+        Err(e) => Ok(encoding_rs::GB18030.decode(e.as_bytes()).0.into_owned()),
+    }
+}
+fn read_lyrics(path: &Path) -> Result<Lyrics, String> {
+    Lyrics::parse(&read_text(path, 1_000_000)?)
+}
+fn read_assets(path: &Path, override_lyrics: Option<&Path>) -> Assets {
+    let mut result = Assets::default();
+    if let Ok(file) = lofty::probe::read_from_path(path) {
+        let properties = file.properties();
+        result.info = format!(
+            "文件标签：{} Hz · {} bit · {} 声道 · {} kbps",
+            properties
+                .sample_rate()
+                .map_or("未知".into(), |v| v.to_string()),
+            properties
+                .bit_depth()
+                .map_or("未知".into(), |v| v.to_string()),
+            properties
+                .channels()
+                .map_or("未知".into(), |v| v.to_string()),
+            properties
+                .audio_bitrate()
+                .map_or("未知".into(), |v| v.to_string())
+        );
+        if let Some(tag) = file.primary_tag().or_else(|| file.first_tag()) {
+            result.title = tag.title().map_or(String::new(), |v| v.into_owned());
+            result.artist = tag.artist().map_or(String::new(), |v| v.into_owned());
+            result.album = tag.album().map_or(String::new(), |v| v.into_owned());
+            if let Some(lyrics) = tag.get_string(lofty::tag::ItemKey::Lyrics)
+                && let Ok(lyrics) = Lyrics::parse(lyrics)
+            {
+                result.lyrics = lyrics;
+            }
+            if let Some(picture) = tag
+                .pictures()
+                .iter()
+                .find(|p| p.pic_type() == lofty::picture::PictureType::CoverFront)
+                .or_else(|| tag.pictures().first())
+            {
+                result.cover = decode_picture(picture.data());
+            }
+        }
+    }
+    if result.cover.is_none() {
+        let candidates = [
+            path.with_extension("jpg"),
+            path.with_extension("png"),
+            path.with_file_name("cover.jpg"),
+            path.with_file_name("cover.png"),
+            path.with_file_name("folder.jpg"),
+        ];
+        for candidate in candidates {
+            if let Ok(file) = std::fs::File::open(candidate) {
+                let mut bytes = Vec::new();
+                if file
+                    .take(16 * 1024 * 1024 + 1)
+                    .read_to_end(&mut bytes)
+                    .is_ok()
+                    && let Some(cover) = decode_picture(&bytes)
+                {
+                    result.cover = Some(cover);
+                    break;
+                }
+            }
+        }
+    }
+    let automatic = path.with_extension("lrc");
+    let lyric = override_lyrics.unwrap_or(&automatic);
+    match read_lyrics(lyric) {
+        Ok(lyrics) => result.lyrics = lyrics,
+        Err(e) if lyric.exists() || override_lyrics.is_some() => result.warning = e,
+        _ => {}
+    }
+    result
+}
+fn decode_picture(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
+    if bytes.len() > 16 * 1024 * 1024 {
+        return None;
+    }
+    let mut reader = image::ImageReader::new(std::io::Cursor::new(bytes))
+        .with_guessed_format()
+        .ok()?;
+    let mut limits = image::Limits::default();
+    limits.max_image_width = Some(8192);
+    limits.max_image_height = Some(8192);
+    limits.max_alloc = Some(64 * 1024 * 1024);
+    reader.limits(limits);
+    let decoded = reader.decode().ok()?;
+    let decoded = if decoded.width() > 1024 || decoded.height() > 1024 {
+        decoded.resize(1024, 1024, image::imageops::FilterType::Triangle)
+    } else {
+        decoded
+    }
+    .to_rgba8();
+    Some((decoded.width(), decoded.height(), decoded.into_raw()))
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn lyrics_encodings_and_size_limit() {
+        let path = std::env::temp_dir().join(format!("yy-lrc-{}.txt", std::process::id()));
+        std::fs::write(
+            &path,
+            [
+                0xff, 0xfe, b'[', 0, b'0', 0, b'0', 0, b':', 0, b'0', 0, b'1', 0, b']', 0, b'A', 0,
+            ],
+        )
+        .unwrap();
+        assert_eq!(read_lyrics(&path).unwrap().lines[0].text, "A");
+        assert!(read_text(&path, 2).is_err());
+        std::fs::remove_file(path).unwrap();
+    }
+}

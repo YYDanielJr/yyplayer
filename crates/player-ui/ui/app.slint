@@ -5,11 +5,12 @@ import { QueueRow } from "components/media.slint";
 import { PlayerBar } from "components/player-bar.slint";
 import { VideoOptions } from "components/video-options.slint";
 import { MusicPage } from "pages/music.slint";
+import { NowPlaying } from "pages/now-playing.slint";
 import { VideoPage } from "pages/video.slint";
 import { RecentPage } from "pages/recent.slint";
 import { SettingsPage } from "pages/settings.slint";
-export { TrackRow, ShortcutRow } from "models.slint";
-import { TrackRow, ShortcutRow } from "models.slint";
+export { TrackRow, ShortcutRow, EqBandRow, LyricRow, AudioForm } from "models.slint";
+import { TrackRow, ShortcutRow, LyricRow, AudioForm } from "models.slint";
 export component AppWindow inherits Window {
     title: root.has-media ? root.selected-title + " · YYPlayer" : "YYPlayer";
     preferred-width: 1240px; preferred-height: 900px; min-width: 1000px; min-height: 640px;
@@ -20,6 +21,11 @@ export component AppWindow inherits Window {
     in property <int> selected-cover; in property <float> volume; in property <bool> favorite;
     in property <string> status-message; in property <[TrackRow]> tracks; in property <[TrackRow]> queue;
     in property <int> status-revision;
+    in property <bool> preview;
+    in property <image> music-cover; in property <int> asset-revision;
+    in property <[LyricRow]> lyrics; in property <int> active-lyric; in property <string> plain-lyrics;
+    in property <string> album; in property <string> audio-status; in property <string> eq-origin;
+    in property <string> eq-binding; in property <string> eq-headroom-text; in property <AudioForm> audio-form;
     in property <[TrackRow]> recent;
     in property <bool> playing; in property <bool> has-media; in property <bool> has-video;
     in property <string> position-text; in property <float> progress; in property <bool> seekable;
@@ -75,7 +81,7 @@ export component AppWindow inherits Window {
         spacing: 0px;
         HorizontalLayout {
             vertical-stretch: 1; spacing: 0px;
-            if root.page != 1 && !root.fullscreen-mode: Rectangle {
+            if root.page != 1 && root.page != 4 && !root.fullscreen-mode: Rectangle {
                 width: 180px; background: Theme.sidebar;
                 VerticalLayout {
                     padding: 16px; spacing: 6px;
@@ -91,7 +97,7 @@ export component AppWindow inherits Window {
             }
             VerticalLayout {
                 horizontal-stretch: 1; spacing: 0px;
-                if root.page != 1: HorizontalLayout {
+                if root.page != 1 && root.page != 4: HorizontalLayout {
                     visible: !root.fullscreen-mode;
                     height: root.fullscreen-mode ? 0px : 84px; padding-left: 24px; padding-right: 24px; spacing: 12px;
                     VerticalLayout {
@@ -104,7 +110,8 @@ export component AppWindow inherits Window {
                     if root.page == 1: VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value) => { root.control("window-mode", "" + self.current-index); } } }
                     VerticalLayout { width: 100px; alignment: center; Button { text: root.panel-open ? "关闭选项" : "播放选项"; clicked => { root.control("panel", ""); } } }
                 }
-                if root.page == 0: MusicPage { tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); } }
+                if root.page == 0: MusicPage { preview: root.preview; tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); } }
+                if root.page == 4: NowPlaying { artwork: root.music-cover; title: root.selected-title; artist: root.selected-artist; album: root.album; lyrics: root.lyrics; active: root.active-lyric; plain: root.plain-lyrics; playing: root.playing; output-status: root.audio-status; control(action,value) => { root.control(action,value); } }
                 if root.page == 1: VideoPage { frame: root.video-frame; has-media: root.has-media; has-video: root.has-video; render-ready: root.render-ready; render-error: root.render-error; open-file => { root.open-file(); } control(action,value) => { root.control(action,value); } }
                 if root.page == 2: Rectangle {
                     ScrollView { width: parent.width; height: parent.height; viewport-width: self.width;
@@ -121,6 +128,7 @@ export component AppWindow inherits Window {
                 }
             }
             if root.panel-open: VideoOptions {
+                video: root.page == 1; audio-form: root.audio-form; audio-status: root.audio-status; eq-origin: root.eq-origin; eq-binding: root.eq-binding; eq-headroom-text: root.eq-headroom-text;
                 width: 370px; devices: root.device-names; device-index: root.device-index;
                 audio-tracks: root.audio-tracks; audio-index: root.audio-index; subtitle-tracks: root.subtitle-tracks; subtitle-index: root.subtitle-index;
                 chapters: root.chapters; info: root.media-info; decode-mode: root.decode-mode; decode-threads: root.decode-threads;
@@ -142,6 +150,7 @@ export component AppWindow inherits Window {
         }
     }
     PlayerBar {
+        artwork: root.music-cover; preview: root.preview;
         y: root.height - root.controls-height; width: root.width;
         visible: root.controls-visible;
         compact: root.page == 1; playing: root.playing; has-media: root.has-media; seekable: root.seekable;

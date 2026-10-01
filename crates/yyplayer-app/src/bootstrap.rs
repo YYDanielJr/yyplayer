@@ -172,6 +172,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .and_then(|seconds| seconds.parse::<f64>().ok())
         .filter(|seconds| seconds.is_finite() && *seconds > 0.0);
     let smoke_script = std::env::var_os("YYPLAYER_SMOKE_SCRIPT").is_some();
+    let audio_script = std::env::var_os("YYPLAYER_AUDIO_SCRIPT").is_some();
     let diagnostics = std::env::var_os("YYPLAYER_DIAGNOSTICS").map(PathBuf::from);
     let mut actions = 0u8;
     let mut checkpoints = Vec::new();
@@ -200,19 +201,36 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             }
             if actions == 10 && seconds > 12.5 { controller.dispatch(UiAction::RequestPlayback); actions = 11; }
         }
+        if audio_script {
+            let seconds = started.elapsed().as_secs_f64();
+            let steps: &[(f64, &[(&str, &str)])] = &[
+                (1.5, &[("music-detail", "")]),
+                (2.5, &[("eq-name", "Validation"), ("eq-enabled", "yes"), ("eq-band", "5:g:4.5"), ("eq-apply", "")]),
+                (4.5, &[("eq-store", ""), ("device", "1"), ("eq-scope", "1"), ("eq-name", "Device EQ"), ("eq-enabled", "yes"), ("eq-band", "3:g:-3"), ("eq-apply", "")]),
+                (6.5, &[("eq-scope", "2"), ("eq-name", "File EQ"), ("eq-enabled", "yes"), ("eq-band", "5:g:-6"), ("eq-apply", "")]),
+                (8.5, &[("eq-clear", ""), ("output-mode", "2")]),
+                (10.5, &[("music-browse", "")]),
+                (11.5, &[("output-mode", "0"), ("eq-scope", "1"), ("eq-clear", ""), ("eq-scope", "0"), ("eq-flat", ""), ("eq-apply", "")]),
+            ];
+            if let Some((time, controls)) = steps.get(actions as usize) && seconds > *time {
+                for (action, value) in *controls { controller.dispatch(UiAction::Control((*action).into(), (*value).into())); }
+                actions += 1;
+            }
+        }
         let request = controller.take_window_request();
         apply_window_mode(&window,request);
         window.window().with_winit_window(|native| controller.native_window_mode(native.fullscreen().is_some(),native.is_maximized()));
         project(&controller.view_model());
         if checkpoints.len() < 60 && checkpoints.len() <= started.elapsed().as_secs() as usize {
             let snapshot = controller.engine_mut().snapshot();
-            checkpoints.push(serde_json::json!({ "seconds": started.elapsed().as_secs_f64(), "phase": format!("{:?}",snapshot.phase), "speed": snapshot.speed, "position": snapshot.position.map(|value| value.as_secs_f64()), "volume": snapshot.volume, "muted": snapshot.muted, "hwdec": snapshot.hwdec, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "frames": window.get_render_frames(), "error": snapshot.error }));
+            checkpoints.push(serde_json::json!({ "seconds": started.elapsed().as_secs_f64(), "phase": format!("{:?}",snapshot.phase), "speed": snapshot.speed, "position": snapshot.position.map(|value| value.as_secs_f64()), "volume": snapshot.volume, "muted": snapshot.muted, "hwdec": snapshot.hwdec, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "frames": window.get_render_frames(), "error": snapshot.error, "audio_status": snapshot.audio_status, "exclusive": snapshot.exclusive_confirmed, "eq_filter": snapshot.eq_filter }));
         }
         if !window.get_render_ready() && window.get_render_error().is_empty() { window.window().request_redraw(); }
         if quit_after.is_some_and(|seconds| started.elapsed().as_secs_f64() >= seconds) {
             if let Some(path) = diagnostics.as_ref() {
+                let view = controller.view_model();
                 let snapshot = controller.engine_mut().snapshot();
-                let data = serde_json::json!({ "phase": format!("{:?}",snapshot.phase), "position": snapshot.position.map(|position| position.as_secs_f64()), "duration": snapshot.duration.map(|duration| duration.as_secs_f64()), "speed": snapshot.speed, "volume": snapshot.volume, "muted": snapshot.muted, "runtime": snapshot.runtime, "hwdec": snapshot.hwdec, "video": snapshot.video, "devices": snapshot.devices.iter().map(|device| &device.name).collect::<Vec<_>>(), "tracks": snapshot.tracks.len(), "render_frames": window.get_render_frames(), "render_error": window.get_render_error().as_str(), "error": snapshot.error, "media_info": snapshot.info, "script_steps": actions, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "checkpoints": checkpoints });
+                let data = serde_json::json!({ "phase": format!("{:?}",snapshot.phase), "position": snapshot.position.map(|position| position.as_secs_f64()), "duration": snapshot.duration.map(|duration| duration.as_secs_f64()), "speed": snapshot.speed, "volume": snapshot.volume, "muted": snapshot.muted, "runtime": snapshot.runtime, "hwdec": snapshot.hwdec, "video": snapshot.video, "devices": snapshot.devices.iter().map(|device| &device.name).collect::<Vec<_>>(), "tracks": snapshot.tracks.len(), "render_frames": window.get_render_frames(), "render_error": window.get_render_error().as_str(), "error": snapshot.error, "media_info": snapshot.info, "file_tag_info":view.info, "device_ids":snapshot.devices.iter().map(|d|&d.id).collect::<Vec<_>>(), "audio_info": snapshot.audio_info, "audio_log": snapshot.audio_log, "audio_source_rate":snapshot.audio_source_rate, "audio_output_rate":snapshot.audio_output_rate, "audio_fallback":snapshot.audio_fallback, "audio_status": snapshot.audio_status, "exclusive": snapshot.exclusive_confirmed, "eq_filter": snapshot.eq_filter, "music_title": view.selected_title, "artist": view.selected_artist, "album": view.audio.album, "lyric_count": view.audio.lyrics.len(), "active_lyric": view.audio.active_lyric, "page": view.page, "cover_width": view.audio.cover.size().width, "script_steps": actions, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "checkpoints": checkpoints });
                 let _ = std::fs::write(path,serde_json::to_vec_pretty(&data).unwrap());
             }
             let _ = slint::quit_event_loop();

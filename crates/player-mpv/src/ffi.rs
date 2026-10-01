@@ -22,6 +22,13 @@ pub struct EndFile {
     pub insert_count: c_int,
 }
 #[repr(C)]
+pub struct LogMessage {
+    pub prefix: *const c_char,
+    pub level: *const c_char,
+    pub text: *const c_char,
+    pub log_level: c_int,
+}
+#[repr(C)]
 pub union NodeData {
     pub string: *mut c_char,
     pub flag: c_int,
@@ -107,6 +114,7 @@ api! {
     command: unsafe extern "C" fn(Handle, u64, *const *const c_char) -> c_int = "mpv_command_async",
     wait: unsafe extern "C" fn(Handle, f64) -> *mut Event = "mpv_wait_event",
     observe: unsafe extern "C" fn(Handle, u64, *const c_char, c_int) -> c_int = "mpv_observe_property",
+    request_logs: unsafe extern "C" fn(Handle, *const c_char) -> c_int = "mpv_request_log_messages",
     wakeup: unsafe extern "C" fn(Handle, Callback, *mut c_void) = "mpv_set_wakeup_callback",
     error_string: unsafe extern "C" fn(c_int) -> *const c_char = "mpv_error_string",
     render_create: unsafe extern "C" fn(*mut Handle, Handle, *mut RenderParam) -> c_int = "mpv_render_context_create",

@@ -4,7 +4,7 @@ import { TrackRow } from "../models.slint";
 
 export component Cover inherits Image {
     in property <int> artwork-id;
-    source: root.artwork-id == 1 ? Artwork.water : (root.artwork-id == 2 ? Artwork.sun : Artwork.night);
+    source: root.artwork-id < 0 ? Icons.music : root.artwork-id == 1 ? Artwork.water : (root.artwork-id == 2 ? Artwork.sun : Artwork.night);
     image-fit: contain;
 }
 

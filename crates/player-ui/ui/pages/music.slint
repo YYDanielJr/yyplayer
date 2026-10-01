@@ -7,6 +7,7 @@ import { TrackRow } from "../models.slint";
 export component MusicPage inherits Rectangle {
     in property <[TrackRow]> tracks;
     in property <int> selected-id;
+    in property <bool> preview;
     callback select-preview(int);
     callback select-demo-album(int);
     background: transparent;
@@ -37,12 +38,12 @@ export component MusicPage inherits Rectangle {
                     Rectangle { height: 4px; }
                 }
             }
-            HorizontalLayout {
+            if root.preview: HorizontalLayout {
                 height: 24px;
                 Text { text: "你的专辑"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-stretch: 1; vertical-alignment: center; }
                 Badge { text: "示例内容"; }
             }
-            HorizontalLayout {
+            if root.preview: HorizontalLayout {
                 spacing: 18px;
                 AlbumCard { artwork-id: 0; title: "夜色之间"; subtitle: "YYPlayer Sessions · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-demo-album(0); } }
                 AlbumCard { artwork-id: 1; title: "慢下来"; subtitle: "Studio North · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-demo-album(1); } }
@@ -50,7 +51,7 @@ export component MusicPage inherits Rectangle {
             }
             HorizontalLayout {
                 height: 24px;
-                Text { text: "精选曲目"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-stretch: 1; vertical-alignment: center; }
+                Text { text: root.preview ? "精选曲目" : "当前播放队列"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-stretch: 1; vertical-alignment: center; }
                 Text { text: "" + root.tracks.length + " 首"; color: Theme.faint; font-size: 11px; vertical-alignment: center; }
             }
             VerticalLayout {

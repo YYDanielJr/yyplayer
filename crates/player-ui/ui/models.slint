@@ -7,3 +7,10 @@ export struct TrackRow {
     cover: int,
 }
 export struct ShortcutRow { action: string, binding: string }
+export struct EqBandRow { frequency: string, gain: float, q: string, kind: int }
+export struct LyricRow { text: string, milliseconds: int }
+export struct AudioForm {
+    mode: int, preserve-rate: bool, offset-ms: int, scope: int,
+    name: string, enabled: bool, preamp: string, auto-headroom: bool,
+    bands: [EqBandRow], presets: [string], preset-index: int,
+}

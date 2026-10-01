@@ -38,6 +38,14 @@ pub struct PlaybackSnapshot {
     pub hwdec: String,
     pub error: String,
     pub runtime: String,
+    /// API submitted PCM format; does not prove the physical DAC format.
+    pub audio_info: String,
+    pub audio_status: String,
+    pub eq_filter: String,
+    pub audio_log: Vec<String>,
+    pub audio_fallback: bool,
+    pub audio_source_rate: Option<u64>,
+    pub audio_output_rate: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default)]

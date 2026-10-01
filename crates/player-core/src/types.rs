@@ -31,6 +31,7 @@ pub struct AudioRequest {
     pub device_id: String,
     pub mode: AudioMode,
     pub volume_percent: f32,
+    pub preserve_rate: bool,
 }
 
 impl Default for AudioRequest {
@@ -39,6 +40,7 @@ impl Default for AudioRequest {
             device_id: "auto".into(),
             mode: AudioMode::Shared,
             volume_percent: 70.0,
+            preserve_rate: false,
         }
     }
 }
@@ -75,5 +77,6 @@ pub enum PlaybackCommand {
     Seek(Duration),
     SetVolume(f32),
     ApplyAudioRequest(AudioRequest),
+    ApplyEq(crate::audio::EqPreset),
     Shutdown,
 }

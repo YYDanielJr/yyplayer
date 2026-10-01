@@ -13,6 +13,7 @@ use std::sync::{
 };
 use std::thread::JoinHandle;
 use std::time::Duration;
+mod audio;
 
 /// Address is opaque outside renderer creation. Atomic lease keeps worker-owned core
 /// and library alive until render_free; no Send/Sync assertion for raw pointers.
@@ -101,7 +102,8 @@ impl PlaybackEngine for MpvEngine {
             playback: self.snapshot.ready,
             video: self.snapshot.ready,
             audio_device_selection: self.snapshot.ready,
-            ..Default::default()
+            exclusive_audio: self.snapshot.ready && cfg!(windows),
+            equalizer: self.snapshot.ready,
         }
     }
     fn snapshot(&self) -> &PlaybackSnapshot {
@@ -126,6 +128,7 @@ struct Core {
     wake: Box<Sender<()>>,
     bridge: Arc<RenderBridge>,
     request: u64,
+    audio: audio::AudioState,
 }
 impl Drop for Core {
     fn drop(&mut self) {
@@ -221,7 +224,11 @@ impl Core {
         snapshot.audio_output = Some(self.get("audio-device"));
         snapshot.hwdec = self.get("hwdec-current");
         let video = self.get("video-codec");
-        snapshot.video = !video.is_empty();
+        snapshot.video = self.node("track-list").as_array().is_some_and(|tracks| {
+            tracks
+                .iter()
+                .any(|t| t["type"] == "video" && t["albumart"] != true)
+        });
         if matches!(
             snapshot.phase,
             PlaybackPhase::Playing | PlaybackPhase::Paused
@@ -237,9 +244,18 @@ impl Core {
             .as_array()
             .into_iter()
             .flatten()
+            .filter(|item| {
+                !cfg!(windows)
+                    || text(item, "name") == "auto"
+                    || text(item, "name").starts_with("wasapi/")
+            })
             .map(|item| AudioDevice {
                 id: text(item, "name"),
-                name: text(item, "description"),
+                name: if text(item, "name") == "auto" {
+                    "系统默认".into()
+                } else {
+                    text(item, "description")
+                },
             })
             .collect();
         snapshot.tracks = self
@@ -355,6 +371,7 @@ fn run(
         bridge: bridge.clone(),
         wake: Box::new(wake_tx),
         request: 0,
+        audio: Default::default(),
     };
     for (name, value) in [
         ("config", "no"),
@@ -369,13 +386,24 @@ fn run(
         ("hwdec", "auto-safe"),
         ("audio-pitch-correction", "yes"),
         ("screenshot-format", "png"),
+        ("replaygain", "no"),
+        ("audio-channels", "auto"),
+        ("audio-display", "no"),
+        ("audio-samplerate", "0"),
+        ("audio-fallback-to-null", "no"),
+        ("stop-playback-on-init-failure", "yes"),
+        ("msg-level", "all=warn,ao/wasapi=debug"),
     ] {
         let name = CString::new(name).unwrap();
         let value = CString::new(value).unwrap();
         // SAFETY: all initialization on worker; checked required options.
         core.check(unsafe { (core.api.option)(handle, name.as_ptr(), value.as_ptr()) })?;
     }
+    #[cfg(windows)]
+    core.check(unsafe { (core.api.option)(handle, c"ao".as_ptr(), c"wasapi".as_ptr()) })?;
     core.check(unsafe { (core.api.initialize)(handle) })?;
+    // SAFETY: static NUL string, worker-owned initialized handle; log payloads copied below.
+    core.check(unsafe { (core.api.request_logs)(handle, c"terminal-default".as_ptr()) })?;
     let wake_ptr = (&mut *core.wake as *mut Sender<()>).cast();
     unsafe {
         (core.api.wakeup)(handle, Some(wakeup), wake_ptr);
@@ -428,6 +456,15 @@ fn run(
                 break;
             }
             match event.id {
+                2 if !event.data.is_null() => {
+                    // SAFETY: the event payload matches client.h and is copied before wait_event.
+                    let log = unsafe { &*(event.data as *const ffi::LogMessage) };
+                    let prefix = unsafe { CStr::from_ptr(log.prefix) }.to_string_lossy();
+                    if prefix.starts_with("ao/wasapi") {
+                        let message = unsafe { CStr::from_ptr(log.text) }.to_string_lossy();
+                        core.audio.log(&message, log.log_level);
+                    }
+                }
                 6 => {
                     snapshot.phase = PlaybackPhase::Loading;
                     snapshot.generation += 1;
@@ -452,7 +489,16 @@ fn run(
                                 position.to_string(),
                                 "absolute+exact".into(),
                             ])
-                            .and_then(|_| core.set("pause", if *paused { "yes" } else { "no" }))
+                            .and_then(|_| {
+                                core.set(
+                                    "pause",
+                                    if core.audio.restore_pause.is_some() || *paused {
+                                        "yes"
+                                    } else {
+                                        "no"
+                                    },
+                                )
+                            })
                     {
                         snapshot.error = e;
                     }
@@ -493,6 +539,9 @@ fn run(
             snapshot.phase = PlaybackPhase::Ended;
         }
         core.snapshot(&mut snapshot);
+        if let Err(error) = core.audio_tick(&mut snapshot, &mut pending_resume) {
+            snapshot.error = error;
+        }
         snapshot.revision += 1;
         *latest.lock().unwrap() = snapshot.clone();
     }
@@ -513,13 +562,24 @@ fn apply(
             resume: restore,
         } => {
             decode.validate()?;
+            if !cfg!(windows) && core.audio.exclusive_requested() {
+                return Err("此平台独占输出尚未验证，请选择共享模式后重试".into());
+            }
+            core.audio.blocked = false;
+            core.audio.started = Some(std::time::Instant::now());
+            core.audio.resume = Some(restore.unwrap_or((0.0, false)));
+            core.audio.restore_pause = if cfg!(windows) && core.audio.exclusive_requested() {
+                Some(restore.is_some_and(|(_, paused)| paused))
+            } else {
+                None
+            };
             core.set("hwdec", decode.hwdec())?;
             core.set("vd-lavc-threads", &decode.threads.to_string())?;
             core.set("deinterlace", if decode.deinterlace { "yes" } else { "no" })?;
             core.set("deband", if decode.deband { "yes" } else { "no" })?;
             core.set(
                 "pause",
-                if restore.is_some_and(|(_, paused)| paused) {
+                if core.audio.restore_pause.is_some() || restore.is_some_and(|(_, paused)| paused) {
                     "yes"
                 } else {
                     "no"
@@ -547,9 +607,24 @@ fn apply(
                 resume,
             );
         }
-        Pause => return core.set("pause", "yes"),
-        Resume => return core.set("pause", "no"),
+        Pause => {
+            if core.audio.restore_pause.is_some() {
+                core.audio.restore_pause = Some(true);
+            }
+            return core.set("pause", "yes");
+        }
+        Resume => {
+            if core.audio.blocked {
+                return Err("输出失败 / 格式策略已暂停，请重新选择输出模式或设备".into());
+            }
+            if core.audio.restore_pause.is_some() {
+                core.audio.restore_pause = Some(false);
+                return Ok(());
+            }
+            return core.set("pause", "no");
+        }
         Stop => {
+            core.audio.restore_pause = None;
             snapshot.phase = PlaybackPhase::Idle;
             snapshot.source = None;
             *resume = None;
@@ -571,6 +646,17 @@ fn apply(
         }
         SetMute(muted) => return core.set("mute", if muted { "yes" } else { "no" }),
         SetDevice(id) => return core.set("audio-device", &id),
+        ApplyAudioRequest(request) => return core.apply_audio(request, snapshot, resume),
+        ApplyEq(preset) => {
+            let filter = preset.filter()?;
+            let old = snapshot.eq_filter.clone();
+            if let Err(error) = core.set("af", &filter) {
+                let rollback = core.set("af", &old);
+                return Err(format!("EQ 未应用：{error}；恢复旧设置：{rollback:?}"));
+            }
+            snapshot.eq_filter = filter;
+            return Ok(());
+        }
         SetTrack { kind, id } => {
             if !["aid", "sid", "vid"].contains(&kind.as_str()) {
                 return Err("非法轨道类型".into());

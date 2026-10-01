@@ -13,6 +13,10 @@ use player_ui::{
 };
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
+#[path = "audio_controller.rs"]
+mod audio_controller;
+#[path = "music_assets.rs"]
+mod music_assets;
 
 pub struct AppController {
     engine: MpvEngine,
@@ -47,6 +51,18 @@ pub struct AppController {
     last_phase: PlaybackPhase,
     settings_dirty: Option<Instant>,
     initial_audio: bool,
+    eq_draft: player_core::audio::EqPreset,
+    eq_scope: i32,
+    preset_index: i32,
+    assets_service: Option<music_assets::Service>,
+    asset_revision: u64,
+    assets: music_assets::Assets,
+    cover: slint::Image,
+    expanded: bool,
+    asset_projection_revision: u64,
+    lyric_rows: std::rc::Rc<Vec<(String, i32)>>,
+    plain_lyrics: std::rc::Rc<String>,
+    pending_asset: Option<music_assets::Request>,
 }
 impl AppController {
     pub fn new(engine: MpvEngine, platform: PlatformInfo) -> Self {
@@ -84,6 +100,18 @@ impl AppController {
             last_phase: PlaybackPhase::Idle,
             settings_dirty: None,
             initial_audio: false,
+            eq_draft: Default::default(),
+            eq_scope: 0,
+            preset_index: -1,
+            assets_service: None,
+            asset_revision: 0,
+            assets: Default::default(),
+            cover: Default::default(),
+            expanded: false,
+            asset_projection_revision: 0,
+            lyric_rows: Default::default(),
+            plain_lyrics: Default::default(),
+            pending_asset: None,
         }
     }
     pub fn live(engine: MpvEngine, platform: PlatformInfo) -> Self {
@@ -98,13 +126,15 @@ impl AppController {
         controller.settings = settings;
         controller.persistence = Some(Persistence::start(path));
         controller.dialogs = Some(Dialogs::start());
+        controller.assets_service = Some(music_assets::Service::start());
+        controller.eq_draft = controller.settings.audio.global_eq.clone();
         controller
     }
     pub fn dispatch(&mut self, action: UiAction) {
         match action {
             UiAction::Navigate(page) => {
                 self.cancel_hold();
-                self.page = page.clamp(0, 3);
+                self.page = page.clamp(0, 4);
                 self.panel_open = false;
                 self.settings_revision += 1;
             }
@@ -185,6 +215,9 @@ impl AppController {
         self.ab_start = None;
         self.ab_active = false;
         self.selected_id = index;
+        self.send(PlaybackCommand::Pause);
+        self.read_assets(&source);
+        self.apply_eq();
         self.page = 1;
         self.pending_load = true;
         self.auto_page = true;
@@ -348,6 +381,9 @@ impl AppController {
         self.reload();
     }
     fn control(&mut self, action: &str, value: &str) {
+        if self.audio_control(action, value) {
+            return;
+        }
         let number = value.parse::<f64>().ok().filter(|value| value.is_finite());
         match action {
             "demo-album" if self.preview => {
@@ -406,7 +442,9 @@ impl AppController {
                 {
                     let id = device.id.clone();
                     self.settings.device = id.clone();
-                    self.send(PlaybackCommand::SetDevice(id));
+                    self.apply_output();
+                    self.apply_eq();
+                    self.refresh_eq_draft();
                     self.save();
                 }
             }
@@ -601,7 +639,13 @@ impl AppController {
         let mode = mode.clamp(0, 2);
         if mode == 2 && self.window_mode != 2 {
             self.prior_window_mode = self.window_mode;
-            self.page = 1;
+            self.page = if self.engine.snapshot().source.is_some() && !self.engine.snapshot().video
+            {
+                self.expanded = true;
+                4
+            } else {
+                1
+            };
         }
         self.window_mode = mode;
         self.window_request = Some(mode);
@@ -721,10 +765,12 @@ impl AppController {
             }
         }
         let changed = self.engine.refresh();
+        self.poll_assets();
         if self.engine.snapshot().ready && !self.initial_audio {
             self.initial_audio = true;
             self.send(PlaybackCommand::SetVolume(self.settings.volume));
-            self.send(PlaybackCommand::SetDevice(self.settings.device.clone()));
+            self.apply_output();
+            self.apply_eq();
         }
         if changed {
             let snapshot = self.engine.snapshot().clone();
@@ -742,7 +788,13 @@ impl AppController {
             {
                 self.pending_load = false;
                 if self.auto_page {
-                    self.page = if snapshot.video { 1 } else { 0 };
+                    self.page = if snapshot.video {
+                        1
+                    } else if self.expanded {
+                        4
+                    } else {
+                        0
+                    };
                     self.auto_page = false;
                 }
             }
@@ -772,15 +824,29 @@ impl AppController {
                 .enumerate()
                 .map(|(index, source)| MediaPreview {
                     id: index as i32,
-                    title: source_title(source),
-                    artist: String::new(),
-                    collection: "本地媒体".into(),
+                    title: if index == self.selected_id as usize && !self.assets.title.is_empty() {
+                        self.assets.title.clone()
+                    } else {
+                        source_title(source)
+                    },
+                    artist: if index == self.selected_id as usize {
+                        self.assets.artist.clone()
+                    } else {
+                        String::new()
+                    },
+                    collection: if index == self.selected_id as usize
+                        && !self.assets.album.is_empty()
+                    {
+                        self.assets.album.clone()
+                    } else {
+                        "本地媒体".into()
+                    },
                     duration: if index == self.selected_id as usize {
                         format_time(snapshot.duration)
                     } else {
                         String::new()
                     },
-                    cover: index as i32 % 3,
+                    cover: -1,
                 })
                 .collect()
         };
@@ -857,18 +923,25 @@ impl AppController {
             "下一帧",
         ];
         ShellViewModel {
+            audio: self.audio_view(),
             page: self.page,
             selected_id: self.selected_id,
-            selected_title: if !snapshot.title.is_empty() {
+            selected_title: if !self.assets.title.is_empty() {
+                self.assets.title.clone()
+            } else if !snapshot.title.is_empty() {
                 snapshot.title.clone()
             } else {
                 selected
                     .map(|track| track.title.clone())
                     .unwrap_or("视频剧场".into())
             },
-            selected_artist: selected
-                .map(|track| track.artist.clone())
-                .unwrap_or_default(),
+            selected_artist: if !self.assets.artist.is_empty() {
+                self.assets.artist.clone()
+            } else {
+                selected
+                    .map(|track| track.artist.clone())
+                    .unwrap_or_default()
+            },
             selected_duration: if self.preview {
                 selected
                     .map(|track| track.duration.clone())
@@ -930,7 +1003,10 @@ impl AppController {
             info: if snapshot.info.is_empty() {
                 format!("尚未加载媒体\n{}\n{}", snapshot.error, self.status)
             } else {
-                snapshot.info.clone()
+                format!(
+                    "{}\n{}\n{}\n{}",
+                    self.assets.info, snapshot.audio_status, snapshot.audio_info, snapshot.info
+                )
             },
             device_names: devices,
             device_index,
@@ -982,6 +1058,7 @@ impl AppController {
             persistence.finish();
         }
         self.dialogs = None;
+        self.assets_service = None;
     }
 }
 fn source_title(source: &MediaSource) -> String {

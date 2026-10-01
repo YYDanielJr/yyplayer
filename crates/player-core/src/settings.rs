@@ -46,6 +46,7 @@ pub struct Settings {
     pub volume: f32,
     pub device: String,
     pub recent: Vec<PathBuf>,
+    pub audio: crate::audio::AudioSettings,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -58,6 +59,7 @@ impl Default for Settings {
             volume: 70.0,
             device: "auto".into(),
             recent: Vec::new(),
+            audio: Default::default(),
         }
     }
 }
@@ -73,7 +75,9 @@ impl Settings {
         for options in self.folders.values().chain(self.files.values()) {
             options.validate()?;
         }
-        self.shortcuts.validate()
+        self.shortcuts
+            .validate()
+            .and_then(|_| self.audio.validate())
     }
     /// Paths must be canonicalized once at the platform boundary; Path::starts_with
     /// compares components, so /movies cannot accidentally match /movies-other.

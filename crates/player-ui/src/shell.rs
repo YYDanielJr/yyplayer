@@ -122,6 +122,32 @@ fn rows(
 }
 
 fn project(window: &AppWindow, state: &ShellViewModel) {
+    let audio = &state.audio;
+    window.set_preview(audio.preview);
+    window.set_active_lyric(audio.active_lyric);
+    window.set_audio_status(audio.status.as_str().into());
+    window.set_eq_origin(audio.origin.as_str().into());
+    window.set_eq_binding(audio.binding.as_str().into());
+    window.set_eq_headroom_text(audio.headroom.as_str().into());
+    if window.get_asset_revision() != audio.asset_revision as i32 {
+        window.set_asset_revision(audio.asset_revision as i32);
+        window.set_music_cover(audio.cover.clone());
+        window.set_album(audio.album.as_str().into());
+        window.set_plain_lyrics(audio.plain_lyrics.as_str().into());
+        window.set_lyrics(
+            Rc::new(VecModel::from(
+                audio
+                    .lyrics
+                    .iter()
+                    .map(|(text, milliseconds)| crate::LyricRow {
+                        text: text.as_str().into(),
+                        milliseconds: *milliseconds,
+                    })
+                    .collect::<Vec<_>>(),
+            ))
+            .into(),
+        );
+    }
     window.set_page(state.page);
     window.set_selected_id(state.selected_id);
     window.set_selected_title(state.selected_title.as_str().into());
@@ -166,6 +192,31 @@ fn project(window: &AppWindow, state: &ShellViewModel) {
     window.set_fullscreen_mode(state.fullscreen);
     window.set_window_mode(state.window_mode);
     if window.get_settings_revision() != state.settings_revision as i32 {
+        window.set_audio_form(crate::AudioForm {
+            mode: audio.mode,
+            preserve_rate: audio.preserve_rate,
+            offset_ms: audio.offset_ms,
+            scope: audio.eq_scope,
+            name: audio.eq_name.as_str().into(),
+            enabled: audio.eq_enabled,
+            preamp: audio.preamp.as_str().into(),
+            auto_headroom: audio.auto_headroom,
+            bands: Rc::new(VecModel::from(
+                audio
+                    .bands
+                    .iter()
+                    .map(|(f, g, q, k)| crate::EqBandRow {
+                        frequency: f.as_str().into(),
+                        gain: *g,
+                        q: q.as_str().into(),
+                        kind: *k,
+                    })
+                    .collect::<Vec<_>>(),
+            ))
+            .into(),
+            presets: strings(&audio.presets),
+            preset_index: audio.preset_index,
+        });
         window.set_settings_revision(state.settings_revision as i32);
         window.set_decode_mode(state.decode_mode);
         window.set_decode_threads(state.decode_threads);

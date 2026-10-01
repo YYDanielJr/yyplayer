@@ -2,7 +2,11 @@ import { ScrollView, ComboBox, SpinBox, CheckBox, Button, LineEdit, TextEdit } f
 import { Theme } from "../theme.slint";
 import { TrackRow } from "../models.slint";
 import { QueueRow } from "media.slint";
+import { AudioOptions } from "audio-options.slint";
+import { AudioForm } from "../models.slint";
 export component VideoOptions inherits Rectangle {
+    in property <bool> video; in property <AudioForm> audio-form;
+    in property <string> audio-status; in property <string> eq-origin; in property <string> eq-binding; in property <string> eq-headroom-text;
     in property <[string]> devices; in property <int> device-index;
     in property <[string]> audio-tracks; in property <int> audio-index;
     in property <[string]> subtitle-tracks; in property <int> subtitle-index;
@@ -10,6 +14,7 @@ export component VideoOptions inherits Rectangle {
     in property <int> decode-mode; in property <int> decode-threads; in property <int> decode-scope;
     in property <bool> deinterlace; in property <bool> deband; in property <string> decode-origin;
     in property <[TrackRow]> queue; in property <int> selected-id;
+    private property <bool> info-open;
     callback control(string,string);
     background: Theme.sidebar;
     ScrollView {
@@ -20,6 +25,11 @@ export component VideoOptions inherits Rectangle {
             Button { text: "停止播放"; clicked => { root.control("stop", ""); } }
             Text { text: "音频输出设备"; color: Theme.muted; height: 20px; }
             ComboBox { model: root.devices; current-index: root.device-index; selected(value) => { root.control("device", "" + self.current-index); } }
+            Button { text: root.info-open ? "收起媒体信息" : "查看媒体 / 音频输出信息"; clicked => { root.info-open = !root.info-open; } }
+            if root.info-open: TextEdit { text: root.info; read-only: true; height: 400px; font-size: 11px; }
+            AudioOptions { form: root.audio-form; status: root.audio-status; origin: root.eq-origin; binding: root.eq-binding; headroom: root.eq-headroom-text; control(action,value) => { root.control(action,value); } }
+            HorizontalLayout { CheckBox { text: "单文件循环"; toggled => { root.control("loop", self.checked ? "yes" : "no"); } } Button { text: "A / B / 清除"; clicked => { root.control("ab-loop", ""); } } }
+            if root.video: VerticalLayout {
             Text { text: "音轨 / 字幕"; color: Theme.muted; height: 20px; }
             ComboBox { model: root.audio-tracks; current-index: root.audio-index; selected(value) => { root.control("audio-track", "" + self.current-index); } }
             ComboBox { model: root.subtitle-tracks; current-index: root.subtitle-index; selected(value) => { root.control("subtitle-track", "" + self.current-index); } }
@@ -28,7 +38,6 @@ export component VideoOptions inherits Rectangle {
             HorizontalLayout { Text { text: "音频延迟（秒）"; color: Theme.muted; vertical-alignment: center; } LineEdit { text: "0"; edited(value) => { root.control("audio-delay", value); } } }
             ComboBox { model: root.chapters; current-index: -1; selected(value) => { root.control("chapter", "" + self.current-index); } }
             HorizontalLayout { Button { text: "上一帧"; clicked => { root.control("frame-back", ""); } } Button { text: "下一帧"; clicked => { root.control("frame", ""); } } Button { text: "截图"; clicked => { root.control("screenshot", ""); } } }
-            HorizontalLayout { CheckBox { text: "单文件循环"; toggled => { root.control("loop", self.checked ? "yes" : "no"); } } Button { text: "A / B / 清除"; clicked => { root.control("ab-loop", ""); } } }
             ComboBox { model: ["原始比例", "16:9", "4:3", "2.35:1"]; selected(value) => { root.control("aspect", "" + self.current-index); } }
             Rectangle { height: 1px; background: Theme.border; }
             Text { text: "解码与画面"; color: Theme.text; font-size: 16px; font-weight: 600; height: 26px; }
@@ -41,9 +50,8 @@ export component VideoOptions inherits Rectangle {
             Button { text: "保存并重新加载当前媒体"; primary: true; clicked => { root.control("save-decode", ""); } }
             Button { text: "清除该范围覆盖 / 全局恢复默认"; clicked => { root.control("clear-decode", ""); } }
             Text { text: "硬解可因 codec / GPU / 驱动限制回退。\n实际运行路径见媒体信息。"; color: Theme.faint; height: 36px; font-size: 11px; }
+            }
             Button { text: "编辑播放快捷键"; clicked => { root.control("settings", ""); } }
-            Text { text: "媒体与解码信息"; color: Theme.text; font-size: 16px; height: 30px; }
-            TextEdit { text: root.info; read-only: true; height: 510px; font-size: 11px; }
             Text { text: "当前队列"; color: Theme.text; font-size: 16px; height: 30px; }
             for track in root.queue: QueueRow { track: track; selected: root.selected-id == track.item-id; clicked => { root.control("queue", "" + track.item-id); } }
         }

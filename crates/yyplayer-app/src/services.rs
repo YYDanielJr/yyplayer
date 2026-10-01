@@ -68,14 +68,31 @@ pub fn load(path: &Path) -> (Settings, String) {
 }
 pub fn atomic_save(path: &Path, settings: &Settings) -> Result<(), String> {
     settings.validate()?;
+    let bytes = serde_json::to_vec_pretty(settings).map_err(|e| e.to_string())?;
+    if bytes.len() > 2_000_000 {
+        return Err("设置超过 2MB，原文件保留；请减少文件覆盖或预设数量".into());
+    }
+    atomic_bytes(path, &bytes)
+}
+pub fn atomic_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
     if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    let temporary = path.with_extension("json.tmp");
-    let bytes = serde_json::to_vec_pretty(settings).map_err(|e| e.to_string())?;
+    static SAVE_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let mut name = path.as_os_str().to_owned();
+    name.push(format!(
+        ".yyplayer-{}-{}.tmp",
+        std::process::id(),
+        SAVE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    let temporary = PathBuf::from(name);
     use std::io::Write;
-    let mut file = std::fs::File::create(&temporary).map_err(|e| e.to_string())?;
-    file.write_all(&bytes)
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
+        .map_err(|e| e.to_string())?;
+    file.write_all(bytes)
         .and_then(|_| file.sync_all())
         .map_err(|e| e.to_string())?;
     drop(file);
@@ -161,7 +178,8 @@ impl Dialogs {
                             "媒体",
                             &[
                                 "mp4", "mkv", "mov", "webm", "avi", "ts", "m2ts", "wmv", "flv",
-                                "mp3", "flac", "wav", "m4a", "ogg", "opus", "aac",
+                                "mp3", "flac", "wav", "m4a", "ogg", "opus", "aac", "aif", "aiff",
+                                "ape", "wv", "caf", "dsf", "dff",
                             ],
                         )
                         .add_filter("所有文件", &["*"])

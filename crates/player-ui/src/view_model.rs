@@ -10,6 +10,7 @@ pub struct MediaPreview {
 
 #[derive(Clone, Debug, Default)]
 pub struct ShellViewModel {
+    pub audio: AudioViewModel,
     pub page: i32,
     pub selected_id: i32,
     pub selected_title: String,
@@ -55,4 +56,30 @@ pub struct ShellViewModel {
     pub hold_ms: i32,
     pub hold_speed: String,
     pub settings_revision: u64,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct AudioViewModel {
+    pub preview: bool,
+    pub cover: slint::Image,
+    pub asset_revision: u64,
+    pub lyrics: std::rc::Rc<Vec<(String, i32)>>,
+    pub plain_lyrics: std::rc::Rc<String>,
+    pub active_lyric: i32,
+    pub album: String,
+    pub status: String,
+    pub origin: String,
+    pub mode: i32,
+    pub preserve_rate: bool,
+    pub offset_ms: i32,
+    pub eq_scope: i32,
+    pub eq_name: String,
+    pub eq_enabled: bool,
+    pub preamp: String,
+    pub auto_headroom: bool,
+    pub headroom: String,
+    pub bands: Vec<(String, f32, String, i32)>,
+    pub presets: Vec<String>,
+    pub preset_index: i32,
+    pub binding: String,
 }
