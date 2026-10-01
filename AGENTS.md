@@ -89,6 +89,7 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 播放状态、实际硬解名称和帧数只能证明运行，不能证明画面正确；涉及 GL 状态 / 纹理 / NVDEC 的修改必须比较真实 GPU 图像。Test-Render 使用自有静态 4K HEVC，不提交用户视频或其截图。
 - 固定 git runtime 的 render target 使用 ns，头文件注释为 us；修改 presenter / 运行时先核实 source 和 clock ABI，并跑时序测试 / 实机帧数，不能凭注释盲改。
 - 不在每次投影重建相同模型或覆盖用户正在编辑的表单；设置字段由 revision 驱动。
+- 页面进入计时器从停止状态必须调用 start，不能对从未启动的 Timer 只调用 restart 后把页面透明度留在 0。内容容器显式可伸展，避免子控件 max-width 向上限制页面宽度、把选项面板挤到中间。修改导航后运行 navigation-ui 的实际 Slint 点击 / 透明度 / 几何断言，而不只检查 controller.page。
 - 状态提示是 UI 层临时浮空信息，重复状态投影不得重置超时 / 恢复手动关闭；新保存 revision 可以再次通知。全屏控制栏覆盖视频，隐藏不能改变视频 / FBO 尺寸，按住拖动、悬停控件和打开选项时保留可操作性。修改此交互后运行开发例子 ui-feedback；它只证明 Slint 计时 / 点击逻辑，不代替物理设备验收。
 - 视频顶部工具栏也覆盖画面并自动隐藏，不恢复原顶部空白占位；播放按钮组相对整个窗口居中，不依赖左右内容宽度分配。实际倍速统一由下拉显示，非预设值也必须正确选中。布局修改后核对 ui-feedback 的最小 / 常规 / 较宽窗口中心点击与截图。
 - `scripts/Test-Video.ps1` 使用独立配置；新增验收不能改用户默认 APPDATA 设置。
@@ -104,6 +105,10 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - EQ 单文件 > 具体设备绑定 > 全局，完整对象覆盖；有名称、有限参数、固定链替换和回滚，平直移除链。JSON / APO 参数导入不接受任意 filter / Include / 不等价 GraphicEQ。
 - 标签 / 图片 / 歌词 / 预设文件在有界后台服务读取；过期媒体 revision 不覆盖当前歌曲，歌词模型和图片仅资源 revision 更新。动画只在相关大页面运行；Slint 主线程不读整首音频或解码图片。
 - Test-Audio / Test-AudioBusy 使用自有 fixture / 独立配置；audio-ui 是布局样例。不得把设备竞争双失败测试当作成功共享回退，或把 PCM 位宽当成 DAC 实际格式。USB 拔插 / 成功回退 / 数字捕获仍按报告补证据。
+
+## 9. 工程缓存清理
+
+`scripts/Clean-Workspace.ps1 -WhatIf` 先预览；不带参数清理 target 的编译 / 测试产物和 runtime 下载 archive / 未使用导入库，保留 target/release/yyplayer.exe、可执行文件旁 runtime（若存在）、固定开发 DLL / 头文件、源码、Git 与 docs。脚本校验工作区路径及 junction / symlink，不处理用户 APPDATA 或媒体目录。先完成验证并保存必要证据，再清理；下一次 cargo build 会完整重编译。锁定文件不得通过终止用户播放器来强行删除。
 
 ## 9. 目录音乐库与主题接续
 

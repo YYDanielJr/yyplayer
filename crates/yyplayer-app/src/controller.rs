@@ -147,7 +147,7 @@ impl AppController {
         let (settings, warning) = services::load(&path);
         let mut controller = Self::new(engine, platform);
         controller.preview = false;
-        controller.page = 1;
+        controller.page = 0;
         controller.status = warning;
         controller.shortcut_draft = settings.shortcuts.clone();
         controller.decode_draft = settings.global.clone();

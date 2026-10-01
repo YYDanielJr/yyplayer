@@ -4,6 +4,20 @@
 
 ## 当前实现与快速启动
 
+### 2026-10-01：主界面修复与工程清理目标
+
+本轮继续在 dev：修复切换到音乐库 / 设置后的空白内容、让播放选项固定在右侧；无歌曲时展示添加目录的引导。删除导航底部版本小字，时尚模式补齐底部留白。验证实际 Slint 导航点击、空库按钮和不同窗口尺寸后，清理编译缓存、测试临时素材及旧程序备份，保留新版 Release 程序、固定 libmpv 运行时、源码与验收记录。
+
+无启动文件时默认进入音乐库，空库可直接点击 **添加音乐目录** 或 **添加歌曲**。打开媒体仍按音视频类型进入对应页面。修复原因及证据见 [主界面修复记录](docs/validation/navigation-cleanup.md)。
+
+```powershell
+cargo run --locked --offline -p yyplayer-app --example navigation-ui
+powershell -ExecutionPolicy Bypass -File scripts/Clean-Workspace.ps1 -WhatIf
+powershell -ExecutionPolicy Bypass -File scripts/Clean-Workspace.ps1
+```
+
+清理脚本保留 target/release/yyplayer.exe 和 libmpv DLL，删除可再生成的编译缓存 / 测试素材 / 旧程序备份；不删除音乐或用户配置。清理后再次编译会花费更长时间。先查看 `-WhatIf` 清单；关闭仍占用旧文件的程序后可再次运行。
+
 ### 2026-10-01：目录音乐库与主题重构目标
 
 现有音频版本 8467ca9 已合入新建的 master（旧 main 保留），本轮在 dev 开发。

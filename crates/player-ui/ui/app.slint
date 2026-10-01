@@ -59,6 +59,10 @@ export component AppWindow inherits Window {
     in-out property <int> render-frames;
     out property <float> video-width: root.width / 1px - (root.panel-open ? 370 : 0);
     out property <float> video-height: root.height / 1px - (root.immersive ? 0 : root.controls-height / 1px);
+    out property <float> content-opacity: root.page == 1 ? 1 : root.page-arrival;
+    out property <float> content-left: content.x / 1px;
+    out property <float> content-width: content.width / 1px;
+    out property <float> content-bottom: (content.y + content.height) / 1px;
     private property <bool> search-focused;
     out property <bool> shortcuts-blocked: root.page == 3 || root.panel-open || (root.page == 0 && root.search-focused);
     private property <bool> immersive: root.page == 1 && root.fullscreen-mode;
@@ -79,7 +83,7 @@ export component AppWindow inherits Window {
     private property <float> page-arrival: 1;
     animate page-arrival { duration: Theme.smooth; easing: ease-out; }
     page-animation := Timer { interval: 16ms; running: false; triggered => { self.running = false; root.page-arrival = 1; } }
-    changed page => { root.search-focused = false; root.pointer-activity(); if root.page != 1 && !Theme.reduced-motion { root.page-arrival = 0; page-animation.restart(); } else { root.page-arrival = 1; } }
+    changed page => { root.search-focused = false; root.pointer-activity(); if root.page != 1 && !Theme.reduced-motion { root.page-arrival = 0; page-animation.start(); } else { page-animation.stop(); root.page-arrival = 1; } }
     changed status-message => { root.toast-visible = root.status-message != ""; hide-toast.restart(); }
     changed status-revision => { root.toast-visible = root.status-message != ""; hide-toast.restart(); }
     hide-controls := Timer {
@@ -104,6 +108,7 @@ export component AppWindow inherits Window {
             vertical-stretch: 1; spacing: Theme.fashion && root.page != 1 && root.page != 4 ? 12px : 0px;
             padding-left: Theme.fashion && root.page != 1 && root.page != 4 ? 10px : 0px;
             padding-top: Theme.fashion && root.page != 1 && root.page != 4 ? 10px : 0px;
+            padding-bottom: Theme.fashion && root.page != 1 && root.page != 4 ? 10px : 0px;
             if root.page != 1 && root.page != 4 && !root.fullscreen-mode: Rectangle {
                 width: 180px; background: Theme.glass;
                 border-radius: Theme.fashion ? 20px : 0px; border-width: Theme.fashion ? 1px : 0px; border-color: Theme.rim;
@@ -117,44 +122,47 @@ export component AppWindow inherits Window {
                     NavItem { text: "打开文件"; icon: Icons.folder; clicked => { root.open-file(); } }
                     Rectangle { vertical-stretch: 1; }
                     NavItem { text: "设置"; icon: Icons.settings; selected: root.page == 3; clicked => { root.navigate(3); } }
-                    Text { text: "0.1.0-dev · libmpv"; color: Theme.faint; font-size: 10px; height: 28px; horizontal-alignment: center; }
                 }
             }
-            VerticalLayout {
+            // Explicit bounds prevent child widgets' maximum widths from shrinking the page.
+            content := Rectangle {
                 opacity: root.page == 1 ? 1 : root.page-arrival;
-                horizontal-stretch: 1; spacing: 0px;
-                if root.page != 1 && root.page != 4: HorizontalLayout {
-                    visible: !root.fullscreen-mode;
-                    height: root.fullscreen-mode ? 0px : 84px; padding-left: 24px; padding-right: 24px; spacing: 12px;
-                    VerticalLayout {
-                        horizontal-stretch: 1; alignment: center; spacing: 4px;
-                        Text { text: root.page == 1 ? root.selected-title : (root.page == 0 ? "音乐库" : (root.page == 2 ? "最近打开" : "设置")); color: Theme.text; font-size: root.page == 1 ? 14px : 22px; font-weight: 600; overflow: elide; }
+                horizontal-stretch: 1; min-width: 0px; max-width: root.width;
+                VerticalLayout {
+                    spacing: 0px;
+                    if root.page != 1 && root.page != 4: HorizontalLayout {
+                        visible: !root.fullscreen-mode;
+                        height: root.fullscreen-mode ? 0px : 84px; padding-left: 24px; padding-right: 24px; spacing: 12px;
+                        VerticalLayout {
+                            horizontal-stretch: 1; alignment: center; spacing: 4px;
+                            Text { text: root.page == 1 ? root.selected-title : (root.page == 0 ? "音乐库" : (root.page == 2 ? "最近打开" : "设置")); color: Theme.text; font-size: root.page == 1 ? 14px : 22px; font-weight: 600; overflow: elide; }
+                        }
+                        if root.page == 0: VerticalLayout { width: root.panel-open ? 110px : 180px; alignment: center; Rectangle { height: 34px; border-radius: 17px; background: Theme.surface.with-alpha(0.7); border-width: 1px; border-color: Theme.border;
+                            Text { x: 12px; width: parent.width - 24px; height: parent.height; text: "搜索音乐"; color: Theme.faint; visible: search-input.text == "" && !search-input.has-focus; vertical-alignment: center; }
+                            search-input := TextInput { x: 12px; width: parent.width - 24px; height: parent.height; single-line: true; color: Theme.text; vertical-alignment: center; accessible-label: "搜索曲目"; changed has-focus => { root.search-focused = self.has-focus; } edited => { root.search-changed(self.text); } }
+                        } }
+                        if root.page != 0: VerticalLayout { width: 110px; alignment: center; Button { text: "打开文件"; clicked => { root.open-file(); } } }
+                        if root.page == 1: VerticalLayout { width: 85px; alignment: center; Button { text: "媒体库"; clicked => { root.navigate(0); } } }
+                        if root.page == 1: VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value) => { root.control("window-mode", "" + self.current-index); } } }
+                        VerticalLayout { width: 100px; alignment: center; Button { text: root.panel-open ? "关闭选项" : "播放选项"; clicked => { root.control("panel", ""); } } }
                     }
-                    if root.page == 0: VerticalLayout { width: root.panel-open ? 110px : 180px; alignment: center; Rectangle { height: 34px; border-radius: 17px; background: Theme.surface.with-alpha(0.7); border-width: 1px; border-color: Theme.border;
-                        Text { x: 12px; width: parent.width - 24px; height: parent.height; text: "搜索音乐"; color: Theme.faint; visible: search-input.text == "" && !search-input.has-focus; vertical-alignment: center; }
-                        search-input := TextInput { x: 12px; width: parent.width - 24px; height: parent.height; single-line: true; color: Theme.text; vertical-alignment: center; accessible-label: "搜索曲目"; changed has-focus => { root.search-focused = self.has-focus; } edited => { root.search-changed(self.text); } }
-                    } }
-                    if root.page != 0: VerticalLayout { width: 110px; alignment: center; Button { text: "打开文件"; clicked => { root.open-file(); } } }
-                    if root.page == 1: VerticalLayout { width: 85px; alignment: center; Button { text: "媒体库"; clicked => { root.navigate(0); } } }
-                    if root.page == 1: VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value) => { root.control("window-mode", "" + self.current-index); } } }
-                    VerticalLayout { width: 100px; alignment: center; Button { text: root.panel-open ? "关闭选项" : "播放选项"; clicked => { root.control("panel", ""); } } }
-                }
-                if root.page == 0: MusicPage { compact: root.height < 760px || root.panel-open; library-tracks: root.library-tracks; folders: root.library-folders; folder-index: root.library-folder; scanning: root.library-busy; library-message: root.library-message; library-selected: root.library-selected; control(action,value) => { root.control(action,value); } preview: root.preview; tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); } }
-                if root.page == 4: NowPlaying { artwork: root.music-cover; title: root.selected-title; artist: root.selected-artist; album: root.album; lyrics: root.lyrics; active: root.active-lyric; plain: root.plain-lyrics; playing: root.playing; output-status: root.audio-status; control(action,value) => { root.control(action,value); } }
-                if root.page == 1: VideoPage { frame: root.video-frame; has-media: root.has-media; has-video: root.has-video; render-ready: root.render-ready; render-error: root.render-error; open-file => { root.open-file(); } control(action,value) => { root.control(action,value); } }
-                if root.page == 2: Rectangle {
-                    ScrollView { width: parent.width; height: parent.height; viewport-width: self.width;
-                        VerticalLayout { padding: 24px; spacing: 10px;
-                            if root.recent.length == 0: Text { text: "还没有打开的文件"; color: Theme.muted; height: 60px; }
-                            for track in root.recent: QueueRow { track: track; clicked => { root.control("open-recent", "" + track.item-id); } }
+                    if root.page == 0: MusicPage { compact: root.height < 760px || root.panel-open; library-tracks: root.library-tracks; folders: root.library-folders; folder-index: root.library-folder; scanning: root.library-busy; library-message: root.library-message; library-selected: root.library-selected; control(action,value) => { root.control(action,value); } preview: root.preview; tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); } }
+                    if root.page == 4: NowPlaying { artwork: root.music-cover; title: root.selected-title; artist: root.selected-artist; album: root.album; lyrics: root.lyrics; active: root.active-lyric; plain: root.plain-lyrics; playing: root.playing; output-status: root.audio-status; control(action,value) => { root.control(action,value); } }
+                    if root.page == 1: VideoPage { frame: root.video-frame; has-media: root.has-media; has-video: root.has-video; render-ready: root.render-ready; render-error: root.render-error; open-file => { root.open-file(); } control(action,value) => { root.control(action,value); } }
+                    if root.page == 2: Rectangle {
+                        ScrollView { width: parent.width; height: parent.height; viewport-width: self.width;
+                            VerticalLayout { padding: 24px; spacing: 10px;
+                                if root.recent.length == 0: Text { text: "还没有打开的文件"; color: Theme.muted; height: 60px; }
+                                for track in root.recent: QueueRow { track: track; clicked => { root.control("open-recent", "" + track.item-id); } }
+                            }
                         }
                     }
-                }
-                if root.page == 3: SettingsPage {
-                    design: root.appearance-design; scheme: root.appearance-scheme; system-accent: root.appearance-system-accent; custom-accent: root.appearance-custom; reduced: root.appearance-reduced; os-reduced: root.appearance-os-reduced; system-available: root.appearance-system-available;
-                    bindings: root.shortcut-rows; seek-step: root.seek-step; volume-step: root.volume-step; hold-ms: root.hold-ms; hold-speed: root.hold-speed;
-                    edit-binding(index,value) => { root.shortcut-edited(index,value); }
-                    control(action,value) => { root.control(action,value); }
+                    if root.page == 3: SettingsPage {
+                        design: root.appearance-design; scheme: root.appearance-scheme; system-accent: root.appearance-system-accent; custom-accent: root.appearance-custom; reduced: root.appearance-reduced; os-reduced: root.appearance-os-reduced; system-available: root.appearance-system-available;
+                        bindings: root.shortcut-rows; seek-step: root.seek-step; volume-step: root.volume-step; hold-ms: root.hold-ms; hold-speed: root.hold-speed;
+                        edit-binding(index,value) => { root.shortcut-edited(index,value); }
+                        control(action,value) => { root.control(action,value); }
+                    }
                 }
             }
             if root.panel-open: VideoOptions {
