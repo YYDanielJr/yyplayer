@@ -10,11 +10,11 @@ export component NowPlaying inherits Rectangle {
     private property <float> breathe: 0;
     private property <length> entrance: 14px;
     init => { root.entrance = 0px; }
-    animate entrance { duration: 320ms; easing: ease-out; }
+    animate entrance { duration: Theme.smooth; easing: ease-out; }
     callback control(string,string);
-    background: @linear-gradient(120deg, #172c28, #111b23, #161c25);
-    Timer { interval: 3s; running: root.playing; triggered => { root.breathe = root.breathe == 0 ? 1 : 0; } }
-    Rectangle { x: parent.width * 0.1; y: parent.height * 0.16; width: parent.width * 0.65; height: self.width; border-radius: self.width / 2; background: #52856b; opacity: 0.025 + root.breathe * 0.025; animate opacity { duration: 3s; easing: ease-in-out; } }
+    background: @linear-gradient(120deg, Theme.background, Theme.sidebar, Theme.background);
+    Timer { interval: 3s; running: root.playing && !Theme.reduced-motion; triggered => { root.breathe = root.breathe == 0 ? 1 : 0; } }
+    Rectangle { x: parent.width * 0.1; y: parent.height * 0.16; width: parent.width * 0.65; height: self.width; border-radius: self.width / 2; background: Theme.accent; opacity: 0.025 + root.breathe * 0.025; animate opacity { duration: Theme.reduced-motion ? 0ms : 3s; easing: ease-in-out; } }
     HorizontalLayout { x: 26px; y: 20px; width: parent.width - 52px; height: 34px;
         Button { text: "⌄ 收起"; clicked => { root.control("music-browse", ""); } }
         Rectangle { horizontal-stretch: 1; }
@@ -26,7 +26,7 @@ export component NowPlaying inherits Rectangle {
                 MusicArt { x: (parent.width - self.width) / 2; width: min(350px, parent.width); height: self.width; artwork: root.artwork; playing: root.playing; animated: true; }
             }
             Text { text: root.title; color: Theme.text; font-size: 25px; font-weight: 600; horizontal-alignment: center; overflow: elide; height: 40px; }
-            Text { text: root.artist == "" ? "本地音乐" : root.artist; color: #a4bab2; font-size: 14px; height: 24px; horizontal-alignment: center; overflow: elide; }
+            Text { text: root.artist == "" ? "本地音乐" : root.artist; color: Theme.muted; font-size: 14px; height: 24px; horizontal-alignment: center; overflow: elide; }
             if root.album != "": Text { text: root.album; color: Theme.faint; font-size: 12px; height: 20px; horizontal-alignment: center; overflow: elide; }
             Text { text: root.output-status; color: Theme.faint; font-size: 11px; height: 24px; horizontal-alignment: center; overflow: elide; }
             if root.lyrics.length == 0 && root.plain == "": Button { text: "导入本地歌词"; clicked => { root.control("lyrics-import", ""); } }
@@ -43,13 +43,13 @@ export component NowPlaying inherits Rectangle {
                 changed following => { self.follow-line(); }
                 changed height => { self.follow-line(); }
                 changed viewport-height => { self.follow-line(); }
-                animate viewport-y { duration: 420ms; easing: ease-in-out; }
+                animate viewport-y { duration: Theme.smooth; easing: ease-in-out; }
                 VerticalLayout { spacing: 0px; padding-top: root.lyrics.length > 0 ? max(0px, lyrics-view.height / 2 - 28px) : 0px; padding-bottom: self.padding-top;
                     if root.lyrics.length == 0: Text { text: root.plain; color: Theme.text; font-size: 18px; wrap: word-wrap; }
                     for line[index] in root.lyrics: Rectangle {
                         height: 56px;
-                        Text { text: line.text; width: parent.width; height: parent.height; color: index == root.active ? Theme.accent : (touch.has-hover ? Theme.text : #83958f); font-size: index == root.active ? 21px : 17px; font-weight: index == root.active ? 600 : 400; vertical-alignment: center; wrap: word-wrap;
-                            animate color, font-size { duration: 300ms; easing: ease-in-out; }
+                        Text { text: line.text; width: parent.width; height: parent.height; color: index == root.active ? Theme.accent-text : (touch.has-hover ? Theme.text : Theme.muted); font-size: index == root.active ? 21px : 17px; font-weight: index == root.active ? 600 : 400; vertical-alignment: center; wrap: word-wrap;
+                            animate color, font-size { duration: Theme.smooth; easing: ease-in-out; }
                         }
                         touch := TouchArea { mouse-cursor: pointer; clicked => { root.control("lyrics-seek", "" + line.milliseconds); } }
                     }

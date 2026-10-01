@@ -1,0 +1,27 @@
+import { ComboBox, CheckBox, LineEdit, Button } from "std-widgets.slint";
+import { Theme } from "../theme.slint";
+import { GlassSurface } from "glass.slint";
+export component AppearanceOptions inherits GlassSurface {
+    in property <int> design; in property <int> scheme; in property <bool> system-accent; in property <string> custom-accent;
+    in property <bool> reduced; in property <bool> os-reduced; in property <bool> system-available;
+    callback control(string,string);
+    VerticalLayout { padding: 22px; spacing: 14px;
+        Text { text: "外观与动效"; color: Theme.text; font-size: 20px; font-weight: 600; height: 32px; }
+        Text { text: "让你的音乐空间，有自己的气质。"; color: Theme.muted; height: 24px; }
+        HorizontalLayout { spacing: 16px;
+            VerticalLayout { Text { text: "设计风格"; color: Theme.muted; height: 22px; } ComboBox { model: ["简洁模式", "时尚模式 · 玻璃层次"]; current-index: root.design; selected(value) => { root.control("appearance-design", "" + self.current-index); } } }
+            VerticalLayout { Text { text: "明暗"; color: Theme.muted; height: 22px; } ComboBox { model: ["跟随系统", "浅色", "深色"]; current-index: root.scheme; selected(value) => { root.control("appearance-scheme", "" + self.current-index); } } }
+        }
+        ComboBox { model: ["主题色跟随系统", "手动主题色"]; current-index: root.system-accent ? 0 : 1; selected(value) => { root.control("appearance-accent-source", "" + self.current-index); } }
+        HorizontalLayout { spacing: 12px;
+            color-input := LineEdit { text: root.custom-accent; placeholder-text: "#RRGGBB"; }
+            Button { text: "应用颜色"; clicked => { root.control("appearance-accent", color-input.text); } }
+        }
+        // Kept locally while editing, so OS observation never overwrites a color draft.
+        HorizontalLayout { spacing: 10px;
+            for swatch in [{color:#6875e8,hex:"#6875e8"},{color:#c56bd6,hex:"#c56bd6"},{color:#da526e,hex:"#da526e"},{color:#d18732,hex:"#d18732"},{color:#178980,hex:"#178980"},{color:#367fe5,hex:"#367fe5"}]: Rectangle { width: 30px; height: 30px; border-radius: 15px; background: swatch.color; border-width: 2px; border-color: Theme.rim; TouchArea { mouse-cursor: pointer; clicked => { root.control("appearance-accent", swatch.hex); } } }
+        }
+        CheckBox { text: "减少动态效果"; checked: root.reduced; toggled => { root.control("appearance-motion", self.checked ? "yes" : "no"); } }
+        Text { text: root.os-reduced ? "系统已关闭动画；当前使用静态效果。" : (root.system-available ? "系统外观变化会自动同步，选择手动模式可固定外观。" : "系统强调色适配暂仅验证 Windows；当前使用默认回退。" ); color: Theme.faint; font-size: 11px; wrap: word-wrap; min-height: 30px; }
+    }
+}

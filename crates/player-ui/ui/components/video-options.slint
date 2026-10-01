@@ -16,7 +16,9 @@ export component VideoOptions inherits Rectangle {
     in property <[TrackRow]> queue; in property <int> selected-id;
     private property <bool> info-open;
     callback control(string,string);
-    background: Theme.sidebar;
+    background: Theme.glass;
+    private property <float> entrance: 0; init => { root.entrance = 1; }
+    opacity: root.entrance; animate entrance { duration: Theme.smooth; easing: ease-out; }
     ScrollView {
         width: parent.width; height: parent.height; viewport-width: self.width;
         VerticalLayout {

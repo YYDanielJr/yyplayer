@@ -157,6 +157,7 @@ pub enum DialogRequest {
 }
 pub enum DialogReply {
     Open(Vec<PathBuf>),
+    MediaPaths(Vec<PathBuf>, Vec<PathBuf>),
     Subtitle(PathBuf),
     Screenshot(PathBuf),
     Error(String),
@@ -208,7 +209,15 @@ impl Dialogs {
                             })
                             .collect::<Result<Vec<_>, _>>();
                         Some(match prepared {
-                            Ok(paths) => DialogReply::Open(paths),
+                            Ok(paths) => {
+                                let (folders, files): (Vec<_>, Vec<_>) =
+                                    paths.into_iter().partition(|p| p.is_dir());
+                                if folders.is_empty() {
+                                    DialogReply::Open(files)
+                                } else {
+                                    DialogReply::MediaPaths(files, folders)
+                                }
+                            }
                             Err(error) => DialogReply::Error(error),
                         })
                     }

@@ -27,3 +27,7 @@ cargo run --locked -p yyplayer-app --example ui-feedback --offline
 - Windows PowerShell 5.1 读取 UTF-8 诊断 JSON 时默认 ANSI 导致脚本误报，本轮对 Test-Render / Test-Video 指定 `-Encoding UTF8`，兼容旧 PowerShell。
 - 真实播放与 GPU 图像回归结果在本轮 STATUS 中记录；沿用原素材与设备资格范围，不扩大到未测平台。
 - 本轮 Test-Render：窗口截图 1550 × 1125（125% 缩放），NVDEC / 无去色带与软件参考视频内侧区域平均差 0，去色带平均差 0.20539，明显偏差比例均 0%；Test-Video 的最大化 / 全屏 / 暂停解码重载 / 持久化 / 退出仍通过。
+
+## 主题重构复验
+
+2026-10-01：时尚阴影令软件截图耗时增加，验收按截图完成后的相对间隔等待，并在首帧后明确开启控制栏 / toast 计时，17 点再次通过。生产 3s / 4s 时长未改变。新页面过渡 Timer 显式单次运行，详细范围见 library-themes.md。

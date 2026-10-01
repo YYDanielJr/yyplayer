@@ -1,14 +1,17 @@
 import { ScrollView, LineEdit, SpinBox, Button } from "std-widgets.slint";
 import { Theme } from "../theme.slint";
+import { AppearanceOptions } from "../components/appearance-options.slint";
 import { ShortcutRow } from "../models.slint";
 export component SettingsPage inherits Rectangle {
     in property <[ShortcutRow]> bindings; in property <int> seek-step; in property <int> volume-step;
     in property <int> hold-ms; in property <string> hold-speed;
+    in property <int> design; in property <int> scheme; in property <bool> system-accent; in property <string> custom-accent; in property <bool> reduced; in property <bool> os-reduced; in property <bool> system-available;
     callback edit-binding(int,string); callback control(string,string);
     ScrollView {
         width: parent.width; height: parent.height; viewport-width: self.width;
         VerticalLayout {
             padding: 28px; spacing: 14px;
+            AppearanceOptions { design: root.design; scheme: root.scheme; system-accent: root.system-accent; custom-accent: root.custom-accent; reduced: root.reduced; os-reduced: root.os-reduced; system-available: root.system-available; control(action,value) => { root.control(action,value); } }
             Text { text: "播放快捷键"; color: Theme.text; font-size: 20px; font-weight: 600; height: 32px; }
             Text { text: "输入如 Space、Right、Ctrl+O。Enter / Esc 保留给全屏。\n文本编辑与选项面板打开时，播放快捷键不会抢占输入。"; color: Theme.muted; font-size: 12px; height: 42px; }
             for binding[index] in root.bindings: HorizontalLayout {

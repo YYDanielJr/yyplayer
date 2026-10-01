@@ -1,6 +1,20 @@
 # YYPlayer 进度与证据
 
-更新：2026-10-01。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。视频任务已初始化 Git，框架 `d10a4e8` 保留在历史；本轮先将视频 `4eca722` 合入 main，再在 dev 完善音频。
+更新：2026-10-01。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。Git 框架 `d10a4e8` 保留在历史，视频 `4eca722` 保留 main；音频 `8467ca9` 已合入 master，本轮目录音乐库与主题继续在 dev。
+
+## 2026-10-01：目录音乐库、简洁 / 时尚主题和动效
+
+状态：Done（本轮本机开发预览范围），全平台 / 大库 / 位准确资格未完成。音频基线 8467ca9 已快进合入 master，main 保留视频 4eca722，新功能在 dev。用户魅蓝 DSP 小尾巴 WASAPI 独占确认记录为用户实测，未推断 bit-perfect。
+
+- core 新增 Appearance / LibrarySettings / Song 与默认兼容；platform 新增只读系统外观后台观察；app 新增目录 / 标签 / 缓存服务、取消 generation、目录和单曲管理及队列 / 搜索 Rc 投影缓存；ui 新增主题令牌、GlassSurface、外观设置、虚拟化音乐库和短时过渡。
+- 目录添加 / 单曲添加、递归 / 重叠去重、搜索 / 按目录筛选、更新 / 取消 / 移除，独立于播放队列，不删除磁盘文件。缓存原子保存，离线目录保留记录。当前 20000 首 / 200000 项 / 64 层，未完成完整数据库 / 增量监听音乐库。
+- 简洁 / 时尚、系统 / 浅 / 深、系统 / 自选主题色独立保存。Windows 实际读到当前 dark=true 和 DWM 色 316da1；手动切换与四种主题截图通过。时尚为轻量透明 / 高光 / 阴影，未实现 Apple 原生折射或实时模糊；视频 GPU 路径不变。
+- Test-LibraryTheme 13 阶段实际生产 controller / Engine / GL presenter：目录导入、筛选、真实播放、移除后继续播放、重扫 / 取消、保存和四主题通过。已查看常规 / 设置 / 最小面板图；首轮布局溢出与软件例子的 GL 前置条件遗漏已纠正，未拿旧失败作通过证据。
+- ui-feedback 17 点通过；截图耗时不再压缩下一超时间隔，首帧后显式开启计时。页面 Timer 单次运行；减少动态效果停持续 Timer / 短动画时长归零。不宣称已测量功耗或性能提升。
+- fmt、严格 all-targets clippy、16 个独立测试、Debug / Release 构建通过；新增颜色 / 旧设置、扫描取消 / 排除和离线缓存 / 过期扫描测试。音乐大页面 audio-ui 五图 / 实际 Slint 点击、Test-Video 11 动作与暂停位置重载通过；4K HEVC 图像回归硬解差 0、去色带差 0.205388、明显偏差均 0%。
+- 最终 Release 再次通过 Test-Audio：真实 FLAC / 封面 / LRC、共享 / 严格独占、全局 / 设备 / 单文件 EQ、保存 / 正常退出；768kHz 源协商 192kHz 时暂停。最新自有 FLAC SHA256 为 201ea717873fe7d586755daa5e8cb11a68c60330a1b108dbf1b03975a102875a。成功共享回退 / USB 数字捕获仍未增加证据。
+- 当前改动和设计见 [ADR 0003](adr/0003-library-and-themes.md)，检查命令、实测与限制见 [验证报告](validation/library-themes.md)。
+- 下一步：OS 对话框、真实系统偏好热切换、大目录 / 网络盘 / 长时性能，macOS / Linux 系统主题适配；USB 格式 / 拔插 / 数字捕获资格仍按音频报告。
 
 ## 2026-10-01：音频、WASAPI 独占、分级 EQ 与音乐大页面
 
@@ -64,7 +78,7 @@
 | 实际执行 | 结果 |
 | --- | --- |
 | 获取固定 runtime、archive / DLL SHA256、ABI 核对 | 通过，本地 DLL 可实际加载；二进制不提交。 |
-| cargo test --locked --workspace --all-targets --offline | 通过，当前 13 个独立测试；services 在例子 target 的复用执行不重复计数。 |
+| cargo test --locked --workspace --all-targets --offline | 通过，当前 16 个独立测试；services 在例子 target 的复用执行不重复计数。 |
 | cargo clippy --locked --workspace --all-targets --offline -- -D warnings | 通过。 |
 | cargo build --locked -p yyplayer-app --offline | Debug 通过。 |
 | cargo build --locked --release -p yyplayer-app --offline | Release 通过。 |
@@ -87,7 +101,8 @@
 | S02B | Not started | Windows HWND / D3D11 / HDR 专项仍是候选。 |
 | S03 / S04 | In progress（真实实现） | worker、异步 UI、会话队列、导入、设置 / 最近保存已有；复杂竞态、DB、正式队列语义、库待补齐。 |
 | S05–S08 | In progress（部分功能） | 音视频控制、独占 / EQ / 本地歌词已接；发行、真实设备失联与全素材矩阵未完成。 |
-| S09–S12 | Not started（专项） | 完整音乐库、gapless、续播、系统媒体键、HDR、性能定型未完成。 |
+| S09 | Partially implemented | 目录音乐库 / 标签索引 / 筛选 / 缓存已有；DB / 专辑 / 增量 / 大库资格未完成。 |
+| S10–S12 | Not started（专项） | gapless、续播、系统媒体键、HDR、性能定型未完成。 |
 | S13 | Not started | 仅 cfg / 库入口 / 设置路径预留，macOS / Wayland / X11 未编译 / 实机验证。 |
 | S14 | Not started | 安装 / 卸载、许可、长时稳定性与正式发布未完成。 |
 

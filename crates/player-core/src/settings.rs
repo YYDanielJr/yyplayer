@@ -47,6 +47,8 @@ pub struct Settings {
     pub device: String,
     pub recent: Vec<PathBuf>,
     pub audio: crate::audio::AudioSettings,
+    pub appearance: crate::appearance::Appearance,
+    pub library: crate::library::LibrarySettings,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -60,6 +62,8 @@ impl Default for Settings {
             device: "auto".into(),
             recent: Vec::new(),
             audio: Default::default(),
+            appearance: Default::default(),
+            library: Default::default(),
         }
     }
 }
@@ -72,6 +76,8 @@ impl Settings {
             return Err("音量应为 0–100".into());
         }
         self.global.validate()?;
+        self.appearance.validate()?;
+        self.library.validate()?;
         for options in self.folders.values().chain(self.files.values()) {
             options.validate()?;
         }

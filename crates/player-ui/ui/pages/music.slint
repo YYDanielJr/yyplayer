@@ -1,68 +1,59 @@
-import { ScrollView } from "std-widgets.slint";
-import { Theme, Icons, Artwork } from "../theme.slint";
-import { Icon, Badge } from "../components/controls.slint";
-import { AlbumCard, SongRow } from "../components/media.slint";
+import { ListView, ComboBox, Button } from "std-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Icon, ActionButton } from "../components/controls.slint";
+import { GlassSurface } from "../components/glass.slint";
+import { SongRow } from "../components/media.slint";
 import { TrackRow } from "../models.slint";
-
 export component MusicPage inherits Rectangle {
-    in property <[TrackRow]> tracks;
-    in property <int> selected-id;
-    in property <bool> preview;
-    callback select-preview(int);
-    callback select-demo-album(int);
-    background: transparent;
-    ScrollView {
-        width: parent.width;
-        height: parent.height;
-        viewport-width: self.width;
-        VerticalLayout {
-            padding-left: 28px;
-            padding-right: 28px;
-            padding-bottom: 24px;
-            spacing: 18px;
-            Rectangle {
-                height: 154px;
-                border-radius: 12px;
-                background: #203833;
-                clip: true;
-                Rectangle { x: parent.width - 188px; y: -28px; width: 214px; height: 214px; border-radius: 107px; border-width: 1px; border-color: #55766a; background: transparent; }
-                Rectangle { x: parent.width - 164px; y: -4px; width: 166px; height: 166px; border-radius: 83px; border-width: 1px; border-color: #55766a; background: transparent; }
-                Rectangle { x: parent.width - 140px; y: 20px; width: 118px; height: 118px; border-radius: 59px; background: #8db6a3; }
-                VerticalLayout {
-                    padding: 24px;
-                    spacing: 10px;
-                    alignment: start;
-                    Text { text: "A SPACE FOR YOUR SOUND"; color: #a5c0b2; font-size: 9px; height: 14px; }
-                    Text { text: "好声音，值得慢慢听。"; color: Theme.text; font-size: 24px; font-weight: 600; height: 36px; }
-                    Text { text: "把音乐与影像，留在喜欢的空间。"; color: #aac0b6; font-size: 11px; height: 20px; }
-                    Rectangle { height: 4px; }
+    in property <[TrackRow]> tracks; in property <[TrackRow]> library-tracks;
+    in property <int> selected-id; in property <int> library-selected;
+    in property <bool> preview; in property <bool> compact; in property <[string]> folders; in property <int> folder-index;
+    in property <bool> scanning; in property <string> library-message;
+    private property <bool> queue-view: root.preview || (root.library-tracks.length == 0 && root.tracks.length > 0);
+    private property <float> entered: 0;
+    init => { root.entered = 1; }
+    opacity: root.entered; animate entered { duration: Theme.smooth; easing: ease-out; }
+    callback select-preview(int); callback select-demo-album(int); callback control(string,string);
+    VerticalLayout { padding-left: 24px; padding-right: 24px; padding-bottom: 20px; spacing: 12px;
+        if !root.compact: GlassSurface { height: 126px; clip: true;
+            Rectangle { x: parent.width - 200px; y: -50px; width: 250px; height: 250px; border-radius: 125px; background: Theme.glow; }
+            Rectangle { x: parent.width - 162px; y: -16px; width: 182px; height: 182px; border-radius: 91px; border-width: 1px; border-color: Theme.accent.with-alpha(0.18); background: transparent; }
+            VerticalLayout { padding: 22px; spacing: 6px; alignment: center;
+                Text { text: "YOUR MUSIC, YOUR SPACE"; color: Theme.accent-text; font-size: 9px; height: 14px; }
+                Text { text: "把喜欢的声音，收进这里。"; color: Theme.text; font-size: 22px; overflow: elide; font-weight: 600; height: 36px; }
+                Text { text: "本地音乐 · 原声输出 · 为你留白"; color: Theme.muted; font-size: 11px; height: 20px; }
+            }
+        }
+        HorizontalLayout { height: 38px; spacing: 10px;
+            ActionButton { max-width: 128px; text: "添加目录"; icon: Icons.folder; clicked => { root.control("library-folder-add", ""); } }
+            ActionButton { max-width: 128px; text: "添加歌曲"; icon: Icons.plus; primary: false; clicked => { root.control("library-files-add", ""); } }
+            Rectangle { horizontal-stretch: 1; }
+            Button { text: root.queue-view ? "音乐库" : "当前队列"; clicked => { root.queue-view = !root.queue-view; } }
+        }
+        if !root.queue-view: HorizontalLayout { height: 36px; spacing: 8px;
+            ComboBox { model: root.folders; current-index: root.folder-index; horizontal-stretch: 1; selected(value) => { root.control("library-folder", "" + self.current-index); } }
+            Button { text: root.scanning ? "取消" : "重扫"; clicked => { root.control(root.scanning ? "library-cancel" : "library-rescan", ""); } }
+            Button { text: "移除"; enabled: root.folder-index > 0 && root.folder-index < root.folders.length - 1; clicked => { root.control("library-folder-remove", ""); } }
+        }
+        HorizontalLayout { height: 24px;
+            Text { text: root.queue-view ? "播放队列" : "音乐库"; color: Theme.text; font-size: 14px; font-weight: 600; horizontal-stretch: 1; vertical-alignment: center; }
+            Text { text: "" + (root.queue-view ? root.tracks.length : root.library-tracks.length) + " 首"; color: Theme.faint; vertical-alignment: center; }
+        }
+        if !root.queue-view: Text { text: root.scanning ? "正在后台扫描… 可以继续播放和浏览" : root.library-message; color: Theme.muted; height: 22px; overflow: elide; }
+        if !root.queue-view && root.library-tracks.length == 0: GlassSurface { vertical-stretch: 1;
+            VerticalLayout { padding: 30px; spacing: 14px; alignment: center;
+                Icon { icon: Icons.music; tint: Theme.accent; width: 40px; height: 40px; }
+                Text { text: "你的音乐，由你收藏"; color: Theme.text; font-size: 20px; horizontal-alignment: center; height: 30px; }
+                Text { text: "添加一个目录，或选择几首歌。\n子目录中的音乐会一起加入；歌曲不会被移动。"; color: Theme.muted; font-size: 12px; horizontal-alignment: center; wrap: word-wrap; height: 52px; }
+            }
+        }
+        if root.queue-view || root.library-tracks.length > 0: ListView {
+            vertical-stretch: 1; viewport-width: self.width;
+            for track[index] in (root.queue-view ? root.tracks : root.library-tracks): Rectangle { height: 58px;
+                SongRow { width: parent.width - (root.queue-view ? 0px : 38px); height: parent.height - 4px; track: track; number: index + 1; selected: track.item-id == (root.queue-view ? root.selected-id : root.library-selected);
+                    clicked => { if root.queue-view { root.select-preview(track.item-id); } else { root.control("library-play", "" + track.item-id); } }
                 }
-            }
-            if root.preview: HorizontalLayout {
-                height: 24px;
-                Text { text: "你的专辑"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-stretch: 1; vertical-alignment: center; }
-                Badge { text: "示例内容"; }
-            }
-            if root.preview: HorizontalLayout {
-                spacing: 18px;
-                AlbumCard { artwork-id: 0; title: "夜色之间"; subtitle: "YYPlayer Sessions · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-demo-album(0); } }
-                AlbumCard { artwork-id: 1; title: "慢下来"; subtitle: "Studio North · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-demo-album(1); } }
-                AlbumCard { artwork-id: 2; title: "日光片刻"; subtitle: "The Sunday Project · 2026"; max-width: 175px; horizontal-stretch: 1; clicked => { root.select-demo-album(2); } }
-            }
-            HorizontalLayout {
-                height: 24px;
-                Text { text: root.preview ? "精选曲目" : "当前播放队列"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-stretch: 1; vertical-alignment: center; }
-                Text { text: "" + root.tracks.length + " 首"; color: Theme.faint; font-size: 11px; vertical-alignment: center; }
-            }
-            VerticalLayout {
-                spacing: 4px;
-                for track[index] in root.tracks: SongRow {
-                    track: track;
-                    number: index + 1;
-                    selected: track.item-id == root.selected-id;
-                    clicked => { root.select-preview(track.item-id); }
-                }
-                if root.tracks.length == 0: Text { text: "没有匹配的曲目"; color: Theme.muted; height: 60px; vertical-alignment: center; horizontal-alignment: center; font-size: 12px; }
+                if !root.queue-view: Button { x: parent.width - 32px; y: 12px; width: 28px; height: 28px; text: "−"; accessible-label: "从音乐库移除，不删除文件"; clicked => { root.control("library-song-remove", "" + track.item-id); } }
             }
         }
     }

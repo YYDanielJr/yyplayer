@@ -1,15 +1,28 @@
+// Semantic tokens: add a design profile here without coupling pages to IDs or OS APIs.
 export global Theme {
-    out property <color> background: #111519;
-    out property <color> sidebar: #151a1e;
-    out property <color> surface: #1b2227;
-    out property <color> raised: #232c31;
-    out property <color> border: #2b3439;
-    out property <color> text: #edf2ef;
-    out property <color> muted: #93a19f;
-    out property <color> faint: #61716f;
-    out property <color> accent: #b2e5cd;
-    out property <color> accent-ink: #172c26;
-    out property <color> selected: #243a33;
+    in property <bool> dark: true;
+    in property <int> design: 1;
+    in property <bool> reduced-motion;
+    in property <color> accent: #6875e8;
+    in property <color> accent-ink: white;
+    in property <color> accent-text: #9fa8ff;
+    out property <bool> fashion: self.design == 1;
+    out property <duration> fast: self.reduced-motion ? 0ms : 140ms;
+    out property <duration> smooth: self.reduced-motion ? 0ms : 260ms;
+    out property <length> radius: self.fashion ? 18px : 8px;
+    out property <color> background: self.dark ? (self.fashion ? #10131b : #111519) : #f2f4fa;
+    out property <color> sidebar: self.dark ? (self.fashion ? #191d28 : #151a1e) : #ffffff;
+    out property <color> surface: self.dark ? (self.fashion ? #222735 : #1b2227) : #ffffff;
+    out property <color> raised: self.dark ? (self.fashion ? #303749 : #232c31) : #e9edf6;
+    out property <color> border: self.dark ? (self.fashion ? #3c455b : #2b3439) : #dce1ed;
+    out property <color> text: self.dark ? #f0f2f8 : #1d2234;
+    out property <color> muted: self.dark ? #acb5cb : #59657c;
+    out property <color> faint: self.dark ? #8390aa : #64718a;
+    out property <color> selected: self.accent.with-alpha(self.dark ? 0.19 : 0.12);
+    out property <color> glass: self.fashion ? self.sidebar.with-alpha(self.dark ? 0.85 : 0.88) : self.sidebar;
+    out property <color> rim: self.dark ? #ffffff24 : #ffffffd9;
+    out property <color> shadow: self.dark ? #00000070 : #33456b22;
+    out property <color> glow: self.accent.with-alpha(self.dark ? 0.10 : 0.08);
 }
 
 export global Icons {

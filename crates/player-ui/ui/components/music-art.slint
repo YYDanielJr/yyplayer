@@ -4,11 +4,11 @@ export component MusicArt inherits Rectangle {
     in property <bool> playing;
     in property <bool> animated;
     private property <float> orbit: 0;
-    background: @linear-gradient(145deg, #2d514a, #1c2938, #29342d);
+    background: @linear-gradient(145deg, Theme.selected, Theme.surface, Theme.raised);
     border-radius: 14px; clip: true;
-    Timer { interval: 100ms; running: root.animated && root.playing; triggered => { root.orbit = mod(root.orbit + 0.4, 360); } }
-    Rectangle { x: parent.width * 0.08; y: parent.height * 0.08; width: parent.width * 0.84; height: self.width; border-radius: self.width / 2; background: #14201d; border-width: 1px; border-color: #7cbf9d44;
-        Rectangle { x: parent.width * 0.08; y: parent.height * 0.08; width: parent.width * 0.84; height: self.width; border-radius: self.width / 2; background: transparent; border-width: 1px; border-color: #7cbf9d22; }
+    Timer { interval: 100ms; running: root.animated && root.playing && !Theme.reduced-motion; triggered => { root.orbit = mod(root.orbit + 0.4, 360); } }
+    Rectangle { x: parent.width * 0.08; y: parent.height * 0.08; width: parent.width * 0.84; height: self.width; border-radius: self.width / 2; background: Theme.sidebar; border-width: 1px; border-color: Theme.accent.with-alpha(0.26);
+        Rectangle { x: parent.width * 0.08; y: parent.height * 0.08; width: parent.width * 0.84; height: self.width; border-radius: self.width / 2; background: transparent; border-width: 1px; border-color: Theme.accent.with-alpha(0.13); }
         Image { x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; width: parent.width * 0.28; height: self.width; source: Icons.music; colorize: Theme.accent; transform-rotation: root.orbit * 1deg; }
     }
     if root.artwork.width > 0: Image { source: root.artwork; width: parent.width; height: parent.height; image-fit: cover; }

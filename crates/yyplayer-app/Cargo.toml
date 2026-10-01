@@ -16,6 +16,7 @@ player-platform.workspace = true
 player-ui.workspace = true
 slint.workspace = true
 serde_json.workspace = true
+serde.workspace = true
 rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "async-std"] }
 lofty = { version = "=0.25.1", default-features = false, features = ["id3v2_compression_support"] }
 encoding_rs = "0.8"

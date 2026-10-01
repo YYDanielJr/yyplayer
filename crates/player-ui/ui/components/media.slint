@@ -6,6 +6,7 @@ export component Cover inherits Image {
     in property <int> artwork-id;
     source: root.artwork-id < 0 ? Icons.music : root.artwork-id == 1 ? Artwork.water : (root.artwork-id == 2 ? Artwork.sun : Artwork.night);
     image-fit: contain;
+    colorize: root.artwork-id < 0 ? Theme.muted : transparent;
 }
 
 export component AlbumCard inherits Rectangle {
@@ -49,7 +50,8 @@ export component SongRow inherits Rectangle {
     callback clicked();
     height: 52px;
     border-radius: 7px;
-    background: root.selected ? #1d302b : (touch.has-hover ? Theme.surface : transparent);
+    private property <color> fill: root.selected ? Theme.selected : (touch.has-hover ? Theme.surface : transparent);
+    background: root.fill; animate fill { duration: Theme.fast; }
     accessible-role: button;
     accessible-label: root.track.title + "，" + root.track.artist;
     HorizontalLayout {
@@ -62,7 +64,7 @@ export component SongRow inherits Rectangle {
             alignment: center;
             spacing: 4px;
             horizontal-stretch: 1;
-            Text { text: root.track.title; color: root.selected ? Theme.accent : Theme.text; font-size: 12px; overflow: elide; }
+            Text { text: root.track.title; color: root.selected ? Theme.accent-text : Theme.text; font-size: 12px; overflow: elide; }
             Text { text: root.track.artist; color: Theme.muted; font-size: 10px; overflow: elide; }
         }
         Text { text: root.track.collection; width: 75px; color: Theme.muted; font-size: 11px; vertical-alignment: center; overflow: elide; }
@@ -83,7 +85,7 @@ export component QueueRow inherits Rectangle {
     callback clicked();
     height: 68px;
     border-radius: 8px;
-    background: root.selected ? #23362f : (touch.has-hover ? Theme.raised : transparent);
+    background: root.selected ? Theme.selected : (touch.has-hover ? Theme.raised : transparent);
     accessible-role: button;
     accessible-label: root.track.title;
     HorizontalLayout {
@@ -94,7 +96,7 @@ export component QueueRow inherits Rectangle {
             alignment: center;
             spacing: 5px;
             horizontal-stretch: 1;
-            Text { text: root.track.title; color: root.selected ? Theme.accent : Theme.text; font-size: 11px; overflow: elide; }
+            Text { text: root.track.title; color: root.selected ? Theme.accent-text : Theme.text; font-size: 11px; overflow: elide; }
             Text { text: root.track.artist; color: Theme.muted; font-size: 9px; overflow: elide; }
         }
         Text { text: root.track.duration; color: Theme.faint; font-size: 9px; vertical-alignment: center; }

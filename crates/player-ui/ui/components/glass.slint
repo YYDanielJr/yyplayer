@@ -1,0 +1,11 @@
+import { Theme } from "../theme.slint";
+// Lightweight glass impression. No per-frame backdrop capture / blur / video readback.
+export component GlassSurface inherits Rectangle {
+    border-radius: Theme.radius;
+    private property <color> material: Theme.glass; animate material { duration: Theme.smooth; }
+    background: @linear-gradient(130deg, root.material, Theme.surface.with-alpha(Theme.fashion ? 0.72 : 1));
+    border-width: Theme.fashion ? 1px : 0px; border-color: Theme.rim;
+    drop-shadow-blur: Theme.fashion ? 18px : 0px; drop-shadow-offset-y: Theme.fashion ? 6px : 0px; drop-shadow-color: Theme.shadow;
+    if Theme.fashion: Rectangle { x: 14px; y: 1px; width: max(0px,parent.width - 28px); height: 1px; background: @linear-gradient(90deg, transparent, Theme.rim, transparent); }
+    @children
+}

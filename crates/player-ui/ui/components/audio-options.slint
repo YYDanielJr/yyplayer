@@ -9,7 +9,7 @@ export component AudioOptions inherits VerticalLayout {
     spacing: 10px;
     Text { text: "音频输出"; color: Theme.text; font-size: 16px; height: 28px; font-weight: 600; }
     ComboBox { model: ["共享 · 兼容优先", "优先独占 · 允许同设备共享回退", "严格独占 · 失败暂停"]; current-index: root.form.mode; selected(value) => { root.control("output-mode", "" + self.current-index); } }
-    Text { text: root.status; color: Theme.accent; wrap: word-wrap; min-height: 38px; }
+    Text { text: root.status; color: Theme.accent-text; wrap: word-wrap; min-height: 38px; }
     Button { text: "重新连接 / 重试当前输出"; clicked => { root.control("output-retry", ""); } }
     CheckBox { text: "独占保持源采样率（不兼容则暂停）"; checked: root.form.preserve-rate; toggled => { root.control("preserve-rate", self.checked ? "yes" : "no"); } }
     Text { text: "不强制升采样，不默认添加音效。独占与 EQ 可以同时使用；调整音量、EQ、倍速会改变样本。"; color: Theme.faint; font-size: 11px; wrap: word-wrap; min-height: 46px; }

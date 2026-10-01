@@ -13,7 +13,8 @@ export component PlayerBar inherits Rectangle {
     in property <image> artwork; in property <bool> preview;
     callback play(); callback previous(); callback next(); callback volume-changed(float);
     callback toggle-favorite(); callback control(string, string);
-    height: root.compact ? 70px : 104px; background: #171d21;
+    height: root.compact ? 70px : 104px; background: Theme.glass;
+    drop-shadow-blur: Theme.fashion && !root.compact ? 20px : 0px; drop-shadow-color: Theme.shadow;
     Rectangle { x: 0px; y: 0px; width: parent.width; height: 1px; background: Theme.border; }
     VerticalLayout {
         padding: 0px; padding-left: 20px; padding-right: 20px; spacing: 0px; alignment: center;

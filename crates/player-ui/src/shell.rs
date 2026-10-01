@@ -122,6 +122,42 @@ fn rows(
 }
 
 fn project(window: &AppWindow, state: &ShellViewModel) {
+    let a = &state.appearance;
+    window.set_appearance_design(a.design);
+    window.set_appearance_scheme(a.scheme);
+    window.set_appearance_dark(a.dark);
+    window.set_appearance_accent(slint::Color::from_rgb_u8(
+        (a.accent >> 16) as u8,
+        (a.accent >> 8) as u8,
+        a.accent as u8,
+    ));
+    window.set_appearance_ink(slint::Color::from_rgb_u8(
+        (a.ink >> 16) as u8,
+        (a.ink >> 8) as u8,
+        a.ink as u8,
+    ));
+    window.set_appearance_accent_text(slint::Color::from_rgb_u8(
+        (a.accent_text >> 16) as u8,
+        (a.accent_text >> 8) as u8,
+        a.accent_text as u8,
+    ));
+    window.set_appearance_system_accent(a.system_accent);
+    window.set_appearance_custom(a.custom_accent.as_str().into());
+    window.set_appearance_reduced(a.reduce_motion);
+    window.set_appearance_os_reduced(a.os_reduce_motion);
+    window.set_appearance_system_available(a.system_available);
+    let lib = &state.library;
+    if window.get_library_revision() != lib.revision as i32 {
+        window.set_library_tracks(rows(window.get_library_tracks(), &lib.rows));
+        window.set_library_revision(lib.revision as i32);
+    }
+    if !same_strings(&window.get_library_folders(), &lib.folders) {
+        window.set_library_folders(strings(&lib.folders));
+    }
+    window.set_library_folder(lib.folder);
+    window.set_library_selected(lib.selected);
+    window.set_library_busy(lib.busy);
+    window.set_library_message(lib.message.as_str().into());
     let audio = &state.audio;
     window.set_preview(audio.preview);
     window.set_active_lyric(audio.active_lyric);
@@ -158,8 +194,11 @@ fn project(window: &AppWindow, state: &ShellViewModel) {
     window.set_favorite(state.favorite);
     window.set_status_message(state.status.as_str().into());
     window.set_status_revision(state.status_revision as i32);
-    window.set_tracks(rows(window.get_tracks(), &state.tracks));
-    window.set_queue(rows(window.get_queue(), &state.queue));
+    if window.get_queue_revision() != state.queue_revision as i32 {
+        window.set_tracks(rows(window.get_tracks(), &state.tracks));
+        window.set_queue(rows(window.get_queue(), &state.queue));
+        window.set_queue_revision(state.queue_revision as i32);
+    }
     window.set_recent(rows(window.get_recent(), &state.recent));
     window.set_playing(state.playing);
     window.set_has_media(state.has_media);

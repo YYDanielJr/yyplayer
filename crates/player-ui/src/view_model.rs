@@ -11,6 +11,8 @@ pub struct MediaPreview {
 #[derive(Clone, Debug, Default)]
 pub struct ShellViewModel {
     pub audio: AudioViewModel,
+    pub library: LibraryViewModel,
+    pub appearance: AppearanceViewModel,
     pub page: i32,
     pub selected_id: i32,
     pub selected_title: String,
@@ -21,8 +23,9 @@ pub struct ShellViewModel {
     pub favorite: bool,
     pub status: String,
     pub status_revision: u64,
-    pub tracks: Vec<MediaPreview>,
-    pub queue: Vec<MediaPreview>,
+    pub tracks: std::rc::Rc<Vec<MediaPreview>>,
+    pub queue: std::rc::Rc<Vec<MediaPreview>>,
+    pub queue_revision: u64,
     pub recent: Vec<MediaPreview>,
     pub playing: bool,
     pub has_media: bool,
@@ -82,4 +85,46 @@ pub struct AudioViewModel {
     pub presets: Vec<String>,
     pub preset_index: i32,
     pub binding: String,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct LibraryViewModel {
+    pub rows: std::rc::Rc<Vec<MediaPreview>>,
+    pub revision: u64,
+    pub folders: Vec<String>,
+    pub folder: i32,
+    pub busy: bool,
+    pub message: String,
+    pub selected: i32,
+}
+#[derive(Clone, Debug)]
+pub struct AppearanceViewModel {
+    pub design: i32,
+    pub scheme: i32,
+    pub dark: bool,
+    pub accent: u32,
+    pub ink: u32,
+    pub accent_text: u32,
+    pub system_accent: bool,
+    pub custom_accent: String,
+    pub reduce_motion: bool,
+    pub os_reduce_motion: bool,
+    pub system_available: bool,
+}
+impl Default for AppearanceViewModel {
+    fn default() -> Self {
+        Self {
+            design: 1,
+            scheme: 0,
+            dark: true,
+            accent: 0x6875e8,
+            ink: 0xffffff,
+            accent_text: 0x9fa8ff,
+            system_accent: true,
+            custom_accent: "#6875e8".into(),
+            reduce_motion: false,
+            os_reduce_motion: false,
+            system_available: false,
+        }
+    }
 }

@@ -15,6 +15,10 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 #[path = "audio_controller.rs"]
 mod audio_controller;
+#[path = "library_controller.rs"]
+mod library_controller;
+#[path = "library_service.rs"]
+mod library_service;
 #[path = "music_assets.rs"]
 mod music_assets;
 
@@ -36,6 +40,8 @@ pub struct AppController {
     persistence: Option<Persistence>,
     dialogs: Option<Dialogs>,
     queue: Vec<MediaSource>,
+    queue_version: u64,
+    queue_projection: std::cell::RefCell<QueueProjection>,
     pending_load: bool,
     auto_page: bool,
     hold: HoldGesture,
@@ -63,6 +69,16 @@ pub struct AppController {
     lyric_rows: std::rc::Rc<Vec<(String, i32)>>,
     plain_lyrics: std::rc::Rc<String>,
     pending_asset: Option<music_assets::Request>,
+    library_service: Option<library_service::Service>,
+    library_pending: Option<library_service::Request>,
+    library_songs: Vec<player_core::library::Song>,
+    library_rows: std::rc::Rc<Vec<MediaPreview>>,
+    library_revision: u64,
+    library_scan: u64,
+    library_folder: i32,
+    library_busy: bool,
+    library_message: String,
+    appearance_observer: Option<player_platform::appearance::Observer>,
 }
 impl AppController {
     pub fn new(engine: MpvEngine, platform: PlatformInfo) -> Self {
@@ -85,6 +101,8 @@ impl AppController {
             persistence: None,
             dialogs: None,
             queue: vec![],
+            queue_version: 1,
+            queue_projection: Default::default(),
             pending_load: false,
             auto_page: false,
             hold: HoldGesture::default(),
@@ -112,6 +130,16 @@ impl AppController {
             lyric_rows: Default::default(),
             plain_lyrics: Default::default(),
             pending_asset: None,
+            library_service: None,
+            library_pending: None,
+            library_songs: vec![],
+            library_rows: Default::default(),
+            library_revision: 1,
+            library_scan: 0,
+            library_folder: 0,
+            library_busy: false,
+            library_message: "添加目录，建立你的音乐空间".into(),
+            appearance_observer: None,
         }
     }
     pub fn live(engine: MpvEngine, platform: PlatformInfo) -> Self {
@@ -124,6 +152,16 @@ impl AppController {
         controller.shortcut_draft = settings.shortcuts.clone();
         controller.decode_draft = settings.global.clone();
         controller.settings = settings;
+        controller.library_service = Some(library_service::Service::start(
+            path.with_extension("library.json"),
+            controller.settings.library.clone(),
+        ));
+        controller.appearance_observer = Some(player_platform::appearance::Observer::start());
+        if !controller.settings.library.roots.is_empty()
+            || !controller.settings.library.files.is_empty()
+        {
+            controller.scan_library();
+        }
         controller.persistence = Some(Persistence::start(path));
         controller.dialogs = Some(Dialogs::start());
         controller.assets_service = Some(music_assets::Service::start());
@@ -138,7 +176,10 @@ impl AppController {
                 self.panel_open = false;
                 self.settings_revision += 1;
             }
-            UiAction::Search(query) => self.search = query,
+            UiAction::Search(query) => {
+                self.search = query;
+                self.refresh_library();
+            }
             UiAction::SelectPreview(id) => {
                 if self.preview {
                     if demo::tracks().iter().any(|item| item.id == id) {
@@ -203,6 +244,7 @@ impl AppController {
             return;
         }
         self.queue = paths.into_iter().map(MediaSource::Local).collect();
+        self.queue_version += 1;
         self.preview = false;
         self.load_index(0);
     }
@@ -381,6 +423,9 @@ impl AppController {
         self.reload();
     }
     fn control(&mut self, action: &str, value: &str) {
+        if self.library_control(action, value) {
+            return;
+        }
         if self.audio_control(action, value) {
             return;
         }
@@ -746,6 +791,14 @@ impl AppController {
         for reply in replies {
             match reply {
                 DialogReply::Open(paths) => self.open_paths(paths),
+                DialogReply::MediaPaths(files, folders) => {
+                    self.import_library_paths(true, folders);
+                    if !files.is_empty() {
+                        self.open_paths(files);
+                    } else {
+                        self.page = 0;
+                    }
+                }
                 DialogReply::Subtitle(path) => self.send(PlaybackCommand::AddSubtitle(path)),
                 DialogReply::Screenshot(path) => self.send(PlaybackCommand::Screenshot(path)),
                 DialogReply::Error(error) => self.status = error,
@@ -766,6 +819,7 @@ impl AppController {
         }
         let changed = self.engine.refresh();
         self.poll_assets();
+        self.poll_library();
         if self.engine.snapshot().ready && !self.initial_audio {
             self.initial_audio = true;
             self.send(PlaybackCommand::SetVolume(self.settings.volume));
@@ -816,52 +870,8 @@ impl AppController {
     }
     pub fn view_model(&self) -> ShellViewModel {
         let snapshot = self.engine.snapshot();
-        let queue = if self.preview {
-            demo::tracks()
-        } else {
-            self.queue
-                .iter()
-                .enumerate()
-                .map(|(index, source)| MediaPreview {
-                    id: index as i32,
-                    title: if index == self.selected_id as usize && !self.assets.title.is_empty() {
-                        self.assets.title.clone()
-                    } else {
-                        source_title(source)
-                    },
-                    artist: if index == self.selected_id as usize {
-                        self.assets.artist.clone()
-                    } else {
-                        String::new()
-                    },
-                    collection: if index == self.selected_id as usize
-                        && !self.assets.album.is_empty()
-                    {
-                        self.assets.album.clone()
-                    } else {
-                        "本地媒体".into()
-                    },
-                    duration: if index == self.selected_id as usize {
-                        format_time(snapshot.duration)
-                    } else {
-                        String::new()
-                    },
-                    cover: -1,
-                })
-                .collect()
-        };
+        let (queue, tracks, queue_revision) = self.project_queue();
         let selected = queue.get(self.selected_id as usize);
-        let query = self.search.trim().to_lowercase();
-        let tracks = queue
-            .iter()
-            .filter(|track| {
-                query.is_empty()
-                    || format!("{} {} {}", track.title, track.artist, track.collection)
-                        .to_lowercase()
-                        .contains(&query)
-            })
-            .cloned()
-            .collect();
         let mut devices: Vec<_> = snapshot
             .devices
             .iter()
@@ -924,6 +934,8 @@ impl AppController {
         ];
         ShellViewModel {
             audio: self.audio_view(),
+            library: self.library_view(),
+            appearance: self.appearance_view(),
             page: self.page,
             selected_id: self.selected_id,
             selected_title: if !self.assets.title.is_empty() {
@@ -933,7 +945,13 @@ impl AppController {
             } else {
                 selected
                     .map(|track| track.title.clone())
-                    .unwrap_or("视频剧场".into())
+                    .unwrap_or_else(|| {
+                        if self.page == 0 || self.page == 4 {
+                            "尚未选择曲目".into()
+                        } else {
+                            "视频剧场".into()
+                        }
+                    })
             },
             selected_artist: if !self.assets.artist.is_empty() {
                 self.assets.artist.clone()
@@ -964,6 +982,7 @@ impl AppController {
             status_revision: self.save_revision,
             tracks,
             queue,
+            queue_revision,
             recent: self
                 .settings
                 .recent
@@ -1046,6 +1065,78 @@ impl AppController {
             settings_revision: self.settings_revision,
         }
     }
+    fn project_queue(
+        &self,
+    ) -> (
+        std::rc::Rc<Vec<MediaPreview>>,
+        std::rc::Rc<Vec<MediaPreview>>,
+        u64,
+    ) {
+        let snapshot = self.engine.snapshot();
+        let key = (
+            self.queue_version,
+            self.selected_id,
+            self.asset_projection_revision,
+            snapshot.duration,
+            self.search.clone(),
+            self.preview,
+        );
+        let mut cache = self.queue_projection.borrow_mut();
+        if cache.key.as_ref() != Some(&key) {
+            let queue = if self.preview {
+                demo::tracks()
+            } else {
+                self.queue
+                    .iter()
+                    .enumerate()
+                    .map(|(index, source)| MediaPreview {
+                        id: index as i32,
+                        title: if index == self.selected_id as usize
+                            && !self.assets.title.is_empty()
+                        {
+                            self.assets.title.clone()
+                        } else {
+                            source_title(source)
+                        },
+                        artist: if index == self.selected_id as usize {
+                            self.assets.artist.clone()
+                        } else {
+                            String::new()
+                        },
+                        collection: if index == self.selected_id as usize
+                            && !self.assets.album.is_empty()
+                        {
+                            self.assets.album.clone()
+                        } else {
+                            "本地媒体".into()
+                        },
+                        duration: if index == self.selected_id as usize {
+                            format_time(snapshot.duration)
+                        } else {
+                            String::new()
+                        },
+                        cover: -1,
+                    })
+                    .collect()
+            };
+            let query = self.search.trim().to_lowercase();
+            let tracks: Vec<_> = queue
+                .iter()
+                .filter(|track| {
+                    query.is_empty()
+                        || format!("{} {} {}", track.title, track.artist, track.collection)
+                            .to_lowercase()
+                            .contains(&query)
+                })
+                .cloned()
+                .collect();
+            cache.queue = std::rc::Rc::new(queue);
+            cache.tracks = std::rc::Rc::new(tracks);
+            cache.key = Some(key);
+            cache.revision += 1;
+        }
+        (cache.queue.clone(), cache.tracks.clone(), cache.revision)
+    }
     pub fn engine_mut(&mut self) -> &mut MpvEngine {
         &mut self.engine
     }
@@ -1057,10 +1148,22 @@ impl AppController {
         if let Some(persistence) = self.persistence.take() {
             persistence.finish();
         }
+        if let Some(service) = self.library_service.take() {
+            service.finish();
+        }
+        self.appearance_observer = None;
         self.dialogs = None;
         self.assets_service = None;
     }
 }
+#[derive(Default)]
+struct QueueProjection {
+    key: Option<(u64, i32, u64, Option<Duration>, String, bool)>,
+    queue: std::rc::Rc<Vec<MediaPreview>>,
+    tracks: std::rc::Rc<Vec<MediaPreview>>,
+    revision: u64,
+}
+
 fn source_title(source: &MediaSource) -> String {
     match source {
         MediaSource::Local(path) => path

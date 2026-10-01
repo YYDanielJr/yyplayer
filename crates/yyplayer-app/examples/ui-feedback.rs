@@ -94,11 +94,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         0.8, 3.6, 4.5, 4.8, 5.2, 5.5, 9.0, 9.8, 13.2, 16.5, 19.8, 23.1, 26.5, 29.9, 33.3, 34.7,
         36.1,
     ];
+    let mut due = Instant::now() + Duration::from_secs_f64(times[0]);
     let mut step = 0;
     let mut video_size = (0.0, 0.0);
     let mut checkpoints = Vec::new();
     timer.start(TimerMode::Repeated, Duration::from_millis(50), move || {
-        if step >= times.len() || started.elapsed().as_secs_f64() < times[step] { return; }
+        if step >= times.len() || Instant::now() < due { return; }
         let window = test_ui.component();
         let mut run = || -> Result<(), Box<dyn std::error::Error>> {
             match step {
@@ -107,6 +108,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     video_size = (window.get_video_width(), window.get_video_height());
                     capture(window, "fullscreen-visible")?;
                     click_center_play(window, &play_count)?;
+                    // The first native frame can deliver deferred page/fullscreen changes.
+                    // Start both deadlines explicitly after that frame has settled.
+                    model.status_revision += 1; test_ui.project(&model); window.invoke_pointer_activity();
                 }
                 1 => {
                     if window.get_controls_visible() || window.get_header_visible() || !window.get_toast_visible() { return Err("3s controls timeout failed".into()); }
@@ -116,7 +120,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if video_size != (window.get_video_width(), window.get_video_height()) { return Err("Hiding controls resized video".into()); }
                     capture(window, "fullscreen-hidden")?;
                     window.invoke_pointer_activity();
-                    model.status_revision = 2;
+                    model.status_revision += 1;
                     test_ui.project(&model);
                 }
                 3 => {
@@ -131,7 +135,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 5 => {
                     if window.get_toast_visible() { return Err("Projection revived dismissed toast".into()); }
-                    model.status_revision = 3;
+                    model.status_revision += 1;
                     test_ui.project(&model);
                     window.set_pointer_held(true);
                     window.invoke_pointer_activity();
@@ -212,6 +216,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             *result.borrow_mut() = Some(format!("step {step}: {error}"));
             let _ = slint::quit_event_loop();
         }
+        // Snapshot cost (especially software shadows) must not consume the next timeout.
+        if step + 1 < times.len() { due = Instant::now() + Duration::from_secs_f64(if step==0 {3.4}else{times[step + 1] - times[step]}); }
         step += 1;
     });
     ui.run()?;

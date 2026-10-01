@@ -11,3 +11,6 @@ pub mod audio;
 pub mod lyrics;
 pub mod settings;
 pub mod shortcuts;
+
+pub mod appearance;
+pub mod library;
