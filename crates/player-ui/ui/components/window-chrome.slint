@@ -1,0 +1,32 @@
+import { Theme, Icons } from "../theme.slint";
+import { Icon, IconButton } from "controls.slint";
+component TrafficLight inherits Rectangle {
+    in property <color> tint; in property <image> icon; in property <string> label; callback clicked();
+    width: 34px; height: 30px; accessible-role: button; accessible-label: root.label;
+    Rectangle { x: (parent.width - 12px) / 2; y: (parent.height - 12px) / 2; width: 12px; height: 12px; border-radius: 6px; background: root.tint;
+        if touch.has-hover: Icon { x: 1px; y: 1px; width: 10px; height: 10px; icon: root.icon; tint: #343434; }
+    }
+    focus := FocusScope { key-pressed(event) => { if event.text == " " || event.text == "\n" { root.clicked(); return accept; } return reject; } }
+    touch := TouchArea { mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
+}
+export component WindowChrome inherits Rectangle {
+    in property <string> title; in property <bool> left-controls; in property <bool> maximized;
+    callback action(string);
+    height: 36px; background: Theme.background;
+    Text { x: root.left-controls ? 132px : 16px; width: parent.width - 164px; height: parent.height; text: root.title; color: Theme.muted; font-size: 11px; vertical-alignment: center; overflow: elide; }
+    drag := TouchArea {
+        x: root.left-controls ? 126px : 0px; width: parent.width - 126px; height: parent.height;
+        private property <bool> dragging; private property <length> origin-x; private property <length> origin-y;
+        pointer-event(event) => { if event.kind == PointerEventKind.down && event.button == PointerEventButton.left { self.dragging = false; self.origin-x = self.mouse-x; self.origin-y = self.mouse-y; } }
+        moved => { if self.pressed && !self.dragging && (abs(self.mouse-x - self.origin-x) > 4px || abs(self.mouse-y - self.origin-y) > 4px) { self.dragging = true; root.action("drag"); } }
+        double-clicked => { root.action("maximize"); }
+    }
+    HorizontalLayout { x: root.left-controls ? 8px : parent.width - 126px; width: 118px; height: parent.height; spacing: 4px; padding: 2px;
+        if root.left-controls: TrafficLight { tint: #ff5f57; icon: Icons.close; label: "关闭窗口"; clicked => { root.action("close"); } }
+        if root.left-controls: TrafficLight { tint: #febc2e; icon: Icons.minus; label: "最小化"; clicked => { root.action("minimize"); } }
+        if root.left-controls: TrafficLight { tint: #28c840; icon: root.maximized ? Icons.restore : Icons.maximize; label: "最大化 / 还原"; clicked => { root.action("maximize"); } }
+        if !root.left-controls: IconButton { icon: Icons.minus; label: "最小化"; width: 34px; height: 30px; clicked => { root.action("minimize"); } }
+        if !root.left-controls: IconButton { icon: root.maximized ? Icons.restore : Icons.maximize; label: "最大化 / 还原"; width: 34px; height: 30px; clicked => { root.action("maximize"); } }
+        if !root.left-controls: IconButton { icon: Icons.close; label: "关闭窗口"; width: 34px; height: 30px; clicked => { root.action("close"); } }
+    }
+}

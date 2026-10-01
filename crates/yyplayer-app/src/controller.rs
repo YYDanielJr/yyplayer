@@ -15,6 +15,10 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 #[path = "audio_controller.rs"]
 mod audio_controller;
+#[path = "font_controller.rs"]
+mod font_controller;
+#[path = "font_service.rs"]
+mod font_service;
 #[path = "library_controller.rs"]
 mod library_controller;
 #[path = "library_service.rs"]
@@ -79,6 +83,10 @@ pub struct AppController {
     library_busy: bool,
     library_message: String,
     appearance_observer: Option<player_platform::appearance::Observer>,
+    font_task: Option<font_service::Task>,
+    font_names: std::rc::Rc<Vec<String>>,
+    font_revision: u64,
+    font_message: String,
 }
 impl AppController {
     pub fn new(engine: MpvEngine, platform: PlatformInfo) -> Self {
@@ -140,6 +148,10 @@ impl AppController {
             library_busy: false,
             library_message: "添加目录，建立你的音乐空间".into(),
             appearance_observer: None,
+            font_task: None,
+            font_names: std::rc::Rc::new(vec![String::new()]),
+            font_revision: 1,
+            font_message: "正在读取系统字体…".into(),
         }
     }
     pub fn live(engine: MpvEngine, platform: PlatformInfo) -> Self {
@@ -147,6 +159,7 @@ impl AppController {
         let (settings, warning) = services::load(&path);
         let mut controller = Self::new(engine, platform);
         controller.preview = false;
+        controller.font_task = Some(font_service::Task::start());
         controller.page = 0;
         controller.status = warning;
         controller.shortcut_draft = settings.shortcuts.clone();
@@ -423,6 +436,9 @@ impl AppController {
         self.reload();
     }
     fn control(&mut self, action: &str, value: &str) {
+        if self.font_control(action, value) {
+            return;
+        }
         if self.library_control(action, value) {
             return;
         }
@@ -820,11 +836,13 @@ impl AppController {
         let changed = self.engine.refresh();
         self.poll_assets();
         self.poll_library();
+        self.poll_fonts();
         if self.engine.snapshot().ready && !self.initial_audio {
             self.initial_audio = true;
             self.send(PlaybackCommand::SetVolume(self.settings.volume));
             self.apply_output();
             self.apply_eq();
+            self.apply_subtitle_font();
         }
         if changed {
             let snapshot = self.engine.snapshot().clone();
@@ -936,6 +954,13 @@ impl AppController {
             audio: self.audio_view(),
             library: self.library_view(),
             appearance: self.appearance_view(),
+            fonts: self.font_view(),
+            column_song: self.settings.library_columns.song,
+            column_artist: self.settings.library_columns.artist,
+            window_controls_left: matches!(
+                self.platform.kind,
+                player_platform::PlatformKind::MacOs
+            ),
             page: self.page,
             selected_id: self.selected_id,
             selected_title: if !self.assets.title.is_empty() {
@@ -1152,6 +1177,7 @@ impl AppController {
             service.finish();
         }
         self.appearance_observer = None;
+        self.font_task = None;
         self.dialogs = None;
         self.assets_service = None;
     }

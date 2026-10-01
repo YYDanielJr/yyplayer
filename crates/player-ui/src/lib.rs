@@ -7,3 +7,5 @@ slint::include_modules!();
 
 pub use shell::{UiAction, UiShell};
 pub mod presenter;
+
+pub mod window_controls;

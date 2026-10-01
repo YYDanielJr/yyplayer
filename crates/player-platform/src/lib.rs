@@ -36,3 +36,5 @@ pub fn current() -> PlatformInfo {
 }
 
 pub mod appearance;
+
+pub mod fonts;

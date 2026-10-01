@@ -42,6 +42,20 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     });
     ui.bind(dispatch.clone());
     ui.bind_controls(dispatch);
+    let chrome_window = weak.clone();
+    let chrome_controller = controller.clone();
+    player_ui::window_controls::bind(
+        ui.component(),
+        Rc::new(move |mode| {
+            chrome_controller
+                .borrow_mut()
+                .dispatch(UiAction::Control("window-mode".into(), mode.to_string()));
+            let request = chrome_controller.borrow_mut().take_window_request();
+            if let Some(window) = chrome_window.upgrade() {
+                apply_window_mode(&window, request);
+            }
+        }),
+    );
 
     let dropped = Rc::new(RefCell::new(Vec::new()));
     let event_dropped = dropped.clone();
@@ -77,7 +91,13 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                         let top = position.y / f64::from(native.scale_factor());
                         window.set_pointer_in_header(
                             top >= 0.0
-                                && top <= f64::from(window.get_header_height())
+                                && top
+                                    <= f64::from(window.get_header_height())
+                                        + if window.get_fullscreen_mode() {
+                                            0.0
+                                        } else {
+                                            36.0
+                                        }
                                 && position.x >= 0.0
                                 && position.x / f64::from(native.scale_factor())
                                     < f64::from(window.get_video_width()),
@@ -182,6 +202,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         if window.get_shortcuts_blocked() { controller.cancel_hold(); }
         let paths = std::mem::take(&mut *dropped.borrow_mut()); if !paths.is_empty() { controller.prepare_paths(paths); }
         controller.tick();
+        window.set_window_maximized(window.window().is_maximized());
         if smoke_script {
             let seconds = started.elapsed().as_secs_f64();
             if actions == 0 && seconds > 1.5 { controller.dispatch(UiAction::Control("speed".into(),"1.5x".into())); actions = 1; }
@@ -230,7 +251,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(path) = diagnostics.as_ref() {
                 let view = controller.view_model();
                 let snapshot = controller.engine_mut().snapshot();
-                let data = serde_json::json!({ "phase": format!("{:?}",snapshot.phase), "position": snapshot.position.map(|position| position.as_secs_f64()), "duration": snapshot.duration.map(|duration| duration.as_secs_f64()), "speed": snapshot.speed, "volume": snapshot.volume, "muted": snapshot.muted, "runtime": snapshot.runtime, "hwdec": snapshot.hwdec, "video": snapshot.video, "devices": snapshot.devices.iter().map(|device| &device.name).collect::<Vec<_>>(), "tracks": snapshot.tracks.len(), "render_frames": window.get_render_frames(), "render_error": window.get_render_error().as_str(), "error": snapshot.error, "media_info": snapshot.info, "file_tag_info":view.info, "device_ids":snapshot.devices.iter().map(|d|&d.id).collect::<Vec<_>>(), "audio_info": snapshot.audio_info, "audio_log": snapshot.audio_log, "audio_source_rate":snapshot.audio_source_rate, "audio_output_rate":snapshot.audio_output_rate, "audio_fallback":snapshot.audio_fallback, "audio_status": snapshot.audio_status, "exclusive": snapshot.exclusive_confirmed, "eq_filter": snapshot.eq_filter, "music_title": view.selected_title, "artist": view.selected_artist, "album": view.audio.album, "lyric_count": view.audio.lyrics.len(), "active_lyric": view.audio.active_lyric, "page": view.page, "cover_width": view.audio.cover.size().width, "script_steps": actions, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "checkpoints": checkpoints });
+                let data = serde_json::json!({ "phase": format!("{:?}",snapshot.phase), "position": snapshot.position.map(|position| position.as_secs_f64()), "duration": snapshot.duration.map(|duration| duration.as_secs_f64()), "speed": snapshot.speed, "volume": snapshot.volume, "muted": snapshot.muted, "runtime": snapshot.runtime, "hwdec": snapshot.hwdec, "video": snapshot.video, "devices": snapshot.devices.iter().map(|device| &device.name).collect::<Vec<_>>(), "tracks": snapshot.tracks.len(), "render_frames": window.get_render_frames(), "render_error": window.get_render_error().as_str(), "error": snapshot.error, "media_info": snapshot.info, "file_tag_info":view.info, "device_ids":snapshot.devices.iter().map(|d|&d.id).collect::<Vec<_>>(), "audio_info": snapshot.audio_info, "audio_log": snapshot.audio_log, "audio_source_rate":snapshot.audio_source_rate, "audio_output_rate":snapshot.audio_output_rate, "audio_fallback":snapshot.audio_fallback, "audio_status": snapshot.audio_status, "exclusive": snapshot.exclusive_confirmed, "eq_filter": snapshot.eq_filter, "music_title": view.selected_title, "artist": view.selected_artist, "album": view.audio.album, "fonts": {"ui": view.fonts.ui, "lyrics": view.fonts.lyrics, "families": view.fonts.names.len().saturating_sub(1), "subtitle_actual": snapshot.subtitle_font, "ass_actual": snapshot.subtitle_font_overrides}, "library_columns": {"song": view.column_song, "artist": view.column_artist}, "decorated": window.window().with_winit_window(|w| w.is_decorated()), "lyric_count": view.audio.lyrics.len(), "active_lyric": view.audio.active_lyric, "page": view.page, "cover_width": view.audio.cover.size().width, "script_steps": actions, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "checkpoints": checkpoints });
                 let _ = std::fs::write(path,serde_json::to_vec_pretty(&data).unwrap());
             }
             let _ = slint::quit_event_loop();

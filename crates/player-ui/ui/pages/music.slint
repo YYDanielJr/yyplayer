@@ -1,11 +1,12 @@
 import { ListView, ComboBox, Button } from "std-widgets.slint";
 import { Theme, Icons } from "../theme.slint";
-import { Icon, ActionButton } from "../components/controls.slint";
+import { Icon, IconButton, ActionButton } from "../components/controls.slint";
 import { GlassSurface } from "../components/glass.slint";
 import { SongRow } from "../components/media.slint";
 import { TrackRow } from "../models.slint";
 export component MusicPage inherits Rectangle {
     in property <[TrackRow]> tracks; in property <[TrackRow]> library-tracks;
+    in-out property <float> column-song: 0.46; in-out property <float> column-artist: 0.24;
     in property <int> selected-id; in property <int> library-selected;
     in property <bool> preview; in property <bool> compact; in property <[string]> folders; in property <int> folder-index;
     in property <bool> scanning; in property <string> library-message;
@@ -52,13 +53,38 @@ export component MusicPage inherits Rectangle {
                 }
             }
         }
+        if root.queue-view || root.library-tracks.length > 0: Rectangle {
+            height: 30px;
+            private property <length> row-width: self.width - 24px - (root.queue-view ? 0px : 38px);
+            private property <length> prefix: self.row-width < 520px ? 38px : 88px;
+            private property <length> columns: max(1px,self.row-width - self.prefix - 58px);
+            Text { x: parent.prefix; width: parent.columns * root.column-song - 12px; height: parent.height; text: "歌曲"; color: Theme.faint; vertical-alignment: center; }
+            Text { x: parent.prefix + parent.columns * root.column-song + 6px; width: parent.columns * root.column-artist - 12px; height: parent.height; text: "歌手"; color: Theme.faint; vertical-alignment: center; }
+            Text { x: parent.prefix + parent.columns * (root.column-song + root.column-artist) + 6px; width: parent.columns * (1 - root.column-song - root.column-artist) - 12px; height: parent.height; text: "专辑"; color: Theme.faint; vertical-alignment: center; }
+            Text { x: parent.row-width - 52px; width: 40px; height: parent.height; text: "时长"; color: Theme.faint; vertical-alignment: center; horizontal-alignment: center; }
+            for divider[index] in [0,1]: TouchArea {
+                x: parent.prefix + parent.columns * (index == 0 ? root.column-song : root.column-song + root.column-artist) - 4px;
+                width: 8px; height: parent.height; mouse-cursor: ew-resize;
+                private property <length> origin; private property <float> start;
+                Rectangle { x: 3px; y: 7px; width: 1px; height: parent.height - 14px; background: Theme.border; }
+                pointer-event(event) => {
+                    if event.kind == PointerEventKind.down && event.button == PointerEventButton.left { self.origin = self.x + self.mouse-x; self.start = index == 0 ? root.column-song : root.column-artist; }
+                    if event.kind == PointerEventKind.up && event.button == PointerEventButton.left { root.control("library-columns", root.column-song + "," + root.column-artist); }
+                }
+                moved => { if self.pressed {
+                    if index == 0 { root.column-song = clamp(self.start + (self.x + self.mouse-x - self.origin) / parent.columns, 0.2, min(0.7, 0.85 - root.column-artist)); }
+                    else { root.column-artist = clamp(self.start + (self.x + self.mouse-x - self.origin) / parent.columns, 0.1, min(0.5, 0.85 - root.column-song)); }
+                } }
+                double-clicked => { root.column-song = 0.46; root.column-artist = 0.24; root.control("library-columns", "0.46,0.24"); }
+            }
+        }
         if root.queue-view || root.library-tracks.length > 0: ListView {
             vertical-stretch: 1; viewport-width: self.width;
             for track[index] in (root.queue-view ? root.tracks : root.library-tracks): Rectangle { height: 58px;
-                SongRow { width: parent.width - (root.queue-view ? 0px : 38px); height: parent.height - 4px; track: track; number: index + 1; selected: track.item-id == (root.queue-view ? root.selected-id : root.library-selected);
+                SongRow { x: 0px; y: 2px; width: parent.width - 24px - (root.queue-view ? 0px : 38px); column-song: root.column-song; column-artist: root.column-artist; height: parent.height - 4px; track: track; number: index + 1; selected: track.item-id == (root.queue-view ? root.selected-id : root.library-selected);
                     clicked => { if root.queue-view { root.select-preview(track.item-id); } else { root.control("library-play", "" + track.item-id); } }
                 }
-                if !root.queue-view: Button { x: parent.width - 32px; y: 12px; width: 28px; height: 28px; text: "−"; accessible-label: "从音乐库移除，不删除文件"; clicked => { root.control("library-song-remove", "" + track.item-id); } }
+                if !root.queue-view: IconButton { x: parent.width - 24px - 32px; y: (parent.height - self.height) / 2; width: 28px; height: 28px; icon: Icons.minus; label: "从音乐库移除，不删除文件"; clicked => { root.control("library-song-remove", "" + track.item-id); } }
             }
         }
     }

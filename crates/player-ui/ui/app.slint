@@ -4,6 +4,8 @@ import { Theme, Icons } from "theme.slint";
 import { Icon, NavItem, ActionButton } from "components/controls.slint";
 import { QueueRow } from "components/media.slint";
 import { PlayerBar } from "components/player-bar.slint";
+import { WindowChrome } from "components/window-chrome.slint";
+import { IconButton } from "components/controls.slint";
 import { VideoOptions } from "components/video-options.slint";
 import { MusicPage } from "pages/music.slint";
 import { NowPlaying } from "pages/now-playing.slint";
@@ -13,10 +15,18 @@ import { SettingsPage } from "pages/settings.slint";
 export { TrackRow, ShortcutRow, EqBandRow, LyricRow, AudioForm } from "models.slint";
 import { TrackRow, ShortcutRow, LyricRow, AudioForm } from "models.slint";
 export component AppWindow inherits Window {
+    no-frame: true;
+    in-out property <bool> window-maximized; in property <bool> window-controls-left;
+    callback window-action(string);
+    out property <length> chrome-height: root.page == 1 || root.fullscreen-mode ? 0px : 36px;
+    in property <int> font-revision: -1; in property <[string]> font-names; in property <[string]> font-lyric-names; in property <[string]> font-subtitle-names; in property <string> ui-font; in property <string> lyric-font;
+    in property <int> font-ui-index; in property <int> font-lyric-index; in property <int> font-subtitle-index;
+    in property <bool> font-ass; in property <bool> font-busy; in property <string> font-message;
+    in-out property <float> column-song: 0.46; in-out property <float> column-artist: 0.24;
     title: root.has-media ? root.selected-title + " · YYPlayer" : "YYPlayer";
     preferred-width: 1240px; preferred-height: 900px; min-width: 1000px; min-height: 640px;
     private property <color> canvas: Theme.background; animate canvas { duration: Theme.smooth; }
-    background: root.canvas; default-font-family: "Microsoft YaHei UI"; default-font-size: 12px;
+    background: root.canvas; default-font-family: root.ui-font; default-font-size: 12px;
     in property <int> appearance-design: 1; in property <int> appearance-scheme;
     in property <bool> appearance-dark: true; in property <color> appearance-accent: #6875e8; in property <color> appearance-ink: white; in property <color> appearance-accent-text: #9fa8ff;
     in property <bool> appearance-system-accent: true; in property <string> appearance-custom: "#6875e8";
@@ -62,7 +72,7 @@ export component AppWindow inherits Window {
     out property <float> content-opacity: root.page == 1 ? 1 : root.page-arrival;
     out property <float> content-left: content.x / 1px;
     out property <float> content-width: content.width / 1px;
-    out property <float> content-bottom: (content.y + content.height) / 1px;
+    out property <float> content-bottom: (root.chrome-height + content.y + content.height) / 1px;
     private property <bool> search-focused;
     out property <bool> shortcuts-blocked: root.page == 3 || root.panel-open || (root.page == 0 && root.search-focused);
     private property <bool> immersive: root.page == 1 && root.fullscreen-mode;
@@ -101,8 +111,8 @@ export component AppWindow inherits Window {
     callback shortcut-edited(int,string);
     if Theme.fashion && root.page != 1: Rectangle { x: parent.width * 0.3; y: -80px; width: parent.width * 0.7; height: 440px; border-radius: 220px; background: @linear-gradient(120deg, Theme.glow, transparent); }
     VerticalLayout {
-        x: 0px; y: 0px; width: root.width;
-        height: root.height - (root.immersive ? 0px : root.controls-height);
+        x: 0px; y: root.chrome-height; width: root.width;
+        height: root.height - root.chrome-height - (root.immersive ? 0px : root.controls-height);
         spacing: 0px;
         HorizontalLayout {
             vertical-stretch: 1; spacing: Theme.fashion && root.page != 1 && root.page != 4 ? 12px : 0px;
@@ -146,8 +156,8 @@ export component AppWindow inherits Window {
                         if root.page == 1: VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value) => { root.control("window-mode", "" + self.current-index); } } }
                         VerticalLayout { width: 100px; alignment: center; Button { text: root.panel-open ? "关闭选项" : "播放选项"; clicked => { root.control("panel", ""); } } }
                     }
-                    if root.page == 0: MusicPage { compact: root.height < 760px || root.panel-open; library-tracks: root.library-tracks; folders: root.library-folders; folder-index: root.library-folder; scanning: root.library-busy; library-message: root.library-message; library-selected: root.library-selected; control(action,value) => { root.control(action,value); } preview: root.preview; tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); } }
-                    if root.page == 4: NowPlaying { artwork: root.music-cover; title: root.selected-title; artist: root.selected-artist; album: root.album; lyrics: root.lyrics; active: root.active-lyric; plain: root.plain-lyrics; playing: root.playing; output-status: root.audio-status; control(action,value) => { root.control(action,value); } }
+                    if root.page == 0: MusicPage { compact: root.height < 796px || root.panel-open; column-song <=> root.column-song; column-artist <=> root.column-artist; library-tracks: root.library-tracks; folders: root.library-folders; folder-index: root.library-folder; scanning: root.library-busy; library-message: root.library-message; library-selected: root.library-selected; control(action,value) => { root.control(action,value); } preview: root.preview; tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); } }
+                    if root.page == 4: NowPlaying { lyric-font: root.lyric-font; artwork: root.music-cover; title: root.selected-title; artist: root.selected-artist; album: root.album; lyrics: root.lyrics; active: root.active-lyric; plain: root.plain-lyrics; playing: root.playing; output-status: root.audio-status; control(action,value) => { root.control(action,value); } }
                     if root.page == 1: VideoPage { frame: root.video-frame; has-media: root.has-media; has-video: root.has-video; render-ready: root.render-ready; render-error: root.render-error; open-file => { root.open-file(); } control(action,value) => { root.control(action,value); } }
                     if root.page == 2: Rectangle {
                         ScrollView { width: parent.width; height: parent.height; viewport-width: self.width;
@@ -158,6 +168,7 @@ export component AppWindow inherits Window {
                         }
                     }
                     if root.page == 3: SettingsPage {
+                        font-names: root.font-names; font-lyric-names: root.font-lyric-names; font-subtitle-names: root.font-subtitle-names; font-ui-index: root.font-ui-index; font-lyric-index: root.font-lyric-index; font-subtitle-index: root.font-subtitle-index; font-ass: root.font-ass; font-busy: root.font-busy; font-message: root.font-message; lyric-font: root.lyric-font;
                         design: root.appearance-design; scheme: root.appearance-scheme; system-accent: root.appearance-system-accent; custom-accent: root.appearance-custom; reduced: root.appearance-reduced; os-reduced: root.appearance-os-reduced; system-available: root.appearance-system-available;
                         bindings: root.shortcut-rows; seek-step: root.seek-step; volume-step: root.volume-step; hold-ms: root.hold-ms; hold-speed: root.hold-speed;
                         edit-binding(index,value) => { root.shortcut-edited(index,value); }
@@ -177,7 +188,7 @@ export component AppWindow inherits Window {
         }
     }
     if root.header-visible: Rectangle {
-        x: 0px; y: 0px; width: root.video-width * 1px; height: root.header-height; background: Theme.glass;
+        x: 0px; y: root.fullscreen-mode ? 0px : 36px; width: root.video-width * 1px; height: root.header-height; background: Theme.glass;
         HorizontalLayout {
             padding: 0px; padding-left: 20px; padding-right: 20px; spacing: 12px;
             Text { text: root.selected-title; color: Theme.text; font-size: 14px; font-weight: 600; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
@@ -187,6 +198,7 @@ export component AppWindow inherits Window {
             VerticalLayout { width: 100px; alignment: center; Button { text: root.panel-open ? "关闭选项" : "播放选项"; clicked => { root.control("panel", ""); } } }
         }
     }
+    if !root.fullscreen-mode && (root.page != 1 || root.header-visible): WindowChrome { x: 0px; y: 0px; width: root.width; title: root.title; left-controls: root.window-controls-left; maximized: root.window-maximized; action(a) => { root.window-action(a); } }
     PlayerBar {
         artwork: root.music-cover; preview: root.preview;
         y: root.height - root.controls-height; width: root.width;
@@ -210,9 +222,23 @@ export component AppWindow inherits Window {
             x: 16px; y: 12px; width: parent.width - 68px; height: parent.height - 24px;
             text: root.status-message; color: Theme.text; font-size: 12px; wrap: word-wrap; vertical-alignment: center;
         }
-        Button {
+        IconButton {
+            icon: Icons.close; label: "关闭提示";
             x: parent.width - 40px; y: (parent.height - self.height) / 2; width: 28px; height: 28px;
-            text: "×"; accessible-label: "关闭提示"; clicked => { root.dismiss-toast(); }
+            clicked => { root.dismiss-toast(); }
         }
     }
+    if !root.fullscreen-mode && !root.window-maximized: Rectangle {
+        width: root.width; height: root.height;
+        // Only the border hit targets capture input; the interior stays interactive.
+        for edge[index] in ["w", "e", "n", "s", "nw", "ne", "sw", "se"]: TouchArea {
+            x: index == 1 || index == 5 || index == 7 ? root.width - self.width : (index == 2 || index == 3 ? 8px : 0px);
+            y: index == 3 || index == 6 || index == 7 ? root.height - self.height : (index < 2 ? 8px : 0px);
+            width: index < 2 ? 4px : (index < 4 ? root.width - 16px : 8px);
+            height: index < 2 ? root.height - 16px : (index < 4 ? 4px : 8px);
+            mouse-cursor: index < 2 ? ew-resize : (index < 4 ? ns-resize : (index == 4 || index == 7 ? nwse-resize : nesw-resize));
+            pointer-event(event) => { if event.kind == PointerEventKind.down && event.button == PointerEventButton.left { root.window-action("resize-" + edge); } }
+        }
+    }
+
 }

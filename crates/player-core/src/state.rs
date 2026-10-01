@@ -26,6 +26,8 @@ pub struct PlaybackSnapshot {
     pub audio_output: Option<String>,
     pub exclusive_confirmed: Option<bool>,
     pub ready: bool,
+    pub subtitle_font: String,
+    pub subtitle_font_overrides: String,
     pub title: String,
     pub video: bool,
     pub speed: f64,

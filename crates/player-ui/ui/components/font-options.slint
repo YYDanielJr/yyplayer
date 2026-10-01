@@ -1,0 +1,30 @@
+import { ComboBox, CheckBox, Button } from "std-widgets.slint";
+import { Theme } from "../theme.slint";
+import { GlassSurface } from "glass.slint";
+export component FontOptions inherits GlassSurface {
+    in property <[string]> names; in property <[string]> lyric-names; in property <[string]> subtitle-names; in property <int> ui-index; in property <int> lyric-index; in property <int> subtitle-index;
+    in property <bool> ass; in property <bool> busy; in property <string> message; in property <string> lyric-font;
+    callback control(string,string);
+    VerticalLayout { padding: 22px; spacing: 12px;
+        HorizontalLayout { height: 32px;
+            Text { text: "字体"; color: Theme.text; font-size: 20px; font-weight: 600; vertical-alignment: center; horizontal-stretch: 1; }
+            Button { text: root.busy ? "读取中…" : "刷新字体"; enabled: !root.busy; clicked => { root.control("font-refresh", ""); } }
+        }
+        HorizontalLayout { height: 36px; spacing: 16px;
+            Text { text: "全局界面"; width: 128px; color: Theme.text; vertical-alignment: center; }
+            ComboBox { model: root.names; current-index: root.ui-index; horizontal-stretch: 1; selected(value) => { root.control("font-ui", "" + self.current-index); } }
+        }
+        HorizontalLayout { height: 36px; spacing: 16px;
+            Text { text: "歌曲大页面歌词"; width: 128px; color: Theme.text; vertical-alignment: center; }
+            ComboBox { model: root.lyric-names; current-index: root.lyric-index; horizontal-stretch: 1; selected(value) => { root.control("font-lyrics", "" + self.current-index); } }
+        }
+        Text { text: "让喜欢的声音，有自己的模样 · Aa 012345"; font-family: root.lyric-font; font-size: 18px; color: Theme.accent-text; height: 38px; overflow: elide; }
+        HorizontalLayout { height: 36px; spacing: 16px;
+            Text { text: "视频字幕"; width: 128px; color: Theme.text; vertical-alignment: center; }
+            ComboBox { model: root.subtitle-names; current-index: root.subtitle-index; horizontal-stretch: 1; selected(value) => { root.control("font-subtitles", "" + self.current-index); } }
+        }
+        CheckBox { text: "同时覆盖 ASS / SSA 字幕指定的字体"; checked: root.ass; toggled => { root.control("font-ass", self.checked ? "yes" : "no"); } }
+        Text { text: "默认尊重 ASS / SSA 排版；图片字幕和画面内字幕无法更换字体。"; color: Theme.muted; wrap: word-wrap; height: 38px; }
+        Text { text: root.message; color: Theme.faint; wrap: word-wrap; height: 38px; }
+    }
+}

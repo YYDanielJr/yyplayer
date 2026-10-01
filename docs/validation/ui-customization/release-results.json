@@ -1,0 +1,59 @@
+{
+  "release-fonts": {
+    "page": 0,
+    "decorated": false,
+    "fonts": {
+      "ass_actual": "",
+      "families": 278,
+      "lyrics": "Times New Roman",
+      "subtitle_actual": "Times New Roman",
+      "ui": "Arial"
+    },
+    "library_columns": {
+      "artist": 0.23999999463558197,
+      "song": 0.5600000023841858
+    },
+    "runtime": "mpv v0.41.0-1087-ge470f8986",
+    "error": "",
+    "render_error": "",
+    "render_frames": 1
+  },
+  "release-missing": {
+    "page": 0,
+    "decorated": false,
+    "fonts": {
+      "ass_actual": "",
+      "families": 278,
+      "lyrics": "",
+      "subtitle_actual": "sans-serif",
+      "ui": ""
+    },
+    "library_columns": {
+      "artist": 0.23999999463558197,
+      "song": 0.5600000023841858
+    },
+    "runtime": "mpv v0.41.0-1087-ge470f8986",
+    "error": "",
+    "render_error": "",
+    "render_frames": 1
+  },
+  "release-default": {
+    "page": 0,
+    "decorated": false,
+    "fonts": {
+      "ass_actual": "",
+      "families": 278,
+      "lyrics": "",
+      "subtitle_actual": "sans-serif",
+      "ui": ""
+    },
+    "library_columns": {
+      "artist": 0.23999999463558197,
+      "song": 0.5600000023841858
+    },
+    "runtime": "mpv v0.41.0-1087-ge470f8986",
+    "error": "",
+    "render_error": "",
+    "render_frames": 1
+  }
+}

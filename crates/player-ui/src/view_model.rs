@@ -11,6 +11,10 @@ pub struct MediaPreview {
 #[derive(Clone, Debug, Default)]
 pub struct ShellViewModel {
     pub audio: AudioViewModel,
+    pub fonts: FontViewModel,
+    pub column_song: f32,
+    pub column_artist: f32,
+    pub window_controls_left: bool,
     pub library: LibraryViewModel,
     pub appearance: AppearanceViewModel,
     pub page: i32,
@@ -127,4 +131,18 @@ impl Default for AppearanceViewModel {
             system_available: false,
         }
     }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct FontViewModel {
+    pub revision: u64,
+    pub names: std::rc::Rc<Vec<String>>,
+    pub ui: String,
+    pub lyrics: String,
+    pub ui_index: i32,
+    pub lyrics_index: i32,
+    pub subtitle_index: i32,
+    pub override_ass: bool,
+    pub busy: bool,
+    pub message: String,
 }

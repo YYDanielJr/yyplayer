@@ -122,6 +122,31 @@ fn rows(
 }
 
 fn project(window: &AppWindow, state: &ShellViewModel) {
+    window.set_window_controls_left(state.window_controls_left);
+    let fonts = &state.fonts;
+    if window.get_font_revision() != fonts.revision as i32 {
+        let mut names = fonts.names.as_ref().clone();
+        if names.is_empty() {
+            names.push(String::new());
+        }
+        names[0] = "系统默认".into();
+        if !same_strings(&window.get_font_names(), &names) {
+            window.set_font_names(strings(&names));
+            names[0] = "跟随全局字体".into();
+            window.set_font_lyric_names(strings(&names));
+            names[0] = "播放器默认（sans-serif）".into();
+            window.set_font_subtitle_names(strings(&names));
+        }
+        window.set_ui_font(fonts.ui.as_str().into());
+        window.set_lyric_font(fonts.lyrics.as_str().into());
+        window.set_font_ui_index(fonts.ui_index);
+        window.set_font_lyric_index(fonts.lyrics_index);
+        window.set_font_subtitle_index(fonts.subtitle_index);
+        window.set_font_ass(fonts.override_ass);
+        window.set_font_busy(fonts.busy);
+        window.set_font_message(fonts.message.as_str().into());
+        window.set_font_revision(fonts.revision as i32);
+    }
     let a = &state.appearance;
     window.set_appearance_design(a.design);
     window.set_appearance_scheme(a.scheme);
@@ -231,6 +256,16 @@ fn project(window: &AppWindow, state: &ShellViewModel) {
     window.set_fullscreen_mode(state.fullscreen);
     window.set_window_mode(state.window_mode);
     if window.get_settings_revision() != state.settings_revision as i32 {
+        window.set_column_song(if state.column_song > 0.0 {
+            state.column_song
+        } else {
+            0.46
+        });
+        window.set_column_artist(if state.column_artist > 0.0 {
+            state.column_artist
+        } else {
+            0.24
+        });
         window.set_audio_form(crate::AudioForm {
             mode: audio.mode,
             preserve_rate: audio.preserve_rate,

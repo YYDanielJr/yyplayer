@@ -1,0 +1,8 @@
+{
+  "executable_bytes": 21572608,
+  "executable_sha256": "2b0e55f490b9579ec11a429068f24443d13845f8f6158868ed8a8a7f7f3ccd50",
+  "runtime_sha256": "0d5b9dbecb73e179ef39dc94314ff8905fab926a80f8d60a2367d824b7254e2e",
+  "removed_bytes": 5015720628,
+  "workspace_after_cleanup_bytes": 169546222.0,
+  "workspace_before_cleanup_bytes": 5185266593.0
+}

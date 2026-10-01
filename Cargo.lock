@@ -3747,6 +3747,7 @@ dependencies = [
 name = "player-platform"
 version = "0.0.1"
 dependencies = [
+ "fontdb",
  "windows-sys 0.61.2",
 ]
 

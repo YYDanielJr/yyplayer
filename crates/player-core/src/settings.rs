@@ -49,6 +49,8 @@ pub struct Settings {
     pub audio: crate::audio::AudioSettings,
     pub appearance: crate::appearance::Appearance,
     pub library: crate::library::LibrarySettings,
+    pub fonts: crate::typography::Fonts,
+    pub library_columns: crate::typography::LibraryColumns,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -64,6 +66,8 @@ impl Default for Settings {
             audio: Default::default(),
             appearance: Default::default(),
             library: Default::default(),
+            fonts: Default::default(),
+            library_columns: Default::default(),
         }
     }
 }
@@ -78,6 +82,8 @@ impl Settings {
         self.global.validate()?;
         self.appearance.validate()?;
         self.library.validate()?;
+        self.fonts.validate()?;
+        self.library_columns.validate()?;
         for options in self.folders.values().chain(self.files.values()) {
             options.validate()?;
         }

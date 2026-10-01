@@ -668,6 +668,37 @@ fn apply(
             source_string(&MediaSource::Local(path))?,
             "select".into(),
         ],
+        SetSubtitleFont {
+            family,
+            override_ass,
+        } => {
+            if !player_core::typography::Fonts::valid_family(&family) {
+                return Err("字幕字体名称无效".into());
+            }
+            let family = if family.is_empty() {
+                "sans-serif"
+            } else {
+                &family
+            };
+            let names = ["sub-font", "sub-ass-style-overrides", "sub-ass-override"];
+            let old = names.map(|name| core.get(name));
+            let overrides = if override_ass {
+                format!("FontName={family}")
+            } else {
+                String::new()
+            };
+            for (name, value) in names.into_iter().zip([family, overrides.as_str(), "yes"]) {
+                if let Err(error) = core.set(name, value) {
+                    let restored = names.into_iter().zip(&old).fold(true, |ok, (name, value)| {
+                        core.set(name, value).is_ok() && ok
+                    });
+                    return Err(format!("字幕字体未应用：{error}；恢复旧设置：{restored}"));
+                }
+            }
+            snapshot.subtitle_font = core.get("sub-font");
+            snapshot.subtitle_font_overrides = core.get("sub-ass-style-overrides");
+            return Ok(());
+        }
         SetSubtitleDelay(delay) if delay.is_finite() && delay.abs() <= 600.0 => {
             return core.set("sub-delay", &delay.to_string());
         }

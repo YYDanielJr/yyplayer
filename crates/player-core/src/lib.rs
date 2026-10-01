@@ -14,3 +14,5 @@ pub mod shortcuts;
 
 pub mod appearance;
 pub mod library;
+
+pub mod typography;

@@ -63,6 +63,10 @@ pub enum PlaybackCommand {
     },
     AddSubtitle(PathBuf),
     SetSubtitleDelay(f64),
+    SetSubtitleFont {
+        family: String,
+        override_ass: bool,
+    },
     SetAudioDelay(f64),
     SetLoop(bool),
     FrameStep(bool),

@@ -5,7 +5,7 @@ import { LyricRow } from "../models.slint";
 export component NowPlaying inherits Rectangle {
     in property <image> artwork; in property <string> title; in property <string> artist; in property <string> album;
     in property <bool> playing; in property <[LyricRow]> lyrics; in property <int> active; in property <string> plain;
-    in property <string> output-status;
+    in property <string> output-status; in property <string> lyric-font;
     private property <bool> follow: true;
     private property <float> breathe: 0;
     private property <length> entrance: 14px;
@@ -16,7 +16,7 @@ export component NowPlaying inherits Rectangle {
     Timer { interval: 3s; running: root.playing && !Theme.reduced-motion; triggered => { root.breathe = root.breathe == 0 ? 1 : 0; } }
     Rectangle { x: parent.width * 0.1; y: parent.height * 0.16; width: parent.width * 0.65; height: self.width; border-radius: self.width / 2; background: Theme.accent; opacity: 0.025 + root.breathe * 0.025; animate opacity { duration: Theme.reduced-motion ? 0ms : 3s; easing: ease-in-out; } }
     HorizontalLayout { x: 26px; y: 20px; width: parent.width - 52px; height: 34px;
-        Button { text: "⌄ 收起"; clicked => { root.control("music-browse", ""); } }
+        Button { text: "收起"; clicked => { root.control("music-browse", ""); } }
         Rectangle { horizontal-stretch: 1; }
         Button { text: "音频信息与输出 / EQ"; clicked => { root.control("panel", ""); } }
     }
@@ -45,10 +45,10 @@ export component NowPlaying inherits Rectangle {
                 changed viewport-height => { self.follow-line(); }
                 animate viewport-y { duration: Theme.smooth; easing: ease-in-out; }
                 VerticalLayout { spacing: 0px; padding-top: root.lyrics.length > 0 ? max(0px, lyrics-view.height / 2 - 28px) : 0px; padding-bottom: self.padding-top;
-                    if root.lyrics.length == 0: Text { text: root.plain; color: Theme.text; font-size: 18px; wrap: word-wrap; }
+                    if root.lyrics.length == 0: Text { text: root.plain; font-family: root.lyric-font; color: Theme.text; font-size: 18px; wrap: word-wrap; }
                     for line[index] in root.lyrics: Rectangle {
                         height: 56px;
-                        Text { text: line.text; width: parent.width; height: parent.height; color: index == root.active ? Theme.accent-text : (touch.has-hover ? Theme.text : Theme.muted); font-size: index == root.active ? 21px : 17px; font-weight: index == root.active ? 600 : 400; vertical-alignment: center; wrap: word-wrap;
+                        Text { text: line.text; font-family: root.lyric-font; width: parent.width; height: parent.height; color: index == root.active ? Theme.accent-text : (touch.has-hover ? Theme.text : Theme.muted); font-size: index == root.active ? 21px : 17px; font-weight: index == root.active ? 600 : 400; vertical-alignment: center; wrap: word-wrap;
                             animate color, font-size { duration: Theme.smooth; easing: ease-in-out; }
                         }
                         touch := TouchArea { mouse-cursor: pointer; clicked => { root.control("lyrics-seek", "" + line.milliseconds); } }
