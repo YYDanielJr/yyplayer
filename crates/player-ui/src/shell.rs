@@ -131,6 +131,7 @@ fn project(window: &AppWindow, state: &ShellViewModel) {
     window.set_volume(state.volume_percent);
     window.set_favorite(state.favorite);
     window.set_status_message(state.status.as_str().into());
+    window.set_status_revision(state.status_revision as i32);
     window.set_tracks(rows(window.get_tracks(), &state.tracks));
     window.set_queue(rows(window.get_queue(), &state.queue));
     window.set_recent(rows(window.get_recent(), &state.recent));

@@ -19,6 +19,7 @@ export component AppWindow inherits Window {
     in property <string> selected-title; in property <string> selected-artist; in property <string> selected-duration;
     in property <int> selected-cover; in property <float> volume; in property <bool> favorite;
     in property <string> status-message; in property <[TrackRow]> tracks; in property <[TrackRow]> queue;
+    in property <int> status-revision;
     in property <[TrackRow]> recent;
     in property <bool> playing; in property <bool> has-media; in property <bool> has-video;
     in property <string> position-text; in property <float> progress; in property <bool> seekable;
@@ -34,13 +35,37 @@ export component AppWindow inherits Window {
     in-out property <image> video-frame; in-out property <bool> render-ready; in-out property <string> render-error;
     in-out property <int> render-frames;
     out property <float> video-width: root.width / 1px - (root.panel-open ? 370 : 0);
-    out property <float> video-height: root.height / 1px - 70 - (root.fullscreen-mode ? 0 : 52) - (root.status-message != "" ? 24 : 0);
+    out property <float> video-height: root.height / 1px - (root.immersive ? 0 : 122);
     out property <bool> shortcuts-blocked: root.page == 3 || root.panel-open || search.has-focus;
+    private property <bool> immersive: root.page == 1 && root.fullscreen-mode;
+    private property <bool> controls-awake: true;
+    in-out property <bool> pointer-in-controls;
+    in-out property <bool> pointer-held;
+    out property <bool> controls-visible: !root.immersive || root.controls-awake || root.panel-open || root.pointer-in-controls || root.pointer-held;
+    out property <length> controls-height: root.page == 1 ? 70px : 104px;
+    in-out property <bool> toast-visible;
+    callback pointer-activity();
+    callback dismiss-toast();
+    pointer-activity => { root.controls-awake = true; hide-controls.restart(); }
+    dismiss-toast => { root.toast-visible = false; }
+    changed immersive => { root.pointer-activity(); }
+    changed status-message => { root.toast-visible = root.status-message != ""; hide-toast.restart(); }
+    changed status-revision => { root.toast-visible = root.status-message != ""; hide-toast.restart(); }
+    hide-controls := Timer {
+        interval: 3s;
+        running: root.immersive && root.controls-awake && !root.panel-open && !root.pointer-in-controls && !root.pointer-held;
+        triggered => { root.controls-awake = false; }
+    }
+    hide-toast := Timer {
+        interval: 4s; running: root.toast-visible;
+        triggered => { root.dismiss-toast(); }
+    }
     callback navigate(int); callback search-changed(string); callback select-preview(int);
     callback open-file(); callback request-playback(); callback previous(); callback next();
     callback volume-changed(float); callback toggle-favorite(); callback control(string,string);
     callback shortcut-edited(int,string);
     VerticalLayout {
+        height: root.height - (root.immersive ? 0px : root.controls-height);
         spacing: 0px;
         HorizontalLayout {
             vertical-stretch: 1; spacing: 0px;
@@ -66,7 +91,6 @@ export component AppWindow inherits Window {
                     VerticalLayout {
                         horizontal-stretch: 1; alignment: center; spacing: 4px;
                         Text { text: root.page == 1 ? root.selected-title : (root.page == 0 ? "音乐空间" : (root.page == 2 ? "最近打开" : "设置")); color: Theme.text; font-size: root.page == 1 ? 14px : 22px; font-weight: 600; overflow: elide; }
-                        if root.page != 1: Text { text: root.status-message; color: Theme.muted; font-size: 10px; overflow: elide; }
                     }
                     search := TextInput { visible: root.page == 0; width: root.page == 0 ? 140px : 0px; single-line: true; color: Theme.text; vertical-alignment: center; accessible-label: "搜索曲目"; edited => { root.search-changed(self.text); } }
                     VerticalLayout { width: 110px; alignment: center; Button { text: "打开文件"; clicked => { root.open-file(); } } }
@@ -89,10 +113,6 @@ export component AppWindow inherits Window {
                     edit-binding(index,value) => { root.shortcut-edited(index,value); }
                     control(action,value) => { root.control(action,value); }
                 }
-                if root.page != 1 || root.status-message != "": Rectangle {
-                    height: root.page == 1 ? 24px : 28px; background: root.page == 1 ? #101719 : transparent;
-                    Text { x: 24px; width: parent.width - 48px; height: parent.height; text: root.status-message; color: Theme.muted; font-size: 10px; vertical-alignment: center; overflow: elide; }
-                }
             }
             if root.panel-open: VideoOptions {
                 width: 370px; devices: root.device-names; device-index: root.device-index;
@@ -103,14 +123,30 @@ export component AppWindow inherits Window {
                 control(action,value) => { root.control(action,value); }
             }
         }
-        PlayerBar {
-            compact: root.page == 1; playing: root.playing; has-media: root.has-media; seekable: root.seekable;
-            title: root.selected-title; artist: root.selected-artist; duration: root.selected-duration; position: root.position-text;
-            progress: root.progress; cover: root.selected-cover; volume: root.volume; favorite: root.favorite; muted: root.muted;
-            speed-index: root.speed-index; speed-text: root.speed-text;
-            play => { root.request-playback(); } previous => { root.previous(); } next => { root.next(); }
-            volume-changed(value) => { root.volume-changed(value); } toggle-favorite => { root.toggle-favorite(); }
-            control(action,value) => { root.control(action,value); }
+    }
+    PlayerBar {
+        y: root.height - root.controls-height; width: root.width;
+        visible: root.controls-visible;
+        compact: root.page == 1; playing: root.playing; has-media: root.has-media; seekable: root.seekable;
+        title: root.selected-title; artist: root.selected-artist; duration: root.selected-duration; position: root.position-text;
+        progress: root.progress; cover: root.selected-cover; volume: root.volume; favorite: root.favorite; muted: root.muted;
+        speed-index: root.speed-index; speed-text: root.speed-text;
+        play => { root.request-playback(); } previous => { root.previous(); } next => { root.next(); }
+        volume-changed(value) => { root.volume-changed(value); } toggle-favorite => { root.toggle-favorite(); }
+        control(action,value) => { root.control(action,value); }
+    }
+    if root.toast-visible && root.status-message != "": Rectangle {
+        x: (root.width - self.width) / 2;
+        y: root.height - (root.controls-visible ? root.controls-height : 0px) - self.height - 20px;
+        width: min(520px, root.width - 48px); height: max(48px, toast-label.preferred-height + 24px);
+        background: #232c31f2; border-color: Theme.border; border-width: 1px; border-radius: 10px;
+        toast-label := Text {
+            x: 16px; y: 12px; width: parent.width - 68px; height: parent.height - 24px;
+            text: root.status-message; color: Theme.text; font-size: 12px; wrap: word-wrap; vertical-alignment: center;
+        }
+        Button {
+            x: parent.width - 40px; y: (parent.height - self.height) / 2; width: 28px; height: 28px;
+            text: "×"; accessible-label: "关闭提示"; clicked => { root.dismiss-toast(); }
         }
     }
 }

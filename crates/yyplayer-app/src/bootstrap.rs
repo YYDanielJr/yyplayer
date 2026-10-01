@@ -5,6 +5,7 @@ use player_ui::{UiAction, UiShell};
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 use slint::{ComponentHandle, Timer, TimerMode};
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -47,13 +48,73 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let keyboard_controller = controller.clone();
     let keyboard_weak = weak.clone();
     let mut modifiers = winit::keyboard::ModifiersState::empty();
+    let mut mouse_held = false;
+    let mut touches = HashSet::new();
     ui.component()
         .window()
         .on_winit_window_event(move |_, event| {
-            use winit::event::{ElementState, WindowEvent};
+            use winit::event::{ElementState, MouseButton, TouchPhase, WindowEvent};
             match event {
                 WindowEvent::ModifiersChanged(changed) => modifiers = changed.state(),
-                WindowEvent::Focused(false) => keyboard_controller.borrow_mut().cancel_hold(),
+                WindowEvent::Focused(false) => {
+                    keyboard_controller.borrow_mut().cancel_hold();
+                    mouse_held = false;
+                    touches.clear();
+                    if let Some(window) = keyboard_weak.upgrade() {
+                        window.set_pointer_held(false);
+                        window.set_pointer_in_controls(false);
+                    }
+                }
+                WindowEvent::CursorMoved { position, .. } => {
+                    if let Some(window) = keyboard_weak.upgrade() {
+                        let native = window.window();
+                        let bottom = (f64::from(native.size().height) - position.y)
+                            / f64::from(native.scale_factor());
+                        window.set_pointer_in_controls(
+                            bottom >= 0.0 && bottom <= f64::from(window.get_controls_height()),
+                        );
+                        window.invoke_pointer_activity();
+                    }
+                }
+                WindowEvent::CursorLeft { .. } => {
+                    if let Some(window) = keyboard_weak.upgrade() {
+                        window.set_pointer_in_controls(false);
+                    }
+                }
+                WindowEvent::MouseInput { state, button, .. } => {
+                    if *button == MouseButton::Left {
+                        mouse_held = *state == ElementState::Pressed;
+                    }
+                    if let Some(window) = keyboard_weak.upgrade() {
+                        window.set_pointer_held(mouse_held || !touches.is_empty());
+                        window.invoke_pointer_activity();
+                    }
+                }
+                WindowEvent::Touch(touch) => {
+                    match touch.phase {
+                        TouchPhase::Started => {
+                            touches.insert(touch.id);
+                        }
+                        TouchPhase::Ended | TouchPhase::Cancelled => {
+                            touches.remove(&touch.id);
+                        }
+                        TouchPhase::Moved => {}
+                    }
+                    if let Some(window) = keyboard_weak.upgrade() {
+                        window.set_pointer_held(mouse_held || !touches.is_empty());
+                        window.invoke_pointer_activity();
+                    }
+                }
+                WindowEvent::MouseWheel { .. } | WindowEvent::Focused(true) => {
+                    if let Some(window) = keyboard_weak.upgrade() {
+                        window.invoke_pointer_activity();
+                    }
+                }
+                WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
+                    if let Some(window) = keyboard_weak.upgrade() {
+                        window.set_pointer_in_controls(false);
+                    }
+                }
                 WindowEvent::DroppedFile(path) => event_dropped.borrow_mut().push(path.clone()),
                 WindowEvent::KeyboardInput {
                     event,
@@ -63,6 +124,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                     if let Some(window) = keyboard_weak.upgrade()
                         && let Some(chord) = key_chord(&event.logical_key, modifiers)
                     {
+                        if event.state == ElementState::Pressed {
+                            window.invoke_pointer_activity();
+                        }
                         let consumed = keyboard_controller.borrow_mut().key(
                             &chord,
                             event.state == ElementState::Pressed,

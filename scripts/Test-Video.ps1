@@ -35,7 +35,7 @@ function Invoke-Scenario([string]$name, [string]$mode, [double]$seconds, [bool]$
     if (-not $process.WaitForExit(60000)) { $process.Kill(); throw "$name did not exit within 60 seconds" }
     if ($process.ExitCode -ne 0) { throw "$name exited with $($process.ExitCode)" }
     if (-not (Test-Path -LiteralPath $report) -or (Get-Item -LiteralPath $report).LastWriteTimeUtc -lt $scenarioStarted) { throw "$name did not write a fresh report" }
-    $result = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+    $result = Get-Content -LiteralPath $report -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($result.error -or $result.render_error -or $result.render_frames -lt 60 -or -not $result.video -or $result.devices.Count -lt 1) { throw "$name playback failed; inspect $report" }
     return $result
 }
@@ -48,7 +48,7 @@ try {
     $pausedBefore = $points | Where-Object { $_.phase -eq 'Paused' -and $_.seconds -gt 9 -and $_.seconds -lt 11 } | Select-Object -Last 1
     $pausedAfter = $points | Where-Object { $_.phase -eq 'Paused' -and $_.hwdec -eq 'no' -and $_.seconds -gt 11 -and $_.seconds -lt 12.5 } | Select-Object -Last 1
     if (-not $pausedBefore -or -not $pausedAfter -or [Math]::Abs($pausedAfter.position - $pausedBefore.position) -gt 0.2) { throw 'Decoder reload did not preserve paused position' }
-    $saved = Get-Content -LiteralPath $env:YYPLAYER_CONFIG -Raw | ConvertFrom-Json
+    $saved = Get-Content -LiteralPath $env:YYPLAYER_CONFIG -Raw -Encoding UTF8 | ConvertFrom-Json
     if (-not ($saved.files.PSObject.Properties | Where-Object { $_.Value.mode -eq 'Software' })) { throw 'File decoder override was not persisted' }
     $software = Invoke-Scenario 'software-playback' 'Software' 7 $false
     if ($software.hwdec -ne 'no' -or $software.position -lt 2) { throw 'Software decoding scenario failed' }

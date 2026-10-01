@@ -880,6 +880,7 @@ impl AppController {
             } else {
                 self.status.clone()
             },
+            status_revision: self.save_revision,
             tracks,
             queue,
             recent: self

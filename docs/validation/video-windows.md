@@ -1,6 +1,6 @@
 # Windows 视频开发预览验证
 
-日期：2026-09-30–2026-10-01。范围：本轮真实视频功能，开发 / release 运行；不等于正式发行资格或性能基准。2026-10-01 用户反馈暴露共享 GL 状态缺陷，已修复并重跑控制脚本、更新本页 debug 数据 / UI 图片；新的画质证据与对旧验收遗漏的说明见 [渲染修复报告](render-state-fix.md)。
+日期：2026-09-30–2026-10-01。范围：本轮真实视频功能，开发 / release 运行；不等于正式发行资格或性能基准。2026-10-01 用户反馈暴露共享 GL 状态缺陷，已修复；随后实现浮空提示 / 全屏自动隐藏，再次重跑控制脚本，更新本页 debug 数据 / UI 图片。画质证据与对旧验收遗漏的说明见 [渲染修复报告](render-state-fix.md)，最新交互检查见 [UI 记录](ui-feedback.md)。
 
 ## 环境与固定素材
 
@@ -21,14 +21,14 @@
 | `cargo build --locked --release -p yyplayer-app --offline` | Release 通过；实际执行成品并验证退出。 |
 | `scripts/Test-Video.ps1 -SkipBuild` | 通过；走生产 controller、engine、native window 与 GPU，并检查真实诊断值 / 保存文件。 |
 
-[controls-playback.json](controls-playback.json)：14 秒运行，11 个控制动作，实际 NVDEC → 软件解码；最终 Playing、13.500 秒、251 次 render、速度 1x、音量 35、静音 true、无 engine / render 错误，进程 exit 0。关键状态：
+[controls-playback.json](controls-playback.json)：14 秒运行，11 个控制动作，实际 NVDEC → 软件解码；最终 Playing、13.333 秒、249 次 render、速度 1x、音量 35、静音 true、无 engine / render 错误，进程 exit 0。关键状态：
 
 - 3 秒记录实际 1.5x；4 秒实际 Paused；5 秒恢复 1x，6 秒记录相对跳转后的进度。
 - 7 秒最大化，8 秒全屏，9 秒退出全屏恢复最大化。
-- 9.5 秒暂停，10.5 秒保存单文件 Software 规则并重载；10、11、12 秒均 Paused、位置 **11.966667 秒**；11 / 12 秒 `hwdec-current=no`。12.5 秒恢复并继续前进，规则在隔离设置文件中实际存在。
+- 9.5 秒暂停，10.5 秒保存单文件 Software 规则并重载；10、11、12 秒均 Paused、位置 **11.833333 秒**；11 / 12 秒 `hwdec-current=no`。12.5 秒恢复并继续前进，规则在隔离设置文件中实际存在。
 - 枚举 4 个设备：自动、Waves SoundGrid、Realtek、OpenAL；初始视频实际 `nvdec`、音频 API `wasapi`。这是枚举 / 输出状态证据，不是独占、各端点切换、听感或物理格式验收。
 
-[software-playback.json](software-playback.json)：从启动设置强制 Software，7 秒运行，实际 no、Playing、4.633 秒、141 次 render、音量 70、无错误、exit 0。
+[software-playback.json](software-playback.json)：从启动设置强制 Software，7 秒运行，实际 no、Playing、4.667 秒、141 次 render、音量 70、无错误、exit 0。
 
 [release-playback.json](release-playback.json)：release 普通自动策略，7 秒运行，实际 NVDEC、Playing、6.333 秒、192 次 render、音量 70、无错误、exit 0。不同运行启动耗时不同，不能把这些帧数当作跨方案性能对比。
 

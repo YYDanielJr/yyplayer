@@ -19,6 +19,7 @@ pub struct ShellViewModel {
     pub volume_percent: f32,
     pub favorite: bool,
     pub status: String,
+    pub status_revision: u64,
     pub tracks: Vec<MediaPreview>,
     pub queue: Vec<MediaPreview>,
     pub recent: Vec<MediaPreview>,

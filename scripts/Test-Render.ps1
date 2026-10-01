@@ -39,7 +39,7 @@ try {
         foreach ($path in @($env:YYPLAYER_DIAGNOSTICS,$env:YYPLAYER_UI_CAPTURE)) {
             if (-not (Test-Path -LiteralPath $path) -or (Get-Item -LiteralPath $path).LastWriteTimeUtc -lt $started) { throw "$caseName did not write fresh evidence" }
         }
-        $state = Get-Content -LiteralPath $env:YYPLAYER_DIAGNOSTICS -Raw | ConvertFrom-Json
+        $state = Get-Content -LiteralPath $env:YYPLAYER_DIAGNOSTICS -Raw -Encoding UTF8 | ConvertFrom-Json
         if ($state.error -or $state.render_error -or $state.render_frames -lt 60 -or -not $state.video) { throw "$caseName failed; inspect $evidence" }
         if ($caseName -ne 'software' -and (-not $state.hwdec -or $state.hwdec -eq 'no')) { throw 'Hardware regression unverified: no hardware decoder used' }
         & $Ffmpeg -hide_banner -loglevel error -y -i $env:YYPLAYER_UI_CAPTURE -frames:v 1 (Join-Path $evidence "$caseName.png")
