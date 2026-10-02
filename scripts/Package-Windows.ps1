@@ -13,9 +13,6 @@ New-Item -ItemType Directory -Path $distRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $portableStage | Out-Null
 $portableName = 'YYPlayer'
 $compiler = (Get-Command makensis.exe -ErrorAction Stop).Source
-$nsisDirectory = Split-Path -Parent $compiler
-$nsisLicense = Join-Path $nsisDirectory 'Docs/AppendixI.html'
-if (-not (Test-Path -LiteralPath $nsisLicense -PathType Leaf)) { throw 'The NSIS license text was not found beside the compiler.' }
 $nsisVersion = (Get-Item -LiteralPath $compiler).VersionInfo.FileVersion
 
 $cargoToml = Get-Content -LiteralPath (Join-Path $projectRoot 'Cargo.toml') -Raw
@@ -57,7 +54,7 @@ Copy-Item -LiteralPath (Join-Path $projectRoot 'LICENSE') -Destination $portable
 Copy-Item -LiteralPath (Join-Path $projectRoot 'THIRD_PARTY_NOTICES.md') -Destination $portableStage
 Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/dependency-licenses.md') -Destination (Join-Path $portableStage 'DEPENDENCY_LICENSES.md')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party/mpv/README.md') -Destination (Join-Path $portableStage 'MPV_RUNTIME.md')
-Copy-Item -LiteralPath $nsisLicense -Destination (Join-Path $portableStage 'NSIS_LICENSE.html')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'packaging/windows/NSIS-BUILD-TOOL.md') -Destination $portableStage
 Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party/mpv/manifest.json') -Destination $runtimeStage
 
 $sourceUrl = "https://github.com/$env:GITHUB_REPOSITORY/tree/$commit"
@@ -73,6 +70,7 @@ NSIS: $nsisVersion
 
 This package includes third-party components. See LICENSE, THIRD_PARTY_NOTICES.md,
 DEPENDENCY_LICENSES.md, MPV_RUNTIME.md, and runtime/manifest.json.
+NSIS build-tool attribution and upstream license link are in NSIS-BUILD-TOOL.md.
 "@
 [IO.File]::WriteAllText((Join-Path $portableStage 'BUILD-INFO.txt'), $buildInfo, [Text.UTF8Encoding]::new($false))
 Compress-Archive -Path (Join-Path $portableStage '*') -DestinationPath $portableZip -CompressionLevel Optimal
