@@ -164,6 +164,7 @@ pub enum DialogRequest {
     Open,
     Subtitle,
     Screenshot,
+    Background(usize),
     Paths(Vec<PathBuf>),
 }
 pub enum DialogReply {
@@ -171,6 +172,7 @@ pub enum DialogReply {
     MediaPaths(Vec<PathBuf>, Vec<PathBuf>),
     Subtitle(PathBuf),
     Screenshot(PathBuf),
+    Background(usize, PathBuf),
     Error(String),
 }
 pub struct Dialogs {
@@ -208,6 +210,15 @@ impl Dialogs {
                         .add_filter("PNG", &["png"])
                         .save_file()
                         .map(DialogReply::Screenshot),
+                    DialogRequest::Background(kind) => rfd::FileDialog::new()
+                        .set_title(if kind == 0 {
+                            "选择音乐库 / 视频库背景"
+                        } else {
+                            "选择歌词页背景"
+                        })
+                        .add_filter("图片", &["png", "jpg", "jpeg"])
+                        .pick_file()
+                        .map(|path| DialogReply::Background(kind, path)),
                     DialogRequest::Paths(paths) => Some(DialogReply::Open(paths)),
                 };
                 let reply = match reply {

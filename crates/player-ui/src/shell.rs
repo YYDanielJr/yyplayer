@@ -172,6 +172,19 @@ fn project(window: &AppWindow, state: &ShellViewModel) {
     window.set_appearance_reduced(a.reduce_motion);
     window.set_appearance_os_reduced(a.os_reduce_motion);
     window.set_appearance_system_available(a.system_available);
+    window.set_library_background_style(a.library_background_style);
+    window.set_library_background_opacity(a.library_background_opacity);
+    window.set_library_background_blur(a.library_background_blur);
+    window.set_library_background_name(a.library_background_name.as_str().into());
+    window.set_lyrics_background_style(a.lyrics_background_style);
+    window.set_lyrics_background_opacity(a.lyrics_background_opacity);
+    window.set_lyrics_background_blur(a.lyrics_background_blur);
+    window.set_lyrics_background_name(a.lyrics_background_name.as_str().into());
+    if window.get_background_image_revision() != a.background_image_revision as i32 {
+        window.set_custom_library_background(a.custom_library_background.clone());
+        window.set_custom_lyrics_background(a.custom_lyrics_background.clone());
+        window.set_background_image_revision(a.background_image_revision as i32);
+    }
     let lib = &state.library;
     if window.get_library_revision() != lib.revision as i32 {
         window.set_library_tracks(rows(window.get_library_tracks(), &lib.rows));

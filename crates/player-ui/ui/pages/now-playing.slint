@@ -1,17 +1,24 @@
 import { Button, ScrollView } from "std-widgets.slint";
-import { Theme } from "../theme.slint";
+import { Theme, BackgroundArt } from "../theme.slint";
 import { MusicArt } from "../components/music-art.slint";
 import { LyricRow } from "../models.slint";
 export component NowPlaying inherits Rectangle {
     in property <image> artwork; in property <string> title; in property <string> artist; in property <string> album;
     in property <bool> playing; in property <[LyricRow]> lyrics; in property <int> active; in property <string> plain;
     in property <string> output-status; in property <string> lyric-font;
+    in property <int> background-style; in property <int> background-opacity; in property <image> custom-background;
     private property <float> breathe: 0;
     private property <length> entrance: 14px;
     init => { root.entrance = 0px; }
     animate entrance { duration: Theme.smooth; easing: ease-out; }
     callback control(string,string);
     background: @linear-gradient(120deg, Theme.background, Theme.sidebar, Theme.background);
+    if root.background-style >= 1 && root.background-style <= 4: Image {
+        width: parent.width; height: parent.height; image-fit: cover;
+        source: root.background-style == 1 ? BackgroundArt.lyrics-halo : (root.background-style == 2 ? BackgroundArt.lyrics-staff : (root.background-style == 3 ? BackgroundArt.lyrics-veil : BackgroundArt.lyrics-stars));
+        colorize: Theme.accent; opacity: Theme.dark ? 0.34 : 0.21;
+    }
+    if root.background-style == 5: Image { width: parent.width; height: parent.height; image-fit: cover; source: root.custom-background; opacity: root.background-opacity / 100; }
     Timer { interval: 3s; running: root.playing && !Theme.reduced-motion; triggered => { root.breathe = root.breathe == 0 ? 1 : 0; } }
     Rectangle { x: parent.width * 0.1; y: parent.height * 0.16; width: parent.width * 0.65; height: self.width; border-radius: self.width / 2; background: Theme.accent; opacity: 0.025 + root.breathe * 0.025; animate opacity { duration: Theme.reduced-motion ? 0ms : 3s; easing: ease-in-out; } }
     HorizontalLayout { x: 26px; y: 20px; width: parent.width - 52px; height: 34px;

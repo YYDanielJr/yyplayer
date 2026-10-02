@@ -119,6 +119,17 @@ pub struct AppearanceViewModel {
     pub reduce_motion: bool,
     pub os_reduce_motion: bool,
     pub system_available: bool,
+    pub library_background_style: i32,
+    pub library_background_opacity: i32,
+    pub library_background_blur: i32,
+    pub library_background_name: String,
+    pub lyrics_background_style: i32,
+    pub lyrics_background_opacity: i32,
+    pub lyrics_background_blur: i32,
+    pub lyrics_background_name: String,
+    pub custom_library_background: slint::Image,
+    pub custom_lyrics_background: slint::Image,
+    pub background_image_revision: u64,
 }
 impl Default for AppearanceViewModel {
     fn default() -> Self {
@@ -134,6 +145,17 @@ impl Default for AppearanceViewModel {
             reduce_motion: false,
             os_reduce_motion: false,
             system_available: false,
+            library_background_style: 0,
+            library_background_opacity: 35,
+            library_background_blur: 0,
+            library_background_name: String::new(),
+            lyrics_background_style: 0,
+            lyrics_background_opacity: 35,
+            lyrics_background_blur: 0,
+            lyrics_background_name: String::new(),
+            custom_library_background: Default::default(),
+            custom_lyrics_background: Default::default(),
+            background_image_revision: 0,
         }
     }
 }

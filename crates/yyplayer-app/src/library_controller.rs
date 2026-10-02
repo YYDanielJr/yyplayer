@@ -310,6 +310,37 @@ impl AppController {
             reduce_motion: a.reduce_motion,
             os_reduce_motion: os.reduce_motion,
             system_available: os.dark.is_some(),
+            library_background_style: a.library_background.style as i32,
+            library_background_opacity: a.library_background.opacity as i32,
+            library_background_blur: a.library_background.blur as i32,
+            library_background_name: a
+                .library_background
+                .file
+                .as_ref()
+                .and_then(|p| p.file_name())
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+            lyrics_background_style: a.lyrics_background.style as i32,
+            lyrics_background_opacity: a.lyrics_background.opacity as i32,
+            lyrics_background_blur: a.lyrics_background.blur as i32,
+            lyrics_background_name: a
+                .lyrics_background
+                .file
+                .as_ref()
+                .and_then(|p| p.file_name())
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+            custom_library_background: self
+                .backgrounds
+                .as_ref()
+                .map(|b| b.image(0))
+                .unwrap_or_default(),
+            custom_lyrics_background: self
+                .backgrounds
+                .as_ref()
+                .map(|b| b.image(1))
+                .unwrap_or_default(),
+            background_image_revision: self.backgrounds.as_ref().map(|b| b.revision()).unwrap_or(0),
         }
     }
 }

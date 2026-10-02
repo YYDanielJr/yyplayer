@@ -1,6 +1,6 @@
 import { ScrollView, Palette, Button, ComboBox } from "std-widgets.slint";
 import { GlassSurface } from "components/glass.slint";
-import { Theme, Icons } from "theme.slint";
+import { Theme, Icons, BackgroundArt } from "theme.slint";
 import { Icon, NavItem, ActionButton } from "components/controls.slint";
 import { QueueRow } from "components/media.slint";
 import { PlayerBar } from "components/player-bar.slint";
@@ -34,6 +34,10 @@ export component AppWindow inherits Window {
     in property <bool> appearance-dark: true; in property <color> appearance-accent: #6875e8; in property <color> appearance-ink: white; in property <color> appearance-accent-text: #9fa8ff;
     in property <bool> appearance-system-accent: true; in property <string> appearance-custom: "#6875e8";
     in property <bool> appearance-reduced; in property <bool> appearance-os-reduced; in property <bool> appearance-system-available;
+    in property <int> library-background-style; in property <int> library-background-opacity; in property <int> library-background-blur; in property <string> library-background-name;
+    in property <int> lyrics-background-style; in property <int> lyrics-background-opacity; in property <int> lyrics-background-blur; in property <string> lyrics-background-name;
+    in property <image> custom-library-background; in property <image> custom-lyrics-background;
+    in property <int> background-image-revision: -1;
     callback apply-theme();
     apply-theme => { Theme.design = root.appearance-design; Theme.dark = root.appearance-dark; Theme.accent = root.appearance-accent; Theme.accent-ink = root.appearance-ink; Theme.accent-text = root.appearance-accent-text; Theme.reduced-motion = root.appearance-reduced || root.appearance-os-reduced; Palette.color-scheme = Theme.dark ? ColorScheme.dark : ColorScheme.light; }
     changed appearance-design => { root.apply-theme(); }
@@ -152,6 +156,12 @@ export component AppWindow inherits Window {
             content := Rectangle {
                 opacity: root.page == 1 ? 1 : root.page-arrival;
                 horizontal-stretch: 1; min-width: 0px; max-width: root.width;
+                if root.page == 0 || root.page == 5: Image {
+                    width: parent.width; height: parent.height; image-fit: cover;
+                    source: root.library-background-style == 1 ? BackgroundArt.library-orbits : (root.library-background-style == 2 ? BackgroundArt.library-ribbons : (root.library-background-style == 3 ? BackgroundArt.library-horizon : BackgroundArt.library-grid));
+                    colorize: Theme.accent; opacity: root.library-background-style >= 1 && root.library-background-style <= 4 ? (Theme.dark ? 0.42 : 0.24) : 0;
+                }
+                if (root.page == 0 || root.page == 5) && root.library-background-style == 5: Image { width: parent.width; height: parent.height; image-fit: cover; source: root.custom-library-background; opacity: root.library-background-opacity / 100; }
                 VerticalLayout {
                     spacing: 0px;
                     if root.page != 1 && root.page != 4: HorizontalLayout {
@@ -171,7 +181,7 @@ export component AppWindow inherits Window {
                         VerticalLayout { width: 100px; alignment: center; Button { text: root.panel-open ? "关闭选项" : "播放选项"; clicked => { root.control("panel", ""); } } }
                     }
                     if root.page == 0: MusicPage { visible-first <=> root.library-visible-first; visible-count <=> root.library-visible-count; column-song <=> root.column-song; column-artist <=> root.column-artist; library-tracks: root.library-tracks; folders: root.library-folders; folder-index: root.library-folder; scanning: root.library-busy; library-selected: root.library-selected; control(action,value) => { root.control(action,value); } preview: root.preview; tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); } }
-                    if root.page == 4: NowPlaying { lyric-font: root.lyric-font; artwork: root.music-cover; title: root.selected-title; artist: root.selected-artist; album: root.album; lyrics: root.lyrics; active: root.active-lyric; plain: root.plain-lyrics; playing: root.playing; output-status: root.audio-status; control(action,value) => { root.control(action,value); } }
+                    if root.page == 4: NowPlaying { lyric-font: root.lyric-font; artwork: root.music-cover; title: root.selected-title; artist: root.selected-artist; album: root.album; lyrics: root.lyrics; active: root.active-lyric; plain: root.plain-lyrics; playing: root.playing; output-status: root.audio-status; background-style: root.lyrics-background-style; background-opacity: root.lyrics-background-opacity; custom-background: root.custom-lyrics-background; control(action,value) => { root.control(action,value); } }
                     if root.page == 5: VideoLibraryPage {
                         tracks: root.video-library-tracks; folders: root.video-library-folders; folder-index: root.video-library-folder;
                         scanning: root.video-library-busy; selected-id: root.video-library-selected;
@@ -190,6 +200,9 @@ export component AppWindow inherits Window {
                     if root.page == 3: SettingsPage {
                         font-names: root.font-names; font-lyric-names: root.font-lyric-names; font-subtitle-names: root.font-subtitle-names; font-ui-index: root.font-ui-index; font-lyric-index: root.font-lyric-index; font-subtitle-index: root.font-subtitle-index; font-ass: root.font-ass; font-busy: root.font-busy; font-message: root.font-message; lyric-font: root.lyric-font;
                         design: root.appearance-design; scheme: root.appearance-scheme; system-accent: root.appearance-system-accent; custom-accent: root.appearance-custom; reduced: root.appearance-reduced; os-reduced: root.appearance-os-reduced; system-available: root.appearance-system-available;
+                        library-background-style: root.library-background-style; library-background-opacity: root.library-background-opacity; library-background-blur: root.library-background-blur; library-background-name: root.library-background-name;
+                        lyrics-background-style: root.lyrics-background-style; lyrics-background-opacity: root.lyrics-background-opacity; lyrics-background-blur: root.lyrics-background-blur; lyrics-background-name: root.lyrics-background-name;
+                        custom-library-background: root.custom-library-background; custom-lyrics-background: root.custom-lyrics-background;
                         bindings: root.shortcut-rows; seek-step: root.seek-step; volume-step: root.volume-step; hold-ms: root.hold-ms; hold-speed: root.hold-speed;
                         edit-binding(index,value) => { root.shortcut-edited(index,value); }
                         control(action,value) => { root.control(action,value); }
