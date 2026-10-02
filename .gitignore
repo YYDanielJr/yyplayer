@@ -8,6 +8,12 @@
 /.env.*
 !/.env.example
 /settings*.json
+/library-cache.json
+/*.library.json
+*.corrupt-*.json
+/.vscode/*
+!/.vscode/extensions.json
+!/.vscode/tasks.json
 .DS_Store
 Thumbs.db
 desktop.ini

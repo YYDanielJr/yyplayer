@@ -122,6 +122,12 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - Windows 外观观察只读注册表 / DWM / 动画偏好；测试不得改系统主题来证明同步。其他平台系统外观尚未验证，记录回退。
 - Test-LibraryTheme 使用独立配置、自有 WAV 和真实 controller / GL presenter；截图不证明位准确或功耗。ui-feedback / audio-ui 的真实 Slint 点击与计时需继续回归。用户魅蓝 DSP 独占确认是用户实测，不能推断格式矩阵 / 数字捕获。
 
+## 源码发布接续（2026-10-02）
+
+- 用户已确定 GPL-3.0-only；workspace 与五个 crate 继承该字段，根 LICENSE 保留标准原文。第三方记录不能替代 runtime 二进制完整 notices / 对应源码安排。
+- 本地正式分支为 master，已包含最新功能与发布准备；dev 保留同一基线供开发。旧 main 仅保留历史视频版本，不作为新发布主分支。此前章节中的分支与未选许可描述是历史执行记录，以当前 STATUS 和 docs/PUBLISHING.md 为准。
+- 用户计划在 VS Code 发布，打开仓库根目录 E:\SourceFiles\rust\yyplayer；代理不代替用户创建远端或推送。发布源码不代表 USB / HDR / 跨平台资格或二进制发行已完成。
+
 ## 10. 窗口表面、缩略图与保存通知接续
 
 - Windows Surface adapter 使用借用句柄和可选 DWM 提示；不以透明分层窗、window region 或 CPU 视频循环实现圆角。窗口化启用原生阴影，最大化 / 全屏关闭；macOS / Linux 保留平台边界，未验收。原生截图与 Slint 截图区分，跨屏 DPI 不由角部截图证明。

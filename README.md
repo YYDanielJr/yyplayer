@@ -1,6 +1,12 @@
 # YYPlayer：Rust + Slint 音视频播放器
 
-> 更新日期：2026-10-01。已从界面框架升级为 **Windows 音视频播放开发预览**：真实 libmpv 播放、GPU 合成、WASAPI 独占、分级 EQ、本地封面 / 歌词、音乐大页面、目录音乐库和简洁 / 时尚主题已接入。仍不是正式发行包；USB DAC 的广泛格式 / 位准确、HDR 与其他平台资格待验。开发规则见 [AGENTS](AGENTS.md)，实际进度与证据见 [STATUS](docs/STATUS.md)。
+> 更新日期：2026-10-02。已从界面框架升级为 **Windows 音视频播放开发预览**：真实 libmpv 播放、GPU 合成、WASAPI 独占、分级 EQ、本地封面 / 歌词、音乐大页面、目录音乐库和简洁 / 时尚主题已接入。仍不是正式发行包；USB DAC 的广泛格式 / 位准确、HDR 与其他平台资格待验。开发规则见 [AGENTS](AGENTS.md)，实际进度与证据见 [STATUS](docs/STATUS.md)。
+
+## 许可与源码发布
+
+本项目自身源码与原创 UI 资源采用 **GPL-3.0-only**，完整文本见 [LICENSE](LICENSE)，第三方记录见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。当前公开的是 Windows 开发预览源码；正式二进制发行、跨平台和设备资格仍按 STATUS 推进。
+
+正式源码分支使用 **master**；dev 保留开发分支，旧 main 仅是历史视频基线。通过 VS Code 发布时打开整个仓库根目录，步骤见 [发布说明](docs/PUBLISHING.md)。
 
 ## 当前实现与快速启动
 

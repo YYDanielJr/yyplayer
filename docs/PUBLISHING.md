@@ -1,30 +1,47 @@
-# GitHub 发布准备
+# 用 VS Code 发布源码到 GitHub
 
-检查日期：2026-10-02。本文件记录仓库实际状态，不表示已经发布或完成二进制发行审计。
+准备日期：2026-10-02。用户已选择 **GPL-3.0-only**；本轮仅做本地源码仓库准备，GitHub 发布由用户在 VS Code 完成。
 
-## 当前状态
+## 应打开的目录
 
-- Git 已初始化，当前开发分支 **dev**；本轮完成后本地提交，未合入 master / main。本轮前基线为 bbd8023，master 保留音频基线 8467ca9，main 保留视频基线 4eca722。正式主分支需要先选定并合并 dev 的最终版本。
-- 当前没有远端；没有创建 GitHub 仓库、设置 URL 或执行 push。
-- `.gitignore` 已存在：排除 target / dist、下载运行时目录、日志、PDB / dump、原子保存临时文件、根目录本地设置 / .env 与系统杂项。Cargo.lock、manifest、源码和自有验收资料保留。
-- 已用 check-ignore 检查 exe / runtime DLL / .env / 本地配置 / dump；已跟踪文件未发现播放器二进制、音视频或常见私钥扩展。历史最大 blob 为约 1.32 MiB 自有验证图，没有巨型编译产物。常见密钥标记的文件名扫描未发现命中；这不是对所有历史秘密的保证。用户提供的图片 / 音乐 / APPDATA 配置未加入 Git。
-- 根目录尚无 **LICENSE**，workspace 也未指定 license。应用许可证由项目所有者确定后补齐；Slint 与固定 GPL 组合运行时的许可记录仍需按 README S00 完成。当前仅为源码和本地开发预览，不把 exe + DLL 标为完成发行包。
+在 VS Code 选择 **文件 → 打开文件夹**，打开：
 
-## 发布前操作
+```text
+E:\SourceFiles\rust\yyplayer
+```
 
-1. 选定源码许可证，补根目录 LICENSE 及 Cargo 许可字段，核对依赖和第三方素材记录。二进制 Release 还要完成 runtime 的 notices、对应源码 / 构建信息与 DLL 依赖闭包，参见 [运行时说明](../third_party/mpv/README.md)。
-2. 选定 master 或 main 作为唯一正式默认分支，并将已验收的 dev 合入。当前各分支基线不同，不能仅推送旧主分支就当作最新功能已发布。
-3. 在 GitHub 建立仓库，使用自己的仓库 URL 配置 origin；先检查 `git status --short`、`git diff --cached --stat` 和 `git ls-files`，确认没有用户媒体、凭据或运行时二进制。
-4. 推送所选主分支；如需要继续开发再推送 dev。本轮没有自动执行这些外部操作。
+这个目录包含 `.git`、Cargo.toml、Cargo.lock、README 和 crates，是完整仓库根目录。直接打开根目录即可识别现有 Git 历史与五个 Rust crate。
 
-本地可复查：
+## 已完成的本地准备
+
+- 最新功能和发布文档已合入 **master**，当前停留在 master，工作区干净。dev 保留同版本作为后续开发入口；旧 main 是历史视频基线，保留但本次不使用。
+- 根目录 LICENSE 为完整 GPLv3 标准文本，README 明确 **GPL-3.0-only**，五个 crate 继承 workspace 许可字段。保留 Cargo.lock；不自动发布 crates.io。
+- THIRD_PARTY_NOTICES.md 记录 Slint 1.17.1 的 GPL 选择、固定 GPL 组合的 libmpv 与原创 SVG。docs/dependency-licenses.md 记录锁定 Windows normal / build 依赖元数据；不等同于二进制完整 notices。
+- `.gitignore` 排除编译产物 / runtime DLL / 下载 archive、临时媒体 / 本地设置 / .env / dump、音乐库缓存和损坏配置备份；VS Code 本机配置默认忽略，extensions / tasks 可按需要提交。`.gitattributes` 固定源码文本 LF 和 PNG 二进制。
+- 已检查工作区 / 历史大文件 / 常见密钥标记；没有把用户媒体、截图附件或 APPDATA 配置加入仓库。Git 历史最大 blob 约 1.32 MiB，是自有验收图片，无大型编译产物。
+- 没有配置 Git 远端、创建 GitHub 仓库或执行 push。当前发布的是源码；本地 target/release/yyplayer.exe 和 libmpv DLL 均不上传。
+
+## VS Code 操作
+
+1. 打开上述目录，检查左下角当前分支为 **master**，源代码管理没有待提交改动。
+2. 按 **Ctrl+Shift+P** 打开命令面板，输入并运行 **Publish to GitHub**（发布到 GitHub）。需要时按提示登录自己的 GitHub 账号。
+3. 输入可用仓库名，例如 `YYPlayer`，选择 **Public / 公开仓库**。现有提交已准备好；出现文件选择提示时保留源码、LICENSE、Cargo.lock 和文档，遵循现有忽略规则。
+4. 完成后到 GitHub 确认 master 是默认分支、最新 README / LICENSE 可见，VS Code 已添加 origin 并设置 master 的 upstream。
+5. 需要公开开发分支时再切到 dev，使用 Publish Branch 发布；日常新代码在 dev 完成、验证后合入 master。保留的旧 main 不必额外推送。
+
+如果 GitHub 上已经手动创建了空仓库，使用 **Git: Add Remote** 添加该仓库 URL（名称 origin），再 Push master；不需要再次创建另一个仓库。首次空仓库不要另生成冲突的 README / LICENSE 提交。官方操作说明：[VS Code 仓库与远端](https://code.visualstudio.com/docs/sourcecontrol/repos-remotes#publish-to-github)。
+
+## 发布后的本地复查
 
 ```powershell
 git status --short
 git branch -vv
 git remote -v
-git check-ignore --no-index target/debug/yyplayer.exe third_party/mpv/windows-x64/libmpv-2.dll .env settings-local.json crash.dmp
-git ls-files
+git log -1 --oneline
 ```
 
-编译缓存和运行时无需上传；首次开发按 README 构建并使用受控下载脚本获取固定 libmpv。GitHub 源码发布与携带 runtime 的二进制发行是两个不同的交付步骤。
+这些命令应显示工作区干净、master 关联 origin/master，远端为你自己的 GitHub 仓库。发布前远端为空是预期状态。Git 的提交历史也随 master 上传，而不是把目录内所有文件打包上传。
+
+## 后续二进制发行
+
+公开源码准备完成。携带 exe / DLL 的 GitHub Release 仍需完成固定 runtime 的完整第三方 notices、对应源码 / 构建信息、DLL 依赖闭包和发行验收，参见 [运行时说明](../third_party/mpv/README.md)。本轮不会把本地开发程序标为合格安装包，也未重新宣称 USB 位准确、HDR 或 macOS / Linux 已支持。

@@ -1,6 +1,17 @@
 # YYPlayer 进度与证据
 
-更新：2026-10-02。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。Git 框架 `d10a4e8` 保留在历史，视频 `4eca722` 保留 main；音频 `8467ca9` 已合入 master，目录音乐库 / 主题 / UI 修复和本轮字体 / 窗口 / 列宽继续在 dev。
+更新：2026-10-02。正式源码分支已统一为 master，dev 保留最新开发版本，旧 main 保留视频基线。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。Git 框架 `d10a4e8` 保留在历史，视频 `4eca722` 保留 main；音频 `8467ca9` 已合入 master，目录音乐库 / 主题 / UI 修复和本轮字体 / 窗口 / 列宽继续在 dev。
+
+## 2026-10-02：GitHub 公开源码发布准备
+
+状态：Done（本地源码仓库准备）。用户明确选择 GPL-3.0-only，GitHub 发布由用户在 VS Code 完成。
+
+- LICENSE 使用锁定 Slint 1.17.1 随附的完整 GPLv3 标准文本；Cargo workspace 与五个 crate 声明 GPL-3.0-only，README 明确源码 / 原创资源授权。新增第三方记录和 383 个 Windows normal / build 可达依赖的许可元数据清单，未把它当作完整二进制许可审计。
+- 增加 .gitattributes 源码 LF / PNG binary，补忽略库缓存、损坏配置备份与 VS Code 本地设置；新增 CONTRIBUTING 和具体 VS Code 发布步骤。
+- 无冲突快进合并 dev 到 master，准备文档一并提交，dev 保留相同发布准备版本，当前停留 master；旧 main 保留历史视频基线。未创建远端 / GitHub 仓库，未推送。
+- 检查：Cargo metadata --locked --offline（五个许可字段及 Windows 依赖图）、fmt --check、git diff --check、git fsck、忽略规则、已跟踪文件 / 历史 blob 体积和常见敏感标记扫描。仅许可 / 元数据 / 文档 / Git 配置变更，本轮不重复编译、Clippy、播放或硬件测试；沿用上轮验收。
+- 发布根目录：E:\SourceFiles\rust\yyplayer。具体步骤见 docs/PUBLISHING.md；检查证据见 docs/validation/source-publication.md。
+- 下一步：用户在 VS Code Publish to GitHub、选择公开仓库，确认默认分支 master。正式二进制发行仍补 runtime notices / 对应源码 / 依赖闭包，S00 / USB / HDR / 跨平台资格不因公开源码标 Done。
 
 ## 2026-10-02：原生窗口外观、音乐库封面与歌词页精简
 
