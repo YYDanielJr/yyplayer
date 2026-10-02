@@ -26,7 +26,7 @@
 
 - Slint 组件在主线程创建与修改，worker 使用合并投递与弱引用。
 - 普通 libmpv 调用属于 Engine 线程；UI 回调只提交命令，不能等待 Engine。
-- 已有 MpvEngine worker、64 项有界命令通道、最新快照和 render 租约。controller 仅提交命令；禁止把普通同步 mpv 调用搬到 UI / GL notifier。初始化 / 退出也必须保持该边界。
+- 已有 MpvEngine worker、64 项普通命令 + 1 项 Stop 保留槽的有界通道、最新快照和 render 租约。controller 仅提交命令；禁止把普通同步 mpv 调用搬到 UI / GL notifier。初始化 / 退出也必须保持该边界。
 - GL notifier / render 线程只操作允许的 render API；不能同时发普通同步 mpv 命令，不能持有 Engine 需要的锁。
 - mpv 回调只做非阻塞唤醒，不能 render、更新 UI、等待或执行重工作。
 - OpenGL render 调用串行，使用创建 render context 时相同的当前上下文。
@@ -127,6 +127,7 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 用户已确定 GPL-3.0-only；workspace 与五个 crate 继承该字段，根 LICENSE 保留标准原文。第三方记录不能替代 runtime 二进制完整 notices / 对应源码安排。
 - 本地正式分支为 master，已包含最新功能与发布准备；dev 保留同一基线供开发。原 main 的全部提交已包含在 master，重复的本地 main 已移除，仅保留 master / dev。此前章节中的分支与未选许可描述是历史执行记录，以当前 STATUS 和 docs/PUBLISHING.md 为准。
 - 用户计划在 VS Code 发布，打开仓库根目录 E:\SourceFiles\rust\yyplayer；代理不代替用户创建远端或推送。发布源码不代表 USB / HDR / 跨平台资格或二进制发行已完成。
+- `.github/workflows/windows-release.yml` 在 master push 生成短期 Actions CI artifact（portable ZIP + NSIS x64 Setup）；没有自动创建 GitHub Release。NSIS 安装目标限定 x64 Windows。完整 libmpv build notices / corresponding-source arrangement 与 DLL 闭包完成后，才能把 CI 包作为正式二进制发行，不能以成功构建代替发行资格。
 
 ## 10. 窗口表面、缩略图与保存通知接续
 
@@ -134,3 +135,14 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 音乐库可见行信息在 Slint 内更新，由 app tick 投递有界后台服务；不得在 repeater init 回调重新借用 controller。缩略图 64px / 256 项 LRU / 8 项队列与在途，缺失也缓存，重扫取消旧 generation，图片资源 revision 驱动投影。
 - recent 历史保存必须静默，与真实设置 dirty 分离；成功提示需实际设置不同且保存成功。通知 revision 独立于持久化 revision，静默写入不得复活已手动关闭的浮窗。
 - 歌词页通过左下 / 大封面返回音乐库，导入歌词位于播放选项。修改后复验 Test-UiCustomization 的封面点击 / 静默播放、ui-feedback 和导航；截图不代替 WASAPI / 位准确资格。
+
+## 11. 视频库与按需渲染接续
+
+- 音乐 / 视频库仅保留页主标题，数量并入筛选工具栏，不恢复宣传卡片、重复库标题和索引说明占位；界面名称统一“视频库”。修改列表高度后同步真实行点击 / 列宽拖动验收。
+
+- 视频库导航进入独立视频库（page=5），播放器为同窗口 VideoPlayer（page=1）；不能把导航恢复成空播放器或令浏览库初始化 render context。
+- video_library 配置 / settings.videos.json 缓存独立于音乐库；后台规范化 / 扫描 / 文件大小，索引不启动 decoder / 不虚构时长或封面。移除不删磁盘文件；20000 个媒体 / 200000 项 / 64 层、有界通道 / revision 保留。
+- Load.video 意图与 snapshot.video 实际轨道分开；vid=no 音频 Load 不等待 render，视频 Load 等待租约 ready。新的音频 / Stop / 关闭视频必须取消旧等待请求；相关竞态由 VideoGate 测试覆盖。
+- 返回库保存当前媒体 / 位置后 Stop；Engine 的 current-vo 已退出才确认释放条件，GL notifier 再清 UI 图片并 render_free / 删除 FBO / texture。不能只 Pause + vid=no，无音轨视频会变 Ended。继续观看重建并恢复位置，仅本次会话有效。
+- EOF 重播不会重发 FILE_LOADED；快照需在真实 active / 非 EOF 时从 Ended 恢复 Playing / Paused，不在 UI 假设成功。播放回归覆盖普通暂停和 EOF 重播后再次暂停 / 继续，核对位置冻结、generation / renderer 不重建。
+- 保留 prepare_gl / 同上下文 render / 先 render_free 后 core；Slint UI 仍用 OpenGL，音频 0 次 libmpv renderer 不等于 UI 不用 GPU。修改后回归 Test-VideoLibrary、Test-Video / Test-Render 真实 GPU 图片、导航 / ui-feedback / 音乐 UI。测试独立配置 / 自有素材；内存以 Release 同素材 / 同设置 / 同口径比较。

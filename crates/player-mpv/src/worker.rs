@@ -14,6 +14,7 @@ use std::sync::{
 use std::thread::JoinHandle;
 use std::time::Duration;
 mod audio;
+mod video_gate;
 
 /// Address is opaque outside renderer creation. Atomic lease keeps worker-owned core
 /// and library alive until render_free; no Send/Sync assertion for raw pointers.
@@ -49,7 +50,8 @@ pub struct MpvEngine {
 }
 impl MpvEngine {
     pub fn start() -> Self {
-        let (tx, rx) = bounded(64);
+        // 64 ordinary commands plus one reserved slot for Stop.
+        let (tx, rx) = bounded(65);
         let mut engine = Self::default();
         engine.commands = Some(tx);
         let latest = engine.latest.clone();
@@ -114,9 +116,28 @@ impl PlaybackEngine for MpvEngine {
             self.shutdown.store(true, Ordering::Release);
             return Ok(());
         }
-        self.commands
+        if self
+            .worker
             .as_ref()
-            .ok_or(EngineError::NotConnected)?
+            .is_some_and(|worker| worker.is_finished())
+        {
+            return Err(EngineError::NotConnected);
+        }
+        let commands = self.commands.as_ref().ok_or(EngineError::NotConnected)?;
+        if matches!(command, PlaybackCommand::Stop) {
+            // Only this UI producer submits commands. A full reserved slot therefore
+            // already contains Stop; preserve queued settings and coalesce duplicates.
+            return match commands.try_send(command) {
+                Ok(()) | Err(crossbeam_channel::TrySendError::Full(_)) => Ok(()),
+                Err(crossbeam_channel::TrySendError::Disconnected(_)) => {
+                    Err(EngineError::NotConnected)
+                }
+            };
+        }
+        if commands.len() >= 64 {
+            return Err(EngineError::Failed("播放命令队列已满，请稍后重试".into()));
+        }
+        commands
             .try_send(command)
             .map_err(|e| EngineError::Failed(format!("播放命令暂未提交：{e}")))
     }
@@ -223,22 +244,19 @@ impl Core {
         snapshot.title = self.get("media-title");
         snapshot.audio_output = Some(self.get("audio-device"));
         snapshot.hwdec = self.get("hwdec-current");
+        snapshot.video_output_enabled = !self.get("current-vo").is_empty();
         let video = self.get("video-codec");
         snapshot.video = self.node("track-list").as_array().is_some_and(|tracks| {
             tracks
                 .iter()
                 .any(|t| t["type"] == "video" && t["albumart"] != true)
         });
-        if matches!(
+        snapshot.phase = observed_phase(
             snapshot.phase,
-            PlaybackPhase::Playing | PlaybackPhase::Paused
-        ) {
-            snapshot.phase = if self.get("pause") == "yes" {
-                PlaybackPhase::Paused
-            } else {
-                PlaybackPhase::Playing
-            };
-        }
+            self.get("idle-active") == "no",
+            self.get("pause") == "yes",
+            self.get("eof-reached") == "yes",
+        );
         snapshot.devices = self
             .node("audio-device-list")
             .as_array()
@@ -376,6 +394,7 @@ fn run(
     for (name, value) in [
         ("config", "no"),
         ("vo", "libmpv"),
+        ("vid", "no"),
         ("osc", "no"),
         ("input-default-bindings", "no"),
         ("input-vo-keyboard", "no"),
@@ -432,19 +451,27 @@ fn run(
         ..Default::default()
     };
     let mut pending_resume = None;
-    let mut pending_load = None;
+    let mut video_gate = video_gate::VideoGate::default();
     let heartbeat = crossbeam_channel::tick(Duration::from_millis(250));
     while !shutdown.load(Ordering::Acquire) {
         crossbeam_channel::select! {
             recv(commands) -> command => match command { Ok(command) => {
-                if matches!(command, PlaybackCommand::Load { .. } | PlaybackCommand::Open(_)) && core.bridge.state.load(Ordering::Acquire) & 8 == 0 { pending_load = Some(command); }
-                else if let Err(error) = apply(&mut core, command, &mut snapshot, &mut pending_resume) { snapshot.error = error; }
+                let command = match command {
+                    PlaybackCommand::Open(source) => {
+                        let video = !matches!(&source, MediaSource::Local(p) if player_core::library::is_audio(p));
+                        PlaybackCommand::Load { source, decode: Default::default(), resume: None, video }
+                    }
+                    other => other,
+                };
+                let ready = core.bridge.state.load(Ordering::Acquire) & 8 != 0;
+                if let Some(command) = video_gate.accept(command, ready)
+                    && let Err(error) = apply(&mut core, command, &mut snapshot, &mut pending_resume) { snapshot.error = error; }
             }, Err(_) => break },
             recv(wake_rx) -> _ => {},
             recv(heartbeat) -> _ => {},
         }
         if core.bridge.state.load(Ordering::Acquire) & 8 != 0
-            && let Some(command) = pending_load.take()
+            && let Some(command) = video_gate.ready()
             && let Err(error) = apply(&mut core, command, &mut snapshot, &mut pending_resume)
         {
             snapshot.error = error;
@@ -530,14 +557,6 @@ fn run(
                 _ => {}
             }
         }
-        if core.get("eof-reached") == "yes"
-            && matches!(
-                snapshot.phase,
-                PlaybackPhase::Playing | PlaybackPhase::Paused
-            )
-        {
-            snapshot.phase = PlaybackPhase::Ended;
-        }
         core.snapshot(&mut snapshot);
         if let Err(error) = core.audio_tick(&mut snapshot, &mut pending_resume) {
             snapshot.error = error;
@@ -560,12 +579,15 @@ fn apply(
             source,
             decode,
             resume: restore,
+            video,
         } => {
             decode.validate()?;
             if !cfg!(windows) && core.audio.exclusive_requested() {
                 return Err("此平台独占输出尚未验证，请选择共享模式后重试".into());
             }
             core.audio.blocked = false;
+            core.set("vid", if video { "auto" } else { "no" })?;
+            snapshot.video_output_enabled = video;
             core.audio.started = Some(std::time::Instant::now());
             core.audio.resume = Some(restore.unwrap_or((0.0, false)));
             core.audio.restore_pause = if cfg!(windows) && core.audio.exclusive_requested() {
@@ -602,6 +624,7 @@ fn apply(
                     source,
                     decode: Default::default(),
                     resume: None,
+                    video: true,
                 },
                 snapshot,
                 resume,
@@ -624,11 +647,18 @@ fn apply(
             return core.set("pause", "no");
         }
         Stop => {
+            // Stop is asynchronous. Keep the lease until snapshot observes VO shutdown;
+            // disabling the only track first would incorrectly turn video-only files into EOF.
             core.audio.restore_pause = None;
             snapshot.phase = PlaybackPhase::Idle;
             snapshot.source = None;
             *resume = None;
             vec!["stop".into()]
+        }
+        SetVideoOutput(enabled) => {
+            core.set("vid", if enabled { "auto" } else { "no" })?;
+            snapshot.video_output_enabled = enabled;
+            return Ok(());
         }
         Seek(position) => vec![
             "seek".into(),
@@ -732,6 +762,25 @@ fn apply(
     };
     core.command(&arguments)
 }
+// Seeking out of keep-open EOF does not emit FILE_LOADED. Observe the actual
+// playback flags so a replay can leave Ended without pretending it was reloaded.
+fn observed_phase(phase: PlaybackPhase, active: bool, paused: bool, eof: bool) -> PlaybackPhase {
+    if !active
+        || !matches!(
+            phase,
+            PlaybackPhase::Playing | PlaybackPhase::Paused | PlaybackPhase::Ended
+        )
+    {
+        return phase;
+    }
+    if eof {
+        PlaybackPhase::Ended
+    } else if paused {
+        PlaybackPhase::Paused
+    } else {
+        PlaybackPhase::Playing
+    }
+}
 fn same_media_path(expected: &str, actual: &str) -> bool {
     #[cfg(windows)]
     {
@@ -746,5 +795,51 @@ fn same_media_path(expected: &str, actual: &str) -> bool {
     #[cfg(not(windows))]
     {
         expected == actual
+    }
+}
+
+#[cfg(test)]
+mod command_tests {
+    use super::*;
+    #[test]
+    fn replay_leaves_eof_and_can_pause_and_resume() {
+        use PlaybackPhase::*;
+        assert_eq!(observed_phase(Playing, true, false, true), Ended);
+        assert_eq!(observed_phase(Ended, true, false, false), Playing);
+        assert_eq!(observed_phase(Playing, true, true, false), Paused);
+        assert_eq!(observed_phase(Paused, true, false, false), Playing);
+        assert_eq!(observed_phase(Ended, true, true, false), Paused);
+    }
+    #[test]
+    fn observations_do_not_resurrect_stopped_loading_or_failed_media() {
+        use PlaybackPhase::*;
+        for phase in [Idle, Loading, Error] {
+            assert_eq!(observed_phase(phase, true, false, false), phase);
+        }
+        assert_eq!(observed_phase(Ended, false, false, false), Ended);
+        assert_eq!(observed_phase(Paused, true, true, true), Ended);
+    }
+    #[test]
+    fn stop_has_a_reserved_slot_and_preserves_queued_commands() {
+        let (tx, rx) = bounded(65);
+        let mut engine = MpvEngine::default();
+        engine.commands = Some(tx);
+        for _ in 0..64 {
+            engine.submit(PlaybackCommand::SeekRelative(1.0)).unwrap();
+        }
+        assert!(engine.submit(PlaybackCommand::Resume).is_err());
+        engine.submit(PlaybackCommand::Stop).unwrap();
+        engine.submit(PlaybackCommand::Stop).unwrap();
+        assert_eq!(rx.len(), 65);
+        for _ in 0..64 {
+            assert!(matches!(
+                rx.try_recv(),
+                Ok(PlaybackCommand::SeekRelative(_))
+            ));
+        }
+        assert!(matches!(rx.try_recv(), Ok(PlaybackCommand::Stop)));
+        assert!(rx.try_recv().is_err());
+        engine.submit(PlaybackCommand::Shutdown).unwrap();
+        assert!(engine.shutdown.load(Ordering::Acquire));
     }
 }

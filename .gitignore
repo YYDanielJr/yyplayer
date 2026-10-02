@@ -29,4 +29,7 @@ docs/validation/*.json
 !docs/validation/controls-playback.json
 !docs/validation/software-playback.json
 !docs/validation/release-playback.json
+!docs/validation/video-library-results.json
+!docs/validation/video-library-gpu.json
+!docs/validation/video-library-memory.json
 docs/validation/source-frame.png

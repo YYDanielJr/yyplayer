@@ -30,6 +30,8 @@ pub struct PlaybackSnapshot {
     pub subtitle_font_overrides: String,
     pub title: String,
     pub video: bool,
+    /// Engine observed an active VO, used to retire the presenter after it closes.
+    pub video_output_enabled: bool,
     pub speed: f64,
     pub volume: f32,
     pub muted: bool,

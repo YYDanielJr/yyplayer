@@ -27,6 +27,8 @@ mod library_service;
 mod music_assets;
 #[path = "thumbnails.rs"]
 mod thumbnails;
+#[path = "video_controller.rs"]
+mod video_controller;
 
 pub struct AppController {
     engine: MpvEngine,
@@ -34,6 +36,18 @@ pub struct AppController {
     page: i32,
     selected_id: i32,
     search: String,
+    video_search: String,
+    video_session: bool,
+    video_resume: Option<(MediaSource, Duration)>,
+    video_service: Option<library_service::Service>,
+    video_pending: Option<library_service::Request>,
+    video_songs: Vec<player_core::library::Song>,
+    video_rows: std::rc::Rc<Vec<MediaPreview>>,
+    video_revision: u64,
+    video_scan: u64,
+    video_folder: i32,
+    video_busy: bool,
+    video_message: String,
     favorite: bool,
     status: String,
     preview: bool,
@@ -102,6 +116,18 @@ impl AppController {
             page: 0,
             selected_id: 0,
             search: String::new(),
+            video_search: String::new(),
+            video_session: false,
+            video_resume: None,
+            video_service: None,
+            video_pending: None,
+            video_songs: vec![],
+            video_rows: Default::default(),
+            video_revision: 1,
+            video_scan: 0,
+            video_folder: 0,
+            video_busy: false,
+            video_message: "添加目录或视频，建立你的私人剧场".into(),
             favorite: false,
             status: String::new(),
             preview: true,
@@ -178,6 +204,15 @@ impl AppController {
             path.with_extension("library.json"),
             controller.settings.library.clone(),
         ));
+        controller.video_service = Some(library_service::Service::start_video(
+            path.with_extension("videos.json"),
+            controller.settings.video_library.clone(),
+        ));
+        if !controller.settings.video_library.roots.is_empty()
+            || !controller.settings.video_library.files.is_empty()
+        {
+            controller.scan_video();
+        }
         controller.appearance_observer = Some(player_platform::appearance::Observer::start());
         if !controller.settings.library.roots.is_empty()
             || !controller.settings.library.files.is_empty()
@@ -194,13 +229,24 @@ impl AppController {
         match action {
             UiAction::Navigate(page) => {
                 self.cancel_hold();
-                self.page = page.clamp(0, 4);
+                // Page 1 is the player session; the sidebar opens page 5 (video library).
+                let page = if page == 1 { 5 } else { page.clamp(0, 5) };
+                if self.page == 1 && page != 1 {
+                    self.suspend_video();
+                }
+                self.auto_page = false;
+                self.page = page;
                 self.panel_open = false;
                 self.settings_revision += 1;
             }
             UiAction::Search(query) => {
-                self.search = query;
-                self.refresh_library();
+                if self.page == 5 {
+                    self.video_search = query;
+                    self.refresh_video();
+                } else {
+                    self.search = query;
+                    self.refresh_library();
+                }
             }
             UiAction::SelectPreview(id) => {
                 if self.preview {
@@ -278,6 +324,9 @@ impl AppController {
     pub fn prepare_paths(&mut self, paths: Vec<PathBuf>) {
         self.dialog(DialogRequest::Paths(paths));
     }
+    pub fn prepare_video_paths(&mut self, folder: bool, paths: Vec<PathBuf>) {
+        self.video_request(library_service::Request::Paths(folder, paths));
+    }
     pub fn open_paths(&mut self, paths: Vec<PathBuf>) {
         if paths.is_empty() {
             return;
@@ -291,6 +340,13 @@ impl AppController {
         let Some(source) = self.queue.get(index as usize).cloned() else {
             return;
         };
+        let video = !matches!(&source, MediaSource::Local(p) if player_core::library::is_audio(p));
+        let restore = self
+            .video_resume
+            .take()
+            .filter(|(saved, _)| video && saved == &source)
+            .map(|(_, position)| (position.as_secs_f64(), false));
+        self.video_session = video;
         self.cancel_hold();
         self.send(PlaybackCommand::SetAbLoop(None));
         self.ab_start = None;
@@ -299,7 +355,13 @@ impl AppController {
         self.send(PlaybackCommand::Pause);
         self.read_assets(&source);
         self.apply_eq();
-        self.page = 1;
+        self.page = if video {
+            1
+        } else if self.expanded {
+            4
+        } else {
+            0
+        };
         self.pending_load = true;
         self.auto_page = true;
         self.status = String::new();
@@ -320,7 +382,8 @@ impl AppController {
         self.send(PlaybackCommand::Load {
             source,
             decode,
-            resume: None,
+            resume: restore,
+            video,
         });
     }
     fn select_adjacent(&mut self, offset: i32) {
@@ -396,6 +459,7 @@ impl AppController {
             source,
             decode,
             resume: restore,
+            video: self.video_session,
         });
         self.pending_load = true;
         self.auto_page = false;
@@ -471,6 +535,9 @@ impl AppController {
         if self.font_control(action, value) {
             return;
         }
+        if self.video_control(action, value) {
+            return;
+        }
         if self.library_control(action, value) {
             return;
         }
@@ -487,7 +554,14 @@ impl AppController {
             "stop" => {
                 self.cancel_hold();
                 self.pending_load = false;
+                self.auto_page = false;
+                self.video_session = false;
+                self.video_resume = None;
                 self.send(PlaybackCommand::Stop);
+                if self.page == 1 {
+                    self.page = 5;
+                    self.leave_fullscreen();
+                }
             }
             "queue" => {
                 if let Some(index) = number
@@ -627,14 +701,23 @@ impl AppController {
                 self.settings_revision += 1;
             }
             "settings" => {
+                if self.page == 1 {
+                    self.suspend_video();
+                }
                 self.cancel_hold();
                 self.page = 3;
                 self.panel_open = false;
                 self.settings_revision += 1;
             }
             "video" => {
-                self.page = 1;
-                self.panel_open = false;
+                if self.video_resume.is_some()
+                    || (self.engine.snapshot().source.is_some() && self.engine.snapshot().video)
+                {
+                    self.load_index(self.selected_id);
+                    self.panel_open = false;
+                } else {
+                    self.dispatch(UiAction::Navigate(5));
+                }
             }
             "window-mode" => {
                 if let Some(mode) = number {
@@ -727,9 +810,35 @@ impl AppController {
             (self.settings.volume + delta).clamp(0.0, 100.0),
         ));
     }
+    fn leave_fullscreen(&mut self) {
+        if self.window_mode == 2 {
+            self.set_window_mode(self.prior_window_mode);
+        }
+    }
+    fn suspend_video(&mut self) {
+        self.cancel_hold();
+        let snapshot = self.engine.snapshot();
+        if snapshot.source.as_ref() == self.queue.get(self.selected_id as usize) {
+            self.video_resume = snapshot.source.clone().zip(snapshot.position);
+        }
+        self.pending_load = false;
+        self.auto_page = false;
+        self.video_session = false;
+        self.send(PlaybackCommand::Stop);
+        self.leave_fullscreen();
+    }
+    pub fn render_failed(&mut self, error: &str) {
+        if self.video_session && !error.is_empty() {
+            self.suspend_video();
+            self.status = error.into();
+        }
+    }
     fn set_window_mode(&mut self, mode: i32) {
         self.cancel_hold();
         let mode = mode.clamp(0, 2);
+        if mode == 2 && self.window_mode != 2 && self.engine.snapshot().source.is_none() {
+            return;
+        }
         if mode == 2 && self.window_mode != 2 {
             self.prior_window_mode = self.window_mode;
             self.page = if self.engine.snapshot().source.is_some() && !self.engine.snapshot().video
@@ -737,6 +846,8 @@ impl AppController {
                 self.expanded = true;
                 4
             } else {
+                self.video_session = true;
+                self.send(PlaybackCommand::SetVideoOutput(true));
                 1
             };
         }
@@ -838,13 +949,28 @@ impl AppController {
             .unwrap_or_default();
         for reply in replies {
             match reply {
-                DialogReply::Open(paths) => self.open_paths(paths),
-                DialogReply::MediaPaths(files, folders) => {
-                    self.import_library_paths(true, folders);
-                    if !files.is_empty() {
-                        self.open_paths(files);
+                DialogReply::Open(paths) => {
+                    if self.page == 5 {
+                        self.prepare_video_paths(false, paths);
                     } else {
-                        self.page = 0;
+                        self.open_paths(paths);
+                    }
+                }
+                DialogReply::MediaPaths(files, folders) => {
+                    let video_library = self.page == 5 || self.page == 1;
+                    if video_library {
+                        self.import_video_paths(true, folders);
+                    } else {
+                        self.import_library_paths(true, folders);
+                    }
+                    if !files.is_empty() {
+                        if self.page == 5 {
+                            self.prepare_video_paths(false, files);
+                        } else {
+                            self.open_paths(files);
+                        }
+                    } else {
+                        self.page = if video_library { 5 } else { 0 };
                     }
                 }
                 DialogReply::Subtitle(path) => self.send(PlaybackCommand::AddSubtitle(path)),
@@ -875,6 +1001,7 @@ impl AppController {
         let changed = self.engine.refresh();
         self.poll_assets();
         self.poll_library();
+        self.poll_video();
         if self.thumbnails.as_mut().is_some_and(|t| t.poll()) {
             self.refresh_library();
         }
@@ -888,13 +1015,28 @@ impl AppController {
         }
         if changed {
             let snapshot = self.engine.snapshot().clone();
-            if !snapshot.error.is_empty() {
+            if !snapshot.error.is_empty()
+                && (!snapshot.ready
+                    || !self.pending_load
+                    || snapshot.source.as_ref() == self.queue.get(self.selected_id as usize))
+            {
                 self.status = snapshot.error.clone();
+            }
+            if snapshot.phase == PlaybackPhase::Error
+                && self.video_session
+                && (!snapshot.ready
+                    || snapshot.source.as_ref() == self.queue.get(self.selected_id as usize))
+            {
+                self.pending_load = false;
+                self.auto_page = false;
+                self.video_session = false;
+                self.send(PlaybackCommand::Stop);
             }
             if snapshot.generation != self.last_generation {
                 self.last_generation = snapshot.generation;
             }
             if self.pending_load
+                && snapshot.source.as_ref() == self.queue.get(self.selected_id as usize)
                 && matches!(
                     snapshot.phase,
                     PlaybackPhase::Playing | PlaybackPhase::Paused
@@ -902,6 +1044,13 @@ impl AppController {
             {
                 self.pending_load = false;
                 if self.auto_page {
+                    if snapshot.video && !self.video_session {
+                        self.video_session = true;
+                        self.send(PlaybackCommand::SetVideoOutput(true));
+                    } else if !snapshot.video && self.video_session {
+                        self.video_session = false;
+                        self.send(PlaybackCommand::SetVideoOutput(false));
+                    }
                     self.page = if snapshot.video {
                         1
                     } else if self.expanded {
@@ -915,6 +1064,7 @@ impl AppController {
             if snapshot.phase == PlaybackPhase::Ended
                 && self.last_phase != PlaybackPhase::Ended
                 && !self.pending_load
+                && (!snapshot.video || self.video_session)
                 && (self.selected_id as usize + 1) < self.queue.len()
             {
                 self.select_adjacent(1);
@@ -1001,6 +1151,14 @@ impl AppController {
         ShellViewModel {
             audio: self.audio_view(),
             library: self.library_view(),
+            video_library: self.video_view(),
+            video_renderer_requested: self.video_session || snapshot.video_output_enabled,
+            can_resume_video: self.video_resume.is_some(),
+            search_query: if self.page == 5 {
+                self.video_search.clone()
+            } else {
+                self.search.clone()
+            },
             appearance: self.appearance_view(),
             fonts: self.font_view(),
             column_song: self.settings.library_columns.song,
@@ -1022,7 +1180,7 @@ impl AppController {
                         if self.page == 0 || self.page == 4 {
                             "尚未选择曲目".into()
                         } else {
-                            "视频剧场".into()
+                            "视频库".into()
                         }
                     })
             },
@@ -1228,6 +1386,9 @@ impl AppController {
             persistence.finish();
         }
         if let Some(service) = self.library_service.take() {
+            service.finish();
+        }
+        if let Some(service) = self.video_service.take() {
             service.finish();
         }
         self.appearance_observer = None;

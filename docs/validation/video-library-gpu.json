@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "results": [
+      {
+        "exit_code": 0,
+        "frames": 146,
+        "hwdec": "nvdec",
+        "case": "hardware"
+      },
+      {
+        "exit_code": 0,
+        "frames": 141,
+        "hwdec": "no",
+        "case": "software"
+      },
+      {
+        "exit_code": 0,
+        "frames": 146,
+        "hwdec": "nvdec",
+        "case": "deband"
+      }
+    ],
+    "fixture_sha256": "3cbbf6d3a5d62541a5574528b224802acbd586338625c4dcf889193ced65ecd2",
+    "passed": true
+  },
+  "hardware-metrics": {
+    "bad_pixel_fraction": 0.0,
+    "channel_threshold": 12,
+    "height": 1125,
+    "max_bad_fraction": 0.01,
+    "max_mean_error": 1.5,
+    "mean_absolute_rgb_error": 0.0,
+    "passed": true,
+    "region": [
+      46,
+      168,
+      1457,
+      731
+    ],
+    "width": 1550
+  },
+  "deband-metrics": {
+    "bad_pixel_fraction": 0.0,
+    "channel_threshold": 12,
+    "height": 1125,
+    "max_bad_fraction": 0.01,
+    "max_mean_error": 1.5,
+    "mean_absolute_rgb_error": 0.20538833081236516,
+    "passed": true,
+    "region": [
+      46,
+      168,
+      1457,
+      731
+    ],
+    "width": 1550
+  }
+}

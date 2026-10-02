@@ -9,8 +9,8 @@ export component MusicPage inherits Rectangle {
     in property <[TrackRow]> tracks; in property <[TrackRow]> library-tracks;
     in-out property <float> column-song: 0.46; in-out property <float> column-artist: 0.24;
     in property <int> selected-id; in property <int> library-selected;
-    in property <bool> preview; in property <bool> compact; in property <[string]> folders; in property <int> folder-index;
-    in property <bool> scanning; in property <string> library-message;
+    in property <bool> preview; in property <[string]> folders; in property <int> folder-index;
+    in property <bool> scanning;
     private property <bool> queue-view: root.preview || (root.library-tracks.length == 0 && root.tracks.length > 0);
     private property <bool> show-tools: root.queue-view || root.library-tracks.length > 0 || root.scanning || root.folders.length > 2;
     private property <float> entered: 0;
@@ -18,15 +18,6 @@ export component MusicPage inherits Rectangle {
     opacity: root.entered; animate entered { duration: Theme.smooth; easing: ease-out; }
     callback select-preview(int); callback select-demo-album(int); callback control(string,string);
     VerticalLayout { padding-left: 24px; padding-right: 24px; padding-bottom: 20px; spacing: 12px;
-        if !root.compact && (root.queue-view || root.library-tracks.length > 0): GlassSurface { height: 126px; clip: true;
-            Rectangle { x: parent.width - 200px; y: -50px; width: 250px; height: 250px; border-radius: 125px; background: Theme.glow; }
-            Rectangle { x: parent.width - 162px; y: -16px; width: 182px; height: 182px; border-radius: 91px; border-width: 1px; border-color: Theme.accent.with-alpha(0.18); background: transparent; }
-            VerticalLayout { padding: 22px; spacing: 6px; alignment: center;
-                Text { text: "YOUR MUSIC, YOUR SPACE"; color: Theme.accent-text; font-size: 9px; height: 14px; }
-                Text { text: "把喜欢的声音，收进这里。"; color: Theme.text; font-size: 22px; overflow: elide; font-weight: 600; height: 36px; }
-                Text { text: "本地音乐 · 原声输出 · 为你留白"; color: Theme.muted; font-size: 11px; height: 20px; }
-            }
-        }
         if root.show-tools: HorizontalLayout { height: 38px; spacing: 10px;
             ActionButton { max-width: 128px; text: "添加目录"; icon: Icons.folder; clicked => { root.control("library-folder-add", ""); } }
             ActionButton { max-width: 128px; text: "添加歌曲"; icon: Icons.plus; primary: false; clicked => { root.control("library-files-add", ""); } }
@@ -37,12 +28,8 @@ export component MusicPage inherits Rectangle {
             ComboBox { model: root.folders; current-index: root.folder-index; horizontal-stretch: 1; selected(value) => { root.control("library-folder", "" + self.current-index); } }
             Button { text: root.scanning ? "取消" : "重扫"; clicked => { root.control(root.scanning ? "library-cancel" : "library-rescan", ""); } }
             Button { text: "移除"; enabled: root.folder-index > 0 && root.folder-index < root.folders.length - 1; clicked => { root.control("library-folder-remove", ""); } }
+            Text { text: "" + root.library-tracks.length + " 首"; color: Theme.faint; vertical-alignment: center; }
         }
-        if root.show-tools: HorizontalLayout { height: 24px;
-            Text { text: root.queue-view ? "播放队列" : "音乐库"; color: Theme.text; font-size: 14px; font-weight: 600; horizontal-stretch: 1; vertical-alignment: center; }
-            Text { text: "" + (root.queue-view ? root.tracks.length : root.library-tracks.length) + " 首"; color: Theme.faint; vertical-alignment: center; }
-        }
-        if !root.queue-view && root.show-tools: Text { text: root.scanning ? "正在后台扫描… 可以继续播放和浏览" : root.library-message; color: Theme.muted; height: 22px; overflow: elide; }
         if !root.queue-view && root.library-tracks.length == 0: GlassSurface { vertical-stretch: 1;
             VerticalLayout { padding: 30px; spacing: 14px; alignment: center;
                 HorizontalLayout { alignment: center; height: 40px; Icon { icon: Icons.music; tint: Theme.accent; width: 40px; height: 40px; } }

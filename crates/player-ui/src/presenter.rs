@@ -470,12 +470,27 @@ pub fn attach(
                 let Some(window) = window.as_ref() else {
                     return;
                 };
+                // Retain the lease until Engine observes the video output has closed.
+                // Free only inside this notifier with the creating GL context current.
+                if !window.get_video_renderer_requested() {
+                    if let Some(renderer) = renderer.take() {
+                        renderer.destroy(Some(window));
+                    }
+                    failed = false;
+                    return;
+                }
                 if renderer.is_none() && !failed {
+                    window.set_render_error("".into());
                     let bridge = endpoint.lock().unwrap().clone();
                     if let Some(bridge) = bridge {
                         if let GraphicsAPI::NativeOpenGL { get_proc_address } = api {
                             match Renderer::new(get_proc_address, bridge, window) {
-                                Ok(value) => renderer = Some(value),
+                                Ok(value) => {
+                                    window.set_render_initializations(
+                                        window.get_render_initializations() + 1,
+                                    );
+                                    renderer = Some(value);
+                                }
                                 Err(error) => {
                                     failed = true;
                                     window.set_render_error(error.into());

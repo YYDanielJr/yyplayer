@@ -1,0 +1,16 @@
+import { Button, ComboBox } from "std-widgets.slint";
+import { Theme } from "../theme.slint";
+export component VideoPlayerToolbar inherits Rectangle {
+    in property <string> title;
+    in property <bool> panel-open;
+    in property <int> window-mode;
+    callback open-file(); callback browse(); callback control(string,string);
+    HorizontalLayout {
+        padding: 0px; padding-left: 20px; padding-right: 20px; spacing: 12px;
+        Text { text: root.title; color: Theme.text; font-size: 14px; font-weight: 600; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+        VerticalLayout { width: 100px; alignment: center; Button { text: "打开文件"; clicked => { root.open-file(); } } }
+        VerticalLayout { width: 85px; alignment: center; Button { text: "视频库"; clicked => { root.browse(); } } }
+        VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value) => { root.control("window-mode", "" + self.current-index); } } }
+        VerticalLayout { width: 100px; alignment: center; Button { text: root.panel-open ? "关闭选项" : "播放选项"; clicked => { root.control("panel", ""); } } }
+    }
+}

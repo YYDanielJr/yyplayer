@@ -9,7 +9,14 @@ $archivePath = Join-Path $runtimeDirectory 'runtime.7z'
 Invoke-WebRequest -Uri $manifest.archive_url -OutFile $archivePath
 if ((Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.archive_sha256) { throw 'libmpv archive checksum mismatch' }
 & tar.exe -xf $archivePath -C $runtimeDirectory
-if ($LASTEXITCODE -ne 0) { throw 'Extraction failed. Use a current Windows tar.exe or extract the verified archive with 7-Zip.' }
+$sevenZip = Get-Command 7z.exe -ErrorAction SilentlyContinue
+if ($sevenZip) {
+    & $sevenZip.Source x $archivePath "-o$runtimeDirectory" -y | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Extraction failed with 7-Zip after the archive checksum passed.' }
+} else {
+    & tar.exe -xf $archivePath -C $runtimeDirectory
+    if ($LASTEXITCODE -ne 0) { throw 'Extraction failed. Install 7-Zip or use a tar.exe build with 7z support.' }
+}
 $libraryPath = Join-Path $runtimeDirectory $manifest.library
 if (-not (Test-Path -LiteralPath $libraryPath)) { throw 'Expected library missing from archive' }
 $libraryHash = (Get-FileHash -LiteralPath $libraryPath -Algorithm SHA256).Hash.ToLowerInvariant()

@@ -44,4 +44,15 @@ git log -1 --oneline
 
 ## 后续二进制发行
 
-公开源码准备完成。携带 exe / DLL 的 GitHub Release 仍需完成固定 runtime 的完整第三方 notices、对应源码 / 构建信息、DLL 依赖闭包和发行验收，参见 [运行时说明](../third_party/mpv/README.md)。本轮不会把本地开发程序标为合格安装包，也未重新宣称 USB 位准确、HDR 或 macOS / Linux 已支持。
+### master 推送的 Windows x64 构建
+
+`.github/workflows/windows-release.yml` 在每次向 `master` 推送时使用 `windows-2022` x64 MSVC runner 构建，并可从 Actions 页面手动运行。工作流校验固定的 libmpv archive / DLL hash，再生成两个提交号命名的文件：
+
+- `YYPlayer-<版本>-<提交号>-windows-x64-portable.zip`：解压后从 `yyplayer.exe` 启动，运行时 DLL 位于 `runtime/`。播放器配置仍保存在当前 Windows 用户的 `%APPDATA%`。
+- `YYPlayer-<版本>-<提交号>-windows-x64-setup.exe`：NSIS 安装器，要求 x64 Windows 和管理员安装权限，默认安装到 64 位 Program Files，创建开始菜单快捷方式并提供卸载；卸载不删除用户配置。
+
+两份实际文件会一起出现在该次 Actions run 的 `YYPlayer-windows-x64-<commit>` artifact 中，保留 30 天。它们是逐提交 CI 构建产物，不会创建 GitHub Releases 页面上的版本发布；源代码发布仍由用户 push。NSIS 被选为安装器，因为其开源许可适用于商业和非商业用途，Windows 2022 hosted runner 已预装 NSIS 与 7-Zip。[NSIS 官方许可](https://nsis.sourceforge.io/Docs/AppendixI.html)、[GitHub Windows 2022 runner 清单](https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md)
+
+NSIS setup 本身由 NSIS 编译，但它只在 x64 Windows 上安装 x64 app。Windows 2022 runner 镜像和 NSIS 版本可能更新，工作流会在找不到 7-Zip / `makensis.exe` 时明确失败。
+
+构建包随附本项目 GPL 与当前第三方许可记录、固定 mpv manifest 和源码提交链接。`THIRD_PARTY_NOTICES.md` 明确当前还不是 libmpv 构建内部所有 FFmpeg / codec 组件的完整 notices；对应源码 / 构建脚本安排与 DLL 闭包也未完成最终发行审计。因此这些自动产物用于本仓库的提交构建，不将其描述为完成了二进制发行合规审计。正式 GitHub Release 还需先补齐上述事项并做干净 Windows 安装 / 卸载与运行时依赖验收，参见 [运行时说明](../third_party/mpv/README.md)。CI 编译包也不代表 USB 位准确、HDR 或 macOS / Linux 资格。
