@@ -4,7 +4,7 @@
 
 ## 开发环境
 
-先读 [README](README.md)、[开发规则](AGENTS.md) 和 [实际状态](docs/STATUS.md)。当前首要验证平台是 Windows x64 MSVC，需要 Visual Studio C++ Build Tools / Windows SDK、Rust 和 Git。当前已验证 Rust / Cargo 1.97.0，MSRV 1.92 尚未专项验证；Slint / slint-build 固定 1.17.1。
+先读 [README](README.md)、[开发规划](docs/DEVELOPMENT_PLAN.md)、[开发规则](AGENTS.md) 和 [实际状态](docs/STATUS.md)。当前首要验证平台是 Windows x64 MSVC，需要 Visual Studio C++ Build Tools / Windows SDK、Rust 和 Git。当前已验证 Rust / Cargo 1.97.0，MSRV 1.92 尚未专项验证；Slint / slint-build 固定 1.17.1。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/Get-Mpv.ps1

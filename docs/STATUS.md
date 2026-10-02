@@ -1,6 +1,14 @@
 # YYPlayer 进度与证据
 
-更新：2026-10-02。正式源码分支已统一为 master，dev 保留最新开发版本，原 main 的全部提交已合入 master，重复分支已移除。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。Git 框架 `d10a4e8` 保留在历史，视频 `4eca722` 保留在 master 历史中；音频 `8467ca9` 已合入 master，目录音乐库 / 主题 / UI 修复和本轮字体 / 窗口 / 列宽继续在 dev。
+更新：2026-10-02。正式源码分支已统一为 master，dev 保留最新开发版本，原 main 的全部提交已合入 master，重复分支已移除。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。Git 框架 `d10a4e8` 保留在历史，视频 `4eca722` 保留在 master 历史中；音频 `8467ca9` 已合入 master，目录音乐库 / 主题 / UI 修复 / 字体 / 窗口 / 列宽与发布准备均已合入 master。
+
+## 2026-10-02：精简项目首页与整理更新日志
+
+状态：Done（文档整理）。目标为 README 只保留功能、编译、运行与必要入口，产品更新集中到 CHANGELOG；保留完整规划供后续开发。
+
+- 改动 README / CHANGELOG / docs/DEVELOPMENT_PLAN / AGENTS / CONTRIBUTING / THIRD_PARTY_NOTICES / STATUS。完整选型、架构、S00–S14 与验收规格从旧 README 转移，规划目标和实际交付明确区分，开发规则改为引用新位置。
+- 验收：内联 Python 检查通过（本地 Markdown 链接、原规划 16 节逐字保留、UTF-8、代码围栏、无 emoji、实际包名与启动路径）；git diff --check 通过。首轮检查误用 player-app 目录，按实际 yyplayer-app 修正后全部通过；仅文档变化，不重复编译、Clippy、播放或硬件验收。
+- 未改变程序行为或硬件资格，真机范围沿用此前验收。本轮更改保留在 master 工作区，未提交或推送；下一步由用户通过 VS Code 审查、提交并推送文档。
 
 ## 2026-10-02：统一 main / master 主分支
 
@@ -155,8 +163,8 @@
 
 | 任务 | 状态 | 本轮证据 / 剩余 |
 | --- | --- | --- |
-| 完整规划 / 原 UI 框架 | Done（各自限定范围） | README / AGENTS / ADR 0000；旧音乐布局截图 ui-preview.png。 |
-| 本轮：视频功能实现 | Done（开发预览范围） | 实际 engine / GPU / 控件 / 快捷键 / 规则 / 保存；目标见 README 顶部，资格限制见验证报告。 |
+| 完整规划 / 原 UI 框架 | Done（各自限定范围） | DEVELOPMENT_PLAN / AGENTS / ADR 0000；旧音乐布局截图 ui-preview.png。 |
+| 本轮：视频功能实现 | Done（开发预览范围） | 实际 engine / GPU / 控件 / 快捷键 / 规则 / 保存；变更见 CHANGELOG，资格限制见验证报告。 |
 | S00 | Partially verified | 可追溯 runtime、loader、锁文件、debug / release 已有；具体 toolchain pin、发行许可 / 依赖闭包未完成，MSRV 未测试。 |
 | S01 | Partially verified（音频开发预览） | WASAPI 共享 / 独占、分级 EQ、源率拒绝与竞争已验；USB DAC、物理拔插、成功共享回退、数字捕获未验。 |
 | S02A | Partially verified | GL 合成本机 NVDEC / 软件播放、方向 / 帧数 / 退出通过；广泛格式、性能、跨平台待验。 |

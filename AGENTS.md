@@ -1,10 +1,10 @@
 # YYPlayer 开发执行规则
 
-本文件面向后续人类开发者和代码代理。产品目标、选型依据、模块接口与逐阶段任务以 [README.md](README.md) 为准。当前已接入 Windows libmpv 视频开发预览：真实播放、GPU 合成、分级解码设置和快捷键已实现；基础 WASAPI 独占 / 分级 EQ / 本地歌词与音乐大页面已接入；USB DAC / 位准确、系统集成和跨平台资格仍未完成。不能把规划描述或示例 UI 当成已实现功能。
+本文件面向后续人类开发者和代码代理。项目概览与启动方法见 [README.md](README.md)，产品目标、选型依据、模块接口与逐阶段任务以 [开发规划](docs/DEVELOPMENT_PLAN.md) 为准，已交付更新见 [CHANGELOG.md](CHANGELOG.md)。当前已接入 Windows libmpv 视频开发预览：真实播放、GPU 合成、分级解码设置和快捷键已实现；基础 WASAPI 独占 / 分级 EQ / 本地歌词与音乐大页面已接入；USB DAC / 位准确、系统集成和跨平台资格仍未完成。不能把规划描述或示例 UI 当成已实现功能。
 
 ## 1. 接手时的执行顺序
 
-1. 读 README 中选型结论、视频呈现、音频策略与当前任务对应章节。
+1. 读 README 的项目概览与启动方法，再读 docs/DEVELOPMENT_PLAN.md 中选型结论、视频呈现、音频策略与当前任务对应章节。
 2. 读 [docs/STATUS.md](docs/STATUS.md)，检查实际文件、工作区修改、runtime manifest、上一任务的验收证据。
 3. 用户没有另行指定范围时，从 S00 起按前置依赖选取第一个未完成任务。当前 UI 优先交付来自用户明确要求，范围见 `docs/adr/0000-framework-preview.md`；本轮视频优先交付见 ADR 0001；复用现有实现并按 STATUS 补齐剩余资格验证，不重新创建工程。
 4. 写清本轮目标、涉及模块、验收方式；实现一个可审查的任务或其明确子步骤。
@@ -60,7 +60,7 @@
 - 配置版本化、迁移可测、坏数据可恢复；原子替换，不先删除唯一文件。
 - 新依赖最少 features、提交应用 Cargo.lock，运行时二进制用 manifest + hash 锁定。
 - 不依赖开发者 PATH 上偶然存在的 DLL；最终包自带合格 runtime 与必要 notices / 源码安排。
-- 功能实现按 README 第 14 节做 fmt、clippy、相关 tests 与 release build。用户限定只做框架与少量检验时，按该范围做必要格式 / 编译 / UI 预览检查，在 STATUS 明确省略项；不要把没有跑过的检查写为通过。
+- 功能实现按 docs/DEVELOPMENT_PLAN.md 第 14 节做 fmt、clippy、相关 tests 与 release build。用户限定只做框架与少量检验时，按该范围做必要格式 / 编译 / UI 预览检查，在 STATUS 明确省略项；不要把没有跑过的检查写为通过。
 - `demo.rs` 与 `MediaPreview` 仅为展示，不转换成真实 PlaybackSnapshot，不伪造播放、设备、独占、EQ 或硬解成功。接入媒体后使用真实状态源替换 demo。
 - Slint 与 slint-build 当前固定 1.17.1；升级两者一起改并验证对应 API。`ui-preview` 的软件截图只用于布局审查，普通应用默认 Winit + FemtoVG。
 - 测试覆盖边界、竞态和数学 / 数据风险；不为低风险文字修改造无意义测试。
@@ -78,7 +78,7 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 
 ## 7. 接续当前实现
 
-先查 STATUS 与 ADR 0001 / 0002 / 0003。本轮用户目标已记录在 README 顶部并在 `dev` 实现；音频版本已合入 `master` 的 `8467ca9`，视频 `4eca722` 已保留在 master 的提交历史中；旧框架 `d10a4e8` 保留在 Git 历史。用户没有明确新任务时，优先补齐当前实现的格式 / 多设备 / 生命周期资格验证和 S00 工具链 / 发行许可；再补齐 S01 的 USB DAC / 位准确资格。不要把视频预览重新降为假状态或占位引擎。
+先查 STATUS 与 ADR 0001 / 0002 / 0003。此前用户目标已在各轮实现前记录，已交付变更现汇总于 CHANGELOG，完整规划保留于 docs/DEVELOPMENT_PLAN.md；音频版本已合入 `master` 的 `8467ca9`，视频 `4eca722` 已保留在 master 的提交历史中；旧框架 `d10a4e8` 保留在 Git 历史。用户没有明确新任务时，优先补齐当前实现的格式 / 多设备 / 生命周期资格验证和 S00 工具链 / 发行许可；再补齐 S01 的 USB DAC / 位准确资格。不要把视频预览重新降为假状态或占位引擎。
 
 - 固定运行时见 `third_party/mpv/manifest.json`，获取脚本 `scripts/Get-Mpv.ps1`，不要提交 DLL / archive。
 - `YYPLAYER_MPV_LIBRARY` 明确绕过 hash，仅供开发；发行路径必须受控。

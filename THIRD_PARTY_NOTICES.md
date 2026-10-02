@@ -9,6 +9,6 @@ YYPlayer 自身源码及原创 UI 资源采用 **GPL-3.0-only**，见 [LICENSE](
 | 其他 Rust 依赖 | Cargo.lock 锁定版本 | 保留各上游许可证；本轮 Windows normal / build 依赖的元数据清单见 [依赖许可元数据](docs/dependency-licenses.md)。Cargo manifest 的表达式不能代替每个组件的完整 notices。 |
 | 图标 / 演示封面 | 编译进 Slint 的本地 SVG | ADR 0000 记录为原创 SVG，随本项目源码授权；验收截图使用自有素材。用户附件、专辑图片、音视频与 APPDATA 配置不入仓库。 |
 
-本轮准备的是 GitHub **源码仓库**。没有建立携带 exe / DLL 的发行包，也没有完成固定 mpv 构建的所有 FFmpeg / 编解码组件 notices、对应源码 / 构建说明与 DLL 依赖闭包。二进制发行前按 README S00 补齐这些文件，保留上游原文并记录具体构建；不能把本页作为完整二进制许可审计。
+本轮准备的是 GitHub **源码仓库**。没有建立携带 exe / DLL 的发行包，也没有完成固定 mpv 构建的所有 FFmpeg / 编解码组件 notices、对应源码 / 构建说明与 DLL 依赖闭包。二进制发行前按 [开发规划 S00](docs/DEVELOPMENT_PLAN.md) 补齐这些文件，保留上游原文并记录具体构建；不能把本页作为完整二进制许可审计。
 
 本地已安装的 Cargo 依赖通常含 LICENSE / LICENSES 文件；源仓库中不复制整个 registry 或 target。公开源码的许可证选择不改变依赖各自的授权条件。
