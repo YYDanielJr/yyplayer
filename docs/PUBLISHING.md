@@ -55,4 +55,4 @@ git log -1 --oneline
 
 NSIS setup 本身由 NSIS 编译，但它只在 x64 Windows 上安装 x64 app。Windows 2022 runner 镜像和 NSIS 版本可能更新，工作流会在找不到 7-Zip / `makensis.exe` 时明确失败。
 
-构建包随附本项目 GPL 与当前第三方许可记录、固定 mpv manifest 和源码提交链接。`THIRD_PARTY_NOTICES.md` 明确当前还不是 libmpv 构建内部所有 FFmpeg / codec 组件的完整 notices；对应源码 / 构建脚本安排与 DLL 闭包也未完成最终发行审计。因此这些自动产物用于本仓库的提交构建，不将其描述为完成了二进制发行合规审计。正式 GitHub Release 还需先补齐上述事项并做干净 Windows 安装 / 卸载与运行时依赖验收，参见 [运行时说明](../third_party/mpv/README.md)。CI 编译包也不代表 USB 位准确、HDR 或 macOS / Linux 资格。
+构建包随附本项目 GPL 与当前第三方许可记录、固定 mpv manifest、源码提交链接和 NSIS 构建工具归属说明。`THIRD_PARTY_NOTICES.md` 明确当前还不是 libmpv 构建内部所有 FFmpeg / codec 组件的完整 notices；对应源码 / 构建脚本安排与 DLL 闭包也未完成最终发行审计。因此这些自动产物用于本仓库的提交构建，不将其描述为完成了二进制发行合规审计。正式 GitHub Release 还需先补齐上述事项并做干净 Windows 安装 / 卸载与运行时依赖验收，参见 [运行时说明](../third_party/mpv/README.md)。CI 编译包也不代表 USB 位准确、HDR 或 macOS / Linux 资格。

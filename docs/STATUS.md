@@ -22,6 +22,13 @@
 - 输出是逐提交 Actions artifact，不创建 GitHub Releases 页；需 wait for workflow after master push。完整 libmpv 内部组件 notices / 对应源码安排 / DLL 闭包发行审计仍未完成，所以没有宣称正式二进制发行验收。没有在本机或 GitHub runner 执行 workflow；NSIS 安装/卸载、干净 Windows 首次运行、签名与真实 Actions 上传待后续 runner / 真机验收。
 - 下一步：源码 push 至 GitHub master 后，从 Actions 下载两份资产并在干净 Windows 验证安装 / 卸载、便携目录启动与运行时加载；随后再补发行许可闭包与签名决策。
 
+## 2026-10-02：修复 NSIS runner 许可路径假设
+
+状态：已修正，等待将 dev 更新推送到 GitHub 后重跑 Actions。首次 hosted runner 在 `Package-Windows.ps1` 第 18 行失败，因为脚本假定 NSIS 安装器一定在编译器旁安装 `Docs/AppendixI.html`。
+
+- 移除对 runner 私有 NSIS 文档目录的硬依赖；改为从仓库打包固定的 NSIS attribution 文件，含官方许可链接和本项目安装器源码位置。NSIS 版本仍从 `makensis.exe` 文件元数据读取并写入 `BUILD-INFO.txt`。
+- 改动 `scripts/Package-Windows.ps1` 与新增 `packaging/windows/NSIS-BUILD-TOOL.md`。尚未在本地复跑完整打包，也未重跑 GitHub Actions；下次 workflow 会验证 hosted runner 路径，并继续检查其余 packaging 步骤。
+
 ## 2026-10-02：外观设置控件高度与缓存清理
 
 状态：Done（本轮 UI / 本机布局及缓存清理）。继续 dev 原工作区，未提交 / 合并 / 推送。appearance-options.slint 将用户框出的设计 / 明暗 / 主题色来源下拉、颜色输入及应用按钮固定 34px；标签行 60px，不再按面板剩余高度拉伸。
