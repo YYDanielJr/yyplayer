@@ -1,6 +1,7 @@
 import { Theme, Icons } from "../theme.slint";
 import { ActionButton } from "../components/controls.slint";
-export component VideoPage inherits Rectangle {
+// Playback surface independent of library navigation and window ownership.
+export component VideoPlayer inherits Rectangle {
     in property <image> frame; in property <bool> has-media; in property <bool> has-video;
     in property <bool> render-ready; in property <string> render-error;
     callback open-file(); callback control(string,string);

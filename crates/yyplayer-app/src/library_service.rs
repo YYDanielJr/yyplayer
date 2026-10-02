@@ -1,5 +1,5 @@
 //! Bounded, cancellable directory indexing. No Slint handles or playback calls.
-use player_core::library::{LibrarySettings, Song, is_audio};
+use player_core::library::{LibrarySettings, Song, VIDEO_EXTENSIONS, is_audio, is_video};
 use serde::{Deserialize, Serialize};
 use std::{
     path::PathBuf,
@@ -12,6 +12,8 @@ use std::{
 #[derive(Serialize, Deserialize)]
 struct Cache {
     version: u32,
+    #[serde(default)]
+    video: bool,
     config: LibrarySettings,
     songs: Vec<Song>,
 }
@@ -19,6 +21,7 @@ pub enum Request {
     Scan(u64, LibrarySettings),
     Folder,
     Files,
+    Paths(bool, Vec<PathBuf>),
 }
 pub enum Reply {
     Paths(bool, Vec<PathBuf>),
@@ -33,6 +36,12 @@ pub struct Service {
 }
 impl Service {
     pub fn start(cache: PathBuf, config: LibrarySettings) -> Self {
+        Self::start_kind(cache, config, false)
+    }
+    pub fn start_video(cache: PathBuf, config: LibrarySettings) -> Self {
+        Self::start_kind(cache, config, true)
+    }
+    fn start_kind(cache: PathBuf, config: LibrarySettings, video: bool) -> Self {
         let (tx, rx) = sync_channel::<Request>(2);
         let (out, done) = sync_channel(4);
         let generation = Arc::new(AtomicU64::new(0));
@@ -43,29 +52,57 @@ impl Service {
                 .filter(|m| m.len() <= 32_000_000)
                 .and_then(|_| std::fs::read(&cache).ok())
                 .and_then(|b| serde_json::from_slice::<Cache>(&b).ok())
-                .filter(|c| c.version == 1 && c.config == config && c.songs.len() <= 20000);
+                .filter(|c| {
+                    c.version == 1
+                        && c.video == video
+                        && c.config == config
+                        && c.songs.len() <= 20000
+                });
             let mut prior = loaded.as_ref().map(|c| c.songs.clone()).unwrap_or_default();
             if let Some(c) = loaded
                 && out
-                    .send(Reply::Indexed(0, c.config, c.songs, "已恢复音乐库".into()))
+                    .send(Reply::Indexed(
+                        0,
+                        c.config,
+                        c.songs,
+                        if video {
+                            "已恢复视频库"
+                        } else {
+                            "已恢复音乐库"
+                        }
+                        .into(),
+                    ))
                     .is_err()
             {
                 return;
             }
             while let Ok(request) = rx.recv() {
                 let reply = match request {
+                    Request::Paths(folder, paths) => Some(Reply::Paths(folder, paths)),
                     Request::Folder => rfd::FileDialog::new()
-                        .set_title("添加音乐目录（包含子目录）")
+                        .set_title(if video {
+                            "添加视频目录（包含子目录）"
+                        } else {
+                            "添加音乐目录（包含子目录）"
+                        })
                         .pick_folder()
                         .map(|p| Reply::Paths(true, vec![p])),
                     Request::Files => rfd::FileDialog::new()
-                        .set_title("添加歌曲到音乐库")
+                        .set_title(if video {
+                            "添加视频到视频库"
+                        } else {
+                            "添加歌曲到音乐库"
+                        })
                         .add_filter(
-                            "音频",
-                            &[
-                                "mp3", "flac", "wav", "m4a", "ogg", "opus", "aac", "aif", "aiff",
-                                "ape", "wv", "caf", "dsf", "dff",
-                            ],
+                            if video { "视频" } else { "音频" },
+                            if video {
+                                VIDEO_EXTENSIONS
+                            } else {
+                                &[
+                                    "mp3", "flac", "wav", "m4a", "ogg", "opus", "aac", "aif",
+                                    "aiff", "ape", "wv", "caf", "dsf", "dff",
+                                ]
+                            },
                         )
                         .pick_files()
                         .map(|p| Reply::Paths(false, p)),
@@ -73,7 +110,7 @@ impl Service {
                         if cancel.load(Ordering::Relaxed) != id {
                             continue;
                         }
-                        let result = scan(&config, &cancel, id);
+                        let result = scan_kind(&config, &cancel, id, video);
                         if cancel.load(Ordering::Relaxed) != id {
                             continue;
                         }
@@ -99,11 +136,12 @@ impl Service {
                         }
                         songs.sort_by(|a, b| a.path.cmp(&b.path));
                         if retained > 0 {
-                            message.push_str(&format!("；离线 / 不可读目录保留 {retained} 首缓存"));
+                            message.push_str(&format!("；离线 / 不可读目录保留 {retained} 项缓存"));
                         }
                         prior = songs.clone();
                         let cache_value = Cache {
                             version: 1,
+                            video,
                             config: config.clone(),
                             songs: songs.clone(),
                         };
@@ -111,7 +149,7 @@ impl Service {
                             .map_err(|e| e.to_string())
                             .and_then(|bytes| {
                                 if bytes.len() > 32_000_000 {
-                                    Err("音乐索引超过 32MB".into())
+                                    Err("媒体索引超过 32MB".into())
                                 } else {
                                     crate::services::atomic_bytes(&cache, &bytes)
                                 }
@@ -161,12 +199,22 @@ impl Service {
         }
     }
 }
+#[cfg(test)]
 fn scan(
     config: &LibrarySettings,
     cancel: &AtomicU64,
     id: u64,
 ) -> (Vec<Song>, String, Vec<PathBuf>) {
+    scan_kind(config, cancel, id, false)
+}
+fn scan_kind(
+    config: &LibrarySettings,
+    cancel: &AtomicU64,
+    id: u64,
+    video: bool,
+) -> (Vec<Song>, String, Vec<PathBuf>) {
     use std::collections::BTreeSet;
+    let accepts = |p: &std::path::Path| if video { is_video(p) } else { is_audio(p) };
     let mut paths = BTreeSet::new();
     let excluded: BTreeSet<_> = config.excluded.iter().cloned().collect();
     let mut problems = 0usize;
@@ -211,7 +259,7 @@ fn scan(
                 }
                 if meta.is_dir() {
                     stack.push((p, depth + 1));
-                } else if meta.is_file() && is_audio(&p) {
+                } else if meta.is_file() && accepts(&p) {
                     match p.canonicalize() {
                         Ok(p) if !excluded.contains(&p) => {
                             paths.insert(p);
@@ -228,7 +276,7 @@ fn scan(
             limited = true;
             break;
         }
-        if is_audio(path) && !excluded.contains(path) {
+        if accepts(path) && !excluded.contains(path) {
             paths.insert(path.clone());
         }
     }
@@ -253,6 +301,20 @@ fn scan(
             album: String::new(),
             seconds: 0,
         };
+        if video {
+            song.artist = path.parent().map(display_path).unwrap_or_default();
+            song.album = std::fs::metadata(&path)
+                .map(|m| {
+                    if m.len() < 1_000_000 {
+                        format!("{:.1} KB", m.len() as f64 / 1_000.0)
+                    } else {
+                        format!("{:.1} MB", m.len() as f64 / 1_000_000.0)
+                    }
+                })
+                .unwrap_or_else(|_| "文件失联".into());
+            songs.push(song);
+            continue;
+        }
         match Probe::open(&path)
             .and_then(|p| p.options(ParseOptions::new().read_cover_art(false)).read())
         {
@@ -270,16 +332,28 @@ fn scan(
         }
         songs.push(song);
     }
-    let mut message = format!("已索引 {} 首歌曲", songs.len());
+    let mut message = format!(
+        "已索引 {} {}",
+        songs.len(),
+        if video { "个视频" } else { "首歌曲" }
+    );
     if problems > 0 {
         message.push_str(&format!(
             "；{problems} 项读取失败或标签不可识别，可重新扫描"
         ));
     }
     if limited {
-        message.push_str("；达到 20000 首 / 200000 项 / 64 层限制，请拆分目录");
+        message.push_str("；达到 20000 个媒体 / 200000 项 / 64 层限制，请拆分目录");
     }
     (songs, message, unreadable)
+}
+pub(super) fn display_path(path: &std::path::Path) -> String {
+    let text = path.to_string_lossy();
+    if let Some(unc) = text.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{unc}")
+    } else {
+        text.strip_prefix(r"\\?\").unwrap_or(&text).into()
+    }
 }
 #[cfg(windows)]
 fn reparse(m: &std::fs::Metadata) -> bool {
@@ -315,6 +389,7 @@ mod tests {
             &cache,
             &serde_json::to_vec(&Cache {
                 version: 1,
+                video: false,
                 config: config.clone(),
                 songs: vec![song],
             })
@@ -357,5 +432,32 @@ mod tests {
         assert!(scan(&c, &cancel, 1).0.is_empty());
         assert!(scan(&c, &cancel, 2).0.is_empty());
         std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn video_index_is_separate_bounded_and_preserves_raw_identity() {
+        let base =
+            std::env::temp_dir().join(format!("yyplayer-video-index-{}", std::process::id()));
+        std::fs::create_dir_all(base.join("sub")).unwrap();
+        let path = base.join("sub/湖边.MKV");
+        std::fs::write(&path, b"video candidate, not decoded during scanning").unwrap();
+        std::fs::write(base.join("tone.wav"), b"audio").unwrap();
+        let base = base.canonicalize().unwrap();
+        let path = path.canonicalize().unwrap();
+        let mut config = LibrarySettings {
+            roots: vec![base.clone(), base.join("sub")],
+            files: vec![path.clone()],
+            excluded: vec![],
+        };
+        let cancel = AtomicU64::new(1);
+        let (items, _, _) = scan_kind(&config, &cancel, 1, true);
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].path, path);
+        assert_eq!(items[0].title, "湖边");
+        assert_eq!(items[0].seconds, 0, "Unknown duration must not be invented");
+        config.excluded.push(path.clone());
+        assert!(scan_kind(&config, &cancel, 1, true).0.is_empty());
+        assert!(scan_kind(&config, &cancel, 2, true).0.is_empty());
+        assert!(path.exists(), "Removing a record never deletes the source");
+        std::fs::remove_dir_all(base).unwrap();
     }
 }

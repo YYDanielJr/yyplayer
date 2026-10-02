@@ -2,6 +2,56 @@
 
 更新：2026-10-02。正式源码分支已统一为 master，dev 保留最新开发版本，原 main 的全部提交已合入 master，重复分支已移除。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。Git 框架 `d10a4e8` 保留在历史，视频 `4eca722` 保留在 master 历史中；音频 `8467ca9` 已合入 master，目录音乐库 / 主题 / UI 修复 / 字体 / 窗口 / 列宽与发布准备均已合入 master。
 
+## 2026-10-02：视频重播后无法暂停
+
+状态：Done（本轮播放状态修复 / 本机回归）。继续 dev，未提交 / 合并 / 推送。旧 Release 自有 2 秒视频复现：EOF 后重播位置前进，但 snapshot 仍 Ended，每次点击均 Seek(0)+Resume，UI 仍播放图标。worker 在内核 active / 非 EOF 时恢复 Playing / Paused，Idle / Loading / Error 不被旧属性复活；保持 Engine / GL 边界。
+
+- 改动 worker.rs 的真实状态投影及两个边界单测、video-library.rs 的实际 Slint 按钮回归、Test-VideoLibrary 提示、CHANGELOG / 接续规则。没有修改 GL / 解码默认 / 音频策略或添加 reload。
+- fmt --check、严格 workspace all-targets clippy、workspace all-targets tests（28 个独立单测）、Debug yyplayer / video-library 和 Release 构建通过。Test-VideoLibrary 21 阶段及 10 个暂停 / 重播子步骤通过：普通和 EOF 重播后的暂停位置冻结、继续递增，generation / renderer 创建数保持不变；Test-Video 11 动作含 AAC 音轨、NVDEC、暂停及软件解码重载位置恢复通过。
+- 最终 Release 同一 2 秒短视频复验通过：3 秒 Ended，4 秒 Playing，5 秒 Paused；引擎 / 渲染错误为空。自有媒体、独立配置；用户视频仅读取编码 / 时长，没有截图 / 复制或修改 APPDATA。原因、最小轨迹和截图见 [验收记录](validation/video-pause-replay.md)。未新增物理键鼠 / 多屏 / 4K 图片 / HDR / USB 资格。
+- 保存证据后运行 Clean-Workspace -WhatIf 核对工作区目标与链接，再清理 12,408,954,418 字节（11.56 GiB），target 仅保留 22,159,360 字节新 Release exe，固定 runtime / 头文件保留。清理后独立配置启动 / 正常退出通过，Idle、render 帧 / 创建 0、错误为空；exe hash 未变、DLL hash 符合 manifest，没有终止用户播放器。
+- 下一步：用户运行新 Release 确认实际媒体体验；后续回归保留普通暂停与 EOF 重播后暂停 / 继续场景，继续既有生命周期 / 多设备资格验证。
+
+## 2026-10-02：Windows x64 Actions 构建包
+
+状态：实现完成，等待用户推送到 GitHub 验证真实 runner。当前在 dev，未提交或推送；触发条件是远端 master 收到 push。
+
+- 新增 `.github/workflows/windows-release.yml`、`scripts/Package-Windows.ps1`、`packaging/windows/yyplayer.nsi`。Windows 2022 x64 MSVC 稳定 Rust workflow 下载并校验固定 libmpv，编译 release exe，创建带 runtime DLL / 数据文件、许可记录、manifest / commit 源码链接的 portable ZIP 和 x64 Windows 专用 NSIS 安装器，两文件存为同一 30 天 Actions artifact；也可手动 dispatch。
+- 选择 NSIS 而非 Inno Setup：NSIS 上游 zlib/libpng 等许可可以商用 / 非商用，runner 清单含 NSIS / 7-Zip，无需将 CI 构建锁定到商业安装器许可。NSIS setup 按架构检查，只装 64 位程序至 Program Files，快捷方式 / 注册卸载清理。项目设置保持原有 per-user `%APPDATA%`。
+- `scripts/Get-Mpv.ps1` hash 验证之后优先用 7-Zip 解压经验证的 `.7z`，没有 7-Zip 才退到 tar；工作流不上传 DLL 到 Git 仓库或使用用户机 PATH。
+- 输出是逐提交 Actions artifact，不创建 GitHub Releases 页；需 wait for workflow after master push。完整 libmpv 内部组件 notices / 对应源码安排 / DLL 闭包发行审计仍未完成，所以没有宣称正式二进制发行验收。没有在本机或 GitHub runner 执行 workflow；NSIS 安装/卸载、干净 Windows 首次运行、签名与真实 Actions 上传待后续 runner / 真机验收。
+- 下一步：源码 push 至 GitHub master 后，从 Actions 下载两份资产并在干净 Windows 验证安装 / 卸载、便携目录启动与运行时加载；随后再补发行许可闭包与签名决策。
+
+## 2026-10-02：外观设置控件高度与缓存清理
+
+状态：Done（本轮 UI / 本机布局及缓存清理）。继续 dev 原工作区，未提交 / 合并 / 推送。appearance-options.slint 将用户框出的设计 / 明暗 / 主题色来源下拉、颜色输入及应用按钮固定 34px；标签行 60px，不再按面板剩余高度拉伸。
+
+- fmt --check、严格 workspace all-targets clippy、Debug yyplayer / library-theme / navigation-ui、Release 构建通过。Test-LibraryTheme 13 阶段、navigation-ui 10 点通过，已查看 1240×900 / 1460×920 设置截图；文字 / 控件高度正常，无回调或主题策略变更。低风险布局未新增单测，未重跑解码 / 位准确 / 内存专项；物理键鼠 / 多屏 DPI 尚未新增资格。
+- 保存自有截图 / 证据到 docs，并归档此前内存原始样本与测量脚本。Clean-Workspace -WhatIf 核对工作区绝对目标 / 无链接，再清理，移除 18,717,681,722 字节（17.43 GiB）；target 仅留 22,158,848 字节 Release exe，固定 DLL / headers 保留，未处理 APPDATA / 用户媒体或终止用户播放器。
+- 清理后独立配置 Release 启动 / 正常退出再验通过，Idle、mpv v0.41.0-1087-ge470f8986、render 帧 / 创建 0，无引擎 / 渲染错误；exe 清理前后 hash 一致，DLL 与 manifest 一致。预览 / 清理输出 / 最小诊断及图片见 [验收记录](validation/appearance-controls-cleanup.md)。git diff --check 与证据链接检查通过。
+- 下一步：用户体验紧凑外观控件；后续构建会完整重编，继续此前大库 / 多屏 / USB 资格验证。
+
+## 2026-10-02：精简媒体库界面
+
+状态：Done（本轮 UI / 本机布局与流程验收）。按用户框选截图删除音乐宣传卡片、音乐 / 视频库重复标题和索引说明，数量并入筛选工具栏；侧栏、主标题与空闲播放栏统一命名“视频库”。保留未框出的空库引导和库操作。继续在 dev 原工作区，未提交 / 合并 / 推送。
+
+- 改动 music.slint / video-library.slint / app.slint / shell.rs 的布局与可见属性、controller.rs 空闲标题；更新 ui-customization / video-library 新行位置点击坐标、CHANGELOG 与接续规则。没有改 Engine / presenter / GL / 解码或音频默认。
+- fmt --check、严格 workspace all-targets clippy、workspace all-targets tests（26 个独立测试）、Debug bins / examples、Release 与 git diff --check 通过；Test-UiCustomization 22 阶段（新列宽拖动 / 移除）、Test-LibraryTheme 13、Test-VideoLibrary 20、navigation-ui 10、ui-feedback 17、audio-ui 五图 / 实际点击通过。
+- 已审查浅 / 深音乐库、视频空页 / 列表和 1000×640 选项面板截图，按钮 / 数量无重叠、列表上移、删除内容无空白占位。使用自有素材 / 独立配置；报告与图片见 [媒体库 UI 精简验收](validation/media-library-ui.md)。未新增物理键鼠 / 对话框 / 多屏 DPI 资格，没有重复 4K 像素 / 位准确 / 内存专项。
+- 下一步：在用户真实媒体库下体验精简布局，继续补此前大库 / 长时资源 / 多屏 / USB 验收；库与播放资源生命周期保持上一轮实现。
+
+## 2026-10-02：视频库与按需视频渲染
+
+状态：Done（本轮 Windows 开发预览功能 / 本机验收）。用户要求在 dev 修改；dev 原落后 master 一个文档提交，先快进至 1406840，本轮实现留在 dev 工作区，未提交、未合入 master、未推送。
+
+- 视频剧场改为独立库页，目录 / 单文件导入、递归去重、搜索、筛选、重扫 / 取消、移除和重启恢复；video_library 配置 / videos.json 索引与音乐分开，有界后台规范化 / 扫描，移除不删原文件、不改变已建立队列。只索引名称 / 目录 / 文件大小，不为库扫描解码或虚构时长。
+- 同窗口 VideoPlayer / VideoPlayerToolbar 抽为独立组件；进入播放才创建 libmpv render context，音频不等待 render。返回库保存本次位置后 Stop；current-vo 实际关闭后释放 render / FBO / texture，继续观看重建并恢复。修正无音轨视频仅关 vid 会 Ended、旧 VO 标志残留、过期错误取消新加载；VideoGate 合并 / 取消旧等待请求。64 项普通命令 + 1 个 Stop 保留槽，不丢弃排队设置，Shutdown atomic；主线程 / Engine / GL 与 prepare_gl 边界保留。
+- 涉及 core 配置 / 协议 / 快照、mpv worker / video_gate、app library_service / video_controller / controller / bootstrap、UI 库页 / 播放器组件 / presenter / 投影；新增 Test-VideoLibrary / 真实流程例子，更新导航与歌词点击测试坐标。更新 README / CHANGELOG / ADR 0006 / 接续规则，无新依赖。
+- fmt --check、严格 workspace all-targets clippy、workspace all-targets tests（26 个独立测试）、Debug bins / examples 与 Release 构建通过。视频库 20 阶段含 10 次释放 / 重建、快速取消、损坏视频后音频恢复、索引恢复 / 最小布局通过。Test-Video 11 动作、Test-Render 4K HEVC NVDEC / 软件 / 去色带实际 GPU 图片比较通过，RGB 误差 0 / 0.205388、明显偏差比例均 0；Test-UiCustomization 22 阶段、navigation-ui 10、ui-feedback 17、audio-ui 五图 / 实际点击、Test-LibraryTheme 13、Release Test-Audio 通过。
+- 同素材 / 默认设置 / 独立配置的串行 Release 短样本：音乐 Working Set 中位数 227.65 → 110.46 MiB，Private Bytes 384.91 → 163.40 MiB；新版 render 帧 / 创建数均 0。这是自有静音 WAV 的观察，不外推为用户 4K 素材 / PotPlayer 对比或 GPU 专用显存。
+- 详细命令、硬件 / 驱动 / 素材 hash、生命周期 / 内存 / GPU 指标与图片见 [视频库验收](validation/video-library.md)，设计见 [ADR 0006](adr/0006-video-library-and-lazy-rendering.md)。使用自有素材 / 独立配置，未读取用户锦城湖视频或改 APPDATA。
+- 已知边界：当前运行会话续播，未跨重启保存位置；未做视频缩略图 / 时长索引 / 实时监听 / DB。物理文件对话框 / 长时大库 / 网络盘 / 睡眠 / 多屏 DPI / 其他驱动与跨平台仍待验；USB / HDR / 位准确资格未改变。下一步以自有大库和长时间循环补内存 / 响应 / 退出证据，随后补原音频计划的 USB / 数字捕获。
+
 ## 2026-10-02：精简项目首页与整理更新日志
 
 状态：Done（文档整理）。目标为 README 只保留功能、编译、运行与必要入口，产品更新集中到 CHANGELOG；保留完整规划供后续开发。

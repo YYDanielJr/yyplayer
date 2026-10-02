@@ -158,7 +158,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     timer_project(&s);
                 }
                 7 => {
-                    click(&window, size.width * 0.65, 420.0);
+                    // Lyrics are centered in the viewport below the 76px inset and
+                    // 40px heading, including the native/custom window chrome.
+                    let lyric_y = (size.height + window.get_chrome_height()
+                        - window.get_controls_height())
+                        / 2.0
+                        + 41.0;
+                    click(&window, size.width * 0.65, lyric_y);
                     click(&window, 44.0, size.height - 40.0);
                     if state.borrow().page != 0 {
                         return Err("Collapse did not return to browse".into());

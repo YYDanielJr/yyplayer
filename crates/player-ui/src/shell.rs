@@ -183,7 +183,20 @@ fn project(window: &AppWindow, state: &ShellViewModel) {
     window.set_library_folder(lib.folder);
     window.set_library_selected(lib.selected);
     window.set_library_busy(lib.busy);
-    window.set_library_message(lib.message.as_str().into());
+    window.set_video_renderer_requested(state.video_renderer_requested);
+    window.set_can_resume_video(state.can_resume_video);
+    window.set_search_query(state.search_query.as_str().into());
+    let video = &state.video_library;
+    if window.get_video_library_revision() != video.revision as i32 {
+        window.set_video_library_tracks(rows(window.get_video_library_tracks(), &video.rows));
+        window.set_video_library_revision(video.revision as i32);
+    }
+    if !same_strings(&window.get_video_library_folders(), &video.folders) {
+        window.set_video_library_folders(strings(&video.folders));
+    }
+    window.set_video_library_folder(video.folder);
+    window.set_video_library_selected(video.selected);
+    window.set_video_library_busy(video.busy);
     let audio = &state.audio;
     window.set_preview(audio.preview);
     window.set_active_lyric(audio.active_lyric);

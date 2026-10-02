@@ -1,0 +1,28 @@
+{
+  "old": {
+    "working_set_mib": 227.65,
+    "private_bytes_mib": 384.91,
+    "count": 8,
+    "executable_sha256": "1BB1E740E13B306C47BB76FF3137ED6629E842CA2321995E72D3F3FAEDC3C152",
+    "exit": 0,
+    "media_sha256": "EFBF40F365EDF28A99F1796F00E9F232B4AE1764118AE7E8E9F59E6ACB2C4E01",
+    "render_frames": 3,
+    "lifecycle": null,
+    "runtime": "mpv v0.41.0-1087-ge470f8986"
+  },
+  "new": {
+    "working_set_mib": 110.46,
+    "private_bytes_mib": 163.4,
+    "count": 8,
+    "executable_sha256": "33F9CA3A5500DDBB21D779E9E97C3A1B0CC1983D62915FB596A5402C2AF02CA8",
+    "exit": 0,
+    "media_sha256": "EFBF40F365EDF28A99F1796F00E9F232B4AE1764118AE7E8E9F59E6ACB2C4E01",
+    "render_frames": 0,
+    "lifecycle": {
+      "initializations": 0,
+      "ready": false,
+      "video_output_enabled": false
+    },
+    "runtime": "mpv v0.41.0-1087-ge470f8986"
+  }
+}

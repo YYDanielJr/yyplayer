@@ -49,6 +49,7 @@ pub struct Settings {
     pub audio: crate::audio::AudioSettings,
     pub appearance: crate::appearance::Appearance,
     pub library: crate::library::LibrarySettings,
+    pub video_library: crate::library::LibrarySettings,
     pub fonts: crate::typography::Fonts,
     pub library_columns: crate::typography::LibraryColumns,
 }
@@ -66,6 +67,7 @@ impl Default for Settings {
             audio: Default::default(),
             appearance: Default::default(),
             library: Default::default(),
+            video_library: Default::default(),
             fonts: Default::default(),
             library_columns: Default::default(),
         }
@@ -82,6 +84,7 @@ impl Settings {
         self.global.validate()?;
         self.appearance.validate()?;
         self.library.validate()?;
+        self.video_library.validate()?;
         self.fonts.validate()?;
         self.library_columns.validate()?;
         for options in self.folders.values().chain(self.files.values()) {
@@ -112,6 +115,24 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn old_settings_gain_an_independent_empty_video_library() {
+        let mut settings: Settings =
+            serde_json::from_str(r#"{"version":1,"library":{"roots":["music"]}}"#).unwrap();
+        assert!(settings.video_library.roots.is_empty());
+        settings.video_library.roots.push("movies".into());
+        let loaded: Settings =
+            serde_json::from_str(&serde_json::to_string(&settings).unwrap()).unwrap();
+        assert_eq!(
+            loaded.library.roots,
+            vec![std::path::PathBuf::from("music")]
+        );
+        assert_eq!(
+            loaded.video_library.roots,
+            vec![std::path::PathBuf::from("movies")]
+        );
+        loaded.validate().unwrap();
+    }
     #[test]
     fn nearest_folder_then_file_and_removal() {
         let mut settings = Settings::default();

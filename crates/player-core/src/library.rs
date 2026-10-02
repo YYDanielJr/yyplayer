@@ -11,7 +11,7 @@ pub struct LibrarySettings {
 impl LibrarySettings {
     pub fn validate(&self) -> Result<(), String> {
         if self.roots.len() > 128 || self.files.len() > 10000 || self.excluded.len() > 10000 {
-            Err("音乐目录最多 128 个，单独添加 / 排除文件各最多 10000 个".into())
+            Err("媒体目录最多 128 个，单独添加 / 排除文件各最多 10000 个".into())
         } else {
             Ok(())
         }
@@ -46,4 +46,15 @@ pub fn is_audio(path: &std::path::Path) -> bool {
                 | "alac"
         )
     })
+}
+
+/// Candidate extensions for directory indexing; the engine confirms actual tracks.
+pub const VIDEO_EXTENSIONS: &[&str] = &[
+    "mp4", "mkv", "mov", "webm", "avi", "ts", "m2ts", "mts", "wmv", "flv", "m4v", "mpeg", "mpg",
+    "vob", "ogv", "3gp", "hevc", "h265", "h264",
+];
+pub fn is_video(path: &std::path::Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| VIDEO_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str()))
 }

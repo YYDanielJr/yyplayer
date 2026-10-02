@@ -85,7 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             records.push(serde_json::json!({"stage":step,"page":page,"opacity":opacity,"width":width,"window_width":size.width,"panel":w.get_panel_open()}));
             match step {
                 0=>click(&w,size.width-296.5,62.), // video header: library
-                1=>{if page!=0 {return Err("Video -> library click failed".into());} click(&w,100.,size.height-152.);},
+                1=>{if page!=5 {return Err("Video -> library click failed".into());} click(&w,100.,size.height-152.);},
                 2=>{if page!=3 {return Err("Settings nav click failed".into());} click(&w,100.,166.);},
                 3=>{if page!=0 {return Err("Music nav click failed".into());} click(&w,left+width/2.-67.,size.height/2.+83.);},
                 4=>{if imported.get()!=1 {return Err("Empty-state add-directory click failed".into());} click(&w,size.width-35.,size.height-40.);},

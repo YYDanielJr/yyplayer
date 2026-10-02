@@ -52,7 +52,10 @@ pub enum PlaybackCommand {
         source: MediaSource,
         decode: DecodeOptions,
         resume: Option<(f64, bool)>,
+        /// Video output requires the presenter's render lease; audio does not.
+        video: bool,
     },
+    SetVideoOutput(bool),
     SeekRelative(f64),
     SetSpeed(f64),
     SetMute(bool),
