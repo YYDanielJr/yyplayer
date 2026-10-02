@@ -78,7 +78,7 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 
 ## 7. 接续当前实现
 
-先查 STATUS 与 ADR 0001 / 0002 / 0003。本轮用户目标已记录在 README 顶部并在 `dev` 实现；音频版本已合入 `master` 的 `8467ca9`，旧 `main` 保留视频 `4eca722`；旧框架 `d10a4e8` 保留在 Git 历史。用户没有明确新任务时，优先补齐当前实现的格式 / 多设备 / 生命周期资格验证和 S00 工具链 / 发行许可；再补齐 S01 的 USB DAC / 位准确资格。不要把视频预览重新降为假状态或占位引擎。
+先查 STATUS 与 ADR 0001 / 0002 / 0003。本轮用户目标已记录在 README 顶部并在 `dev` 实现；音频版本已合入 `master` 的 `8467ca9`，视频 `4eca722` 已保留在 master 的提交历史中；旧框架 `d10a4e8` 保留在 Git 历史。用户没有明确新任务时，优先补齐当前实现的格式 / 多设备 / 生命周期资格验证和 S00 工具链 / 发行许可；再补齐 S01 的 USB DAC / 位准确资格。不要把视频预览重新降为假状态或占位引擎。
 
 - 固定运行时见 `third_party/mpv/manifest.json`，获取脚本 `scripts/Get-Mpv.ps1`，不要提交 DLL / archive。
 - `YYPLAYER_MPV_LIBRARY` 明确绕过 hash，仅供开发；发行路径必须受控。
@@ -125,7 +125,7 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 ## 源码发布接续（2026-10-02）
 
 - 用户已确定 GPL-3.0-only；workspace 与五个 crate 继承该字段，根 LICENSE 保留标准原文。第三方记录不能替代 runtime 二进制完整 notices / 对应源码安排。
-- 本地正式分支为 master，已包含最新功能与发布准备；dev 保留同一基线供开发。旧 main 仅保留历史视频版本，不作为新发布主分支。此前章节中的分支与未选许可描述是历史执行记录，以当前 STATUS 和 docs/PUBLISHING.md 为准。
+- 本地正式分支为 master，已包含最新功能与发布准备；dev 保留同一基线供开发。原 main 的全部提交已包含在 master，重复的本地 main 已移除，仅保留 master / dev。此前章节中的分支与未选许可描述是历史执行记录，以当前 STATUS 和 docs/PUBLISHING.md 为准。
 - 用户计划在 VS Code 发布，打开仓库根目录 E:\SourceFiles\rust\yyplayer；代理不代替用户创建远端或推送。发布源码不代表 USB / HDR / 跨平台资格或二进制发行已完成。
 
 ## 10. 窗口表面、缩略图与保存通知接续

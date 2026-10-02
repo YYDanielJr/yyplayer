@@ -1,6 +1,16 @@
 # YYPlayer 进度与证据
 
-更新：2026-10-02。正式源码分支已统一为 master，dev 保留最新开发版本，旧 main 保留视频基线。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。Git 框架 `d10a4e8` 保留在历史，视频 `4eca722` 保留 main；音频 `8467ca9` 已合入 master，目录音乐库 / 主题 / UI 修复和本轮字体 / 窗口 / 列宽继续在 dev。
+更新：2026-10-02。正式源码分支已统一为 master，dev 保留最新开发版本，原 main 的全部提交已合入 master，重复分支已移除。当前交付为 **Windows 音视频播放开发预览**，原始框架于 2026-09-30 完成。Git 框架 `d10a4e8` 保留在历史，视频 `4eca722` 保留在 master 历史中；音频 `8467ca9` 已合入 master，目录音乐库 / 主题 / UI 修复和本轮字体 / 窗口 / 列宽继续在 dev。
+
+## 2026-10-02：统一 main / master 主分支
+
+状态：Done（本地分支整理）。用户明确要求合并两个主分支，统一保留 master。
+
+- 操作前工作区干净，没有远端，只有当前一个工作树。main=4eca722、master=dev=f01498f；main 是 master 的祖先，main 没有独有提交，master 比 main 多 6 个提交。
+- 在 master 执行 git merge --ff-only main，确认已全部包含；随后 git branch -d main 安全删除已合并的重复分支。提交本轮说明后 dev 快进同步，最终仅 master / dev，当前停留 master。
+- 更新 README / AGENTS / PUBLISHING / STATUS 和分支检查记录。检查提交可达性、两个保留分支一致、git diff --check 和最终工作区状态；无代码变化，本轮不重跑编译 / 播放测试。
+- 所有原 main 提交（包括 4eca722）仍可从 master 访问，没有改写历史。没有远端分支或 GitHub 默认分支可修改，没有推送。
+- 下一步：用户在 VS Code 发布 master；目录仍为 E:\SourceFiles\rust\yyplayer。此前章节描述的是当时的分支状态，当前以本节为准。
 
 ## 2026-10-02：GitHub 公开源码发布准备
 

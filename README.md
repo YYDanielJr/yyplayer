@@ -6,7 +6,7 @@
 
 本项目自身源码与原创 UI 资源采用 **GPL-3.0-only**，完整文本见 [LICENSE](LICENSE)，第三方记录见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。当前公开的是 Windows 开发预览源码；正式二进制发行、跨平台和设备资格仍按 STATUS 推进。
 
-正式源码分支使用 **master**；dev 保留开发分支，旧 main 仅是历史视频基线。通过 VS Code 发布时打开整个仓库根目录，步骤见 [发布说明](docs/PUBLISHING.md)。
+正式源码分支使用 **master**；dev 保留开发分支。main 的全部提交已包含在 master 中，重复的本地 main 分支已移除，历史提交完整保留。通过 VS Code 发布时打开整个仓库根目录，步骤见 [发布说明](docs/PUBLISHING.md)。
 
 ## 当前实现与快速启动
 

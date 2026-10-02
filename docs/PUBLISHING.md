@@ -14,7 +14,7 @@ E:\SourceFiles\rust\yyplayer
 
 ## 已完成的本地准备
 
-- 最新功能和发布文档已合入 **master**，当前停留在 master，工作区干净。dev 保留同版本作为后续开发入口；旧 main 是历史视频基线，保留但本次不使用。
+- 最新功能和发布文档已合入 **master**，当前停留在 master，工作区干净。dev 保留同版本作为后续开发入口；重复的本地 main 已移除，原 main 的全部提交保留在 master 历史中。
 - 根目录 LICENSE 为完整 GPLv3 标准文本，README 明确 **GPL-3.0-only**，五个 crate 继承 workspace 许可字段。保留 Cargo.lock；不自动发布 crates.io。
 - THIRD_PARTY_NOTICES.md 记录 Slint 1.17.1 的 GPL 选择、固定 GPL 组合的 libmpv 与原创 SVG。docs/dependency-licenses.md 记录锁定 Windows normal / build 依赖元数据；不等同于二进制完整 notices。
 - `.gitignore` 排除编译产物 / runtime DLL / 下载 archive、临时媒体 / 本地设置 / .env / dump、音乐库缓存和损坏配置备份；VS Code 本机配置默认忽略，extensions / tasks 可按需要提交。`.gitattributes` 固定源码文本 LF 和 PNG 二进制。
@@ -27,7 +27,7 @@ E:\SourceFiles\rust\yyplayer
 2. 按 **Ctrl+Shift+P** 打开命令面板，输入并运行 **Publish to GitHub**（发布到 GitHub）。需要时按提示登录自己的 GitHub 账号。
 3. 输入可用仓库名，例如 `YYPlayer`，选择 **Public / 公开仓库**。现有提交已准备好；出现文件选择提示时保留源码、LICENSE、Cargo.lock 和文档，遵循现有忽略规则。
 4. 完成后到 GitHub 确认 master 是默认分支、最新 README / LICENSE 可见，VS Code 已添加 origin 并设置 master 的 upstream。
-5. 需要公开开发分支时再切到 dev，使用 Publish Branch 发布；日常新代码在 dev 完成、验证后合入 master。保留的旧 main 不必额外推送。
+5. 需要公开开发分支时再切到 dev，使用 Publish Branch 发布；日常新代码在 dev 完成、验证后合入 master。本地只保留 master / dev 两个分支。
 
 如果 GitHub 上已经手动创建了空仓库，使用 **Git: Add Remote** 添加该仓库 URL（名称 origin），再 Push master；不需要再次创建另一个仓库。首次空仓库不要另生成冲突的 README / LICENSE 提交。官方操作说明：[VS Code 仓库与远端](https://code.visualstudio.com/docs/sourcecontrol/repos-remotes#publish-to-github)。
 
