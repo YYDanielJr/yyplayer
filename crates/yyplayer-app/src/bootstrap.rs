@@ -22,6 +22,13 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         player_platform::current(),
     )));
     let ui = UiShell::new()?;
+    let decoded_icon = image::load_from_memory(include_bytes!(
+        "../../../assets/icons/yyplayer/liquid-orbit-disc/yyplayer-256.png"
+    ))?
+    .into_rgba8();
+    let icon_width = decoded_icon.width();
+    let icon_height = decoded_icon.height();
+    let icon = winit::window::Icon::from_rgba(decoded_icon.into_raw(), icon_width, icon_height)?;
     player_ui::presenter::attach(
         ui.component(),
         controller.borrow_mut().engine_mut().render_endpoint(),
@@ -199,8 +206,17 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut actions = 0u8;
     let mut checkpoints = Vec::new();
     let mut surface = window_surface::Surface::default();
+    let mut window_icon_applied = false;
     timer.start(TimerMode::Repeated,Duration::from_millis(60),move || {
         let Some(window) = tick_weak.upgrade() else { return; };
+        if !window_icon_applied
+            && window
+                .window()
+                .with_winit_window(|native| native.set_window_icon(Some(icon.clone())))
+                .is_some()
+        {
+            window_icon_applied = true;
+        }
         surface.update(&window);
         let mut controller = tick_controller.borrow_mut();
         controller.render_failed(window.get_render_error().as_str());

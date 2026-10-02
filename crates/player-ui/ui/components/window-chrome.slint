@@ -13,7 +13,8 @@ export component WindowChrome inherits Rectangle {
     in property <string> title; in property <bool> left-controls; in property <bool> maximized;
     callback action(string);
     height: 36px; background: Theme.background;
-    Text { x: root.left-controls ? 132px : 16px; width: parent.width - 164px; height: parent.height; text: root.title; color: Theme.muted; font-size: 11px; vertical-alignment: center; overflow: elide; }
+    Image { x: root.left-controls ? 132px : 16px; y: 10px; width: 16px; height: 16px; source: Icons.brand; }
+    Text { x: root.left-controls ? 154px : 38px; width: parent.width - 186px; height: parent.height; text: root.title; color: Theme.muted; font-size: 11px; vertical-alignment: center; overflow: elide; }
     drag := TouchArea {
         x: root.left-controls ? 126px : 0px; width: parent.width - 126px; height: parent.height;
         private property <bool> dragging; private property <length> origin-x; private property <length> origin-y;

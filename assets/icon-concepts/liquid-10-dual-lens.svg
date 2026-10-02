@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">YYPlayer Liquid Dual Lens</title>
+  <desc id="desc">Overlapping glass lenses create a forward play symbol for audio and video.</desc>
+  <defs>
+    <linearGradient id="bg" x1="118" y1="94" x2="900" y2="930" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0DD8CF"/>
+      <stop offset=".46" stop-color="#176BC7"/>
+      <stop offset="1" stop-color="#382064"/>
+    </linearGradient>
+    <linearGradient id="lensA" x1="226" y1="254" x2="638" y2="756" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".72"/>
+      <stop offset=".48" stop-color="#BFFCF5" stop-opacity=".20"/>
+      <stop offset="1" stop-color="#7FD8F4" stop-opacity=".40"/>
+    </linearGradient>
+    <linearGradient id="lensB" x1="730" y1="246" x2="440" y2="772" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE5FF" stop-opacity=".78"/>
+      <stop offset=".5" stop-color="#D9D7FF" stop-opacity=".20"/>
+      <stop offset="1" stop-color="#C0E9FF" stop-opacity=".40"/>
+    </linearGradient>
+    <linearGradient id="play" x1="424" y1="360" x2="662" y2="678" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D6F8FF" stop-opacity=".70"/>
+    </linearGradient>
+    <clipPath id="tile"><rect x="72" y="72" width="880" height="880" rx="224"/></clipPath>
+    <filter id="blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="58"/></filter>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="190%">
+      <feDropShadow dx="0" dy="34" stdDeviation="30" flood-color="#041B43" flood-opacity=".38"/>
+    </filter>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect x="72" y="72" width="880" height="880" rx="224" fill="url(#bg)"/>
+    <ellipse cx="204" cy="742" rx="270" ry="230" fill="#5DFFD7" fill-opacity=".44" filter="url(#blur)"/>
+    <ellipse cx="824" cy="270" rx="264" ry="230" fill="#FF77DF" fill-opacity=".38" filter="url(#blur)"/>
+    <circle cx="700" cy="824" r="250" fill="#70A8FF" fill-opacity=".28" filter="url(#blur)"/>
+  </g>
+  <g filter="url(#shadow)">
+    <ellipse cx="408" cy="512" rx="250" ry="304" transform="rotate(-18 408 512)" fill="url(#lensA)" stroke="#FFFFFF" stroke-opacity=".48" stroke-width="8"/>
+    <ellipse cx="616" cy="512" rx="250" ry="304" transform="rotate(18 616 512)" fill="url(#lensB)" stroke="#FFFFFF" stroke-opacity=".46" stroke-width="8"/>
+  </g>
+  <path d="M432 354c-32-20-74 3-74 41v234c0 38 42 61 74 41l194-117c31-19 31-64 0-83L432 354Z" fill="url(#play)" stroke="#FFFFFF" stroke-opacity=".70" stroke-width="7"/>
+  <path d="M256 347c55-100 168-157 277-139" fill="none" stroke="#FFFFFF" stroke-opacity=".70" stroke-width="15" stroke-linecap="round"/>
+  <path d="M665 267c70 38 120 99 143 169" fill="none" stroke="#FFFFFF" stroke-opacity=".48" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="711" cy="697" r="24" fill="#FFFFFF" fill-opacity=".72"/>
+</svg>

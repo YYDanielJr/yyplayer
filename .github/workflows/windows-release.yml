@@ -37,6 +37,9 @@ jobs:
       - name: Download and verify pinned libmpv runtime
         run: ./scripts/Get-Mpv.ps1
 
+      - name: Generate multi-size Windows application icon
+        run: ./scripts/Build-AppIcon.ps1
+
       - name: Build Windows x64 Release executable
         run: cargo build --locked --release --target x86_64-pc-windows-msvc -p yyplayer-app --bin yyplayer
 

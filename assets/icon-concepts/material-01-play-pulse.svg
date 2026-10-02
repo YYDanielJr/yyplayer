@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">YYPlayer Material Play Pulse</title>
+  <desc id="desc">A bold play symbol crossed by a clean audio pulse on a blue rounded tile.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#0A1C55" flood-opacity=".28"/>
+    </filter>
+  </defs>
+  <rect x="72" y="72" width="880" height="880" rx="216" fill="#F3F6FF"/>
+  <rect x="112" y="112" width="800" height="800" rx="180" fill="#3157D5" filter="url(#shadow)"/>
+  <path d="M410 304c-31-19-70 3-70 39v338c0 36 39 58 70 39l278-169c30-18 30-61 0-79L410 304Z" fill="#FFFFFF"/>
+  <path d="M178 570h106l52-106 74 202 82-286 72 190h282" fill="none" stroke="#65E6C4" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="846" cy="570" r="19" fill="#65E6C4"/>
+</svg>

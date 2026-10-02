@@ -9,4 +9,5 @@ Cargo.lock text eol=lf
 *.ps1 text eol=lf
 *.py text eol=lf
 *.png binary
+*.ico binary
 LICENSE text eol=lf

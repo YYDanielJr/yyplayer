@@ -2,6 +2,12 @@
 
 记录已交付的开发预览变更，按日期倒序排列。尚未完成的目标见 [开发规划](docs/DEVELOPMENT_PLAN.md)，检查结果与资格限制见 [实际状态](docs/STATUS.md)。
 
+## 2026-10-02 · YYPlayer 应用图标
+
+- 将精修版 G08 接入主界面品牌区、原生窗口 / 任务栏图标、Windows EXE 资源、NSIS 安装器 / 卸载器和开始菜单快捷方式。
+- 增加由 10 种 PNG 尺寸生成多分辨率 ICO 的 Windows 脚本，并在 CI 编译 EXE 前执行。
+- 修正侧栏品牌区中图标与“YYPlayer”文字的垂直错位。
+
 ## 2026-10-02 · Windows x64 CI 安装包
 
 - 新增 master 推送触发的 Windows x64 Release 构建：经 hash 校验的固定 libmpv、portable ZIP 和 NSIS Setup EXE，构建产物作为 GitHub Actions artifact 保存 30 天。

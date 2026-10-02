@@ -135,7 +135,11 @@ export component AppWindow inherits Window {
                 drop-shadow-blur: Theme.fashion ? 12px : 0px; drop-shadow-color: Theme.shadow;
                 VerticalLayout {
                     padding: 16px; spacing: 6px;
-                    Text { text: "YYPlayer"; color: Theme.text; font-size: 23px; font-weight: 700; height: 76px; vertical-alignment: center; }
+                    Rectangle {
+                        height: 76px;
+                        Image { x: 0px; y: (parent.height - 40px) / 2; width: 40px; height: 40px; source: Icons.brand; }
+                        Text { x: 50px; width: parent.width - 50px; height: parent.height; text: "YYPlayer"; color: Theme.text; font-size: 21px; font-weight: 700; vertical-alignment: center; }
+                    }
                     NavItem { text: "音乐库"; icon: Icons.music; selected: root.page == 0; clicked => { root.navigate(0); } }
                     NavItem { text: "视频库"; icon: Icons.video; selected: root.page == 5; clicked => { root.navigate(5); } }
                     NavItem { text: "最近打开"; icon: Icons.clock; selected: root.page == 2; clicked => { root.navigate(2); } }

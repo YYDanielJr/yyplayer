@@ -245,3 +245,38 @@
 ## 后续每轮记录
 
 记录日期、具体任务、修改范围、真实执行的检查、runtime / 驱动 / fixture hash、证据路径、未验条件、已知问题、下一具体动作。状态允许 Not started、In progress、Partially verified、Done、Blocked；用户范围优先，但不得把没跑过的检查写为通过。
+## 图标方案（2026-10-02）
+
+- 当前任务：提供 10 个供选择的 YYPlayer 程序图标矢量稿，其中 06–10 为第二组；尚未选定正式图标，也未接入安装包资源。
+- 改动文件：`assets/icons/yyplayer/option-01-signal.svg` 至 `option-10-duo.svg`。
+- 检查：未运行命令行校验；本轮 `exec_command` 启动持续返回 `helper_unknown_error: setup refresh had errors`。SVG 为手写静态矢量，待在目标系统图标尺寸下预览确认。
+- 真机场景：未进行；本轮只交付静态图标稿。
+- 未验证：Windows 文件图标尺寸 / DPI 下的视觉效果及最终选型。
+- 下一步：用户选定方案后，将其接入应用与安装包图标资源，并验证 Windows 构建展示效果。
+
+## G08 多尺寸 PNG 导出（2026-10-02）
+
+- 当前任务：将精修版 G08 SVG 栅格化为多尺寸程序图标 PNG。
+- 改动文件：`assets/icons/yyplayer/liquid-orbit-disc/` 下 12 个 PNG 与目录说明。
+- 检查：使用本机 Sharp 从 SVG 直接渲染，确认 16 × 16 至 1024 × 1024 的输出尺寸；PNG 保留 Alpha / sRGB。查看 16 px 与 256 px 预览，符号在小尺寸仍可辨识。
+- 未完成：尚未接入 Windows EXE / NSIS 图标资源，也未生成 ICO。
+- 下一步：将 256 px PNG 纳入 ICO 多尺寸资源并接入 Windows 应用 / 安装器图标配置，再构建检查显示结果。
+
+## G08 程序图标全面接入（2026-10-02）
+
+- 当前任务：将用户选定并精修的 G08 图标接入应用界面、Windows 原生窗口 / 任务栏、EXE 资源及 NSIS 安装器 / 开始菜单快捷方式。
+- 改动文件：`assets/icons/yyplayer/liquid-orbit-disc/`（多尺寸 PNG、ICO、说明）；`scripts/Build-AppIcon.ps1`；`crates/yyplayer-app/build.rs`、`src/bootstrap.rs`；`crates/player-ui/ui/theme.slint`、`app.slint`、`components/window-chrome.slint`；`scripts/Package-Windows.ps1`；`packaging/windows/yyplayer.nsi`；Windows Release workflow、`.gitattributes`、CHANGELOG 与本报告。
+- 检查：`cargo fmt --all --check`、`cargo clippy --locked --offline --workspace --all-targets -- -D warnings`、`cargo test --locked --offline --workspace --all-targets`、`cargo build --locked --offline --release -p yyplayer-app --bin yyplayer` 均通过；UI preview 已生成并人工检查；图标生成脚本通过，ICO 解码并确认包含 10 个尺寸；Release 构建生成 Windows `.res` 图标资源；`git diff --check` 通过。
+- 真机场景：本机 UI preview 确认侧栏与自绘标题栏显示 G08；未启动真实播放器窗口 / 任务栏验收，也未实际安装 NSIS 包。
+- 未验证条件：本环境未安装 `makensis.exe`，不能在本机编译或安装 NSIS 包；待 Windows Release CI 的 NSIS 阶段验证安装器产物。Windows 原生窗口 / 任务栏图标仍需实机视觉确认。
+- 已知限制：构建脚本仅对 Windows MSVC 嵌入 EXE ICO；非 MSVC Windows 构建会跳过该资源。Slint 中的品牌位图内嵌于应用，运行时窗口图标从同一 256 px PNG 设置。
+- 下一步：在具备 NSIS 的 Windows Release runner 上验证 Setup 与卸载项图标，并在实际 Windows 窗口 / 任务栏、资源管理器与开始菜单检查显示效果；无需改变程序功能逻辑。
+
+## G08 侧栏品牌对齐修正（2026-10-02）
+
+- 当前任务：修复用户 Windows 截图中侧栏图标高于“YYPlayer”文字的错位；用户反馈 Windows 系统图标本身已显示正常。
+- 改动文件：`crates/player-ui/ui/app.slint`、`CHANGELOG.md`、`docs/STATUS.md`、`docs/validation/2026-10-02-icon-concepts.md`。
+- 实现：品牌行仍为 76px，40px 图标按行高度居中，文字占整行高度并垂直居中；保持原有 10px 水平间距。
+- 检查：`cargo run --locked --offline -p yyplayer-app --example ui-preview -- --output target/icon-alignment-preview.png` 通过，人工查看图标与文字中心对齐；`cargo test --locked --offline -p player-ui`、`cargo fmt --all --check`、`cargo build --locked --offline --release -p yyplayer-app --bin yyplayer`、`git diff --check` 通过，Release EXE 已更新。
+- 真机场景与未验证条件：本轮通过软件渲染界面预览检查布局；未重新启动用户的真实播放器窗口验证不同 DPI / 字体设置。图标资源与 Windows 系统图标配置未改动。
+- 下一步：用户下次运行新构建时可对照原截图确认实际 DPI 下的对齐效果。

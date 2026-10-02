@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">YYPlayer Material Track Orbit</title>
+  <desc id="desc">A play button enclosed by a progress orbit, suggesting precise playback.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#001F24" flood-opacity=".28"/>
+    </filter>
+  </defs>
+  <rect x="72" y="72" width="880" height="880" rx="216" fill="#E9FBF7"/>
+  <rect x="112" y="112" width="800" height="800" rx="180" fill="#0E5960" filter="url(#shadow)"/>
+  <circle cx="512" cy="512" r="252" fill="#083D44"/>
+  <path d="M512 260a252 252 0 1 1-225 138" fill="none" stroke="#34DBB5" stroke-width="54" stroke-linecap="round"/>
+  <circle cx="287" cy="398" r="34" fill="#FFCC58"/>
+  <path d="M468 389c-27-17-62 3-62 35v176c0 32 35 52 62 35l146-88c26-16 26-54 0-70l-146-88Z" fill="#FFFFFF"/>
+  <path d="M282 770h112M630 770h112" stroke="#8BEAD6" stroke-width="34" stroke-linecap="round"/>
+</svg>
