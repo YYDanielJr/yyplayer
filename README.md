@@ -1,4 +1,5 @@
-# YYPlayer
+# ![YYPlayer](./assets/icons/yyplayer/liquid-orbit-disc/yyplayer-128.png) YYPlayer
+
 
 使用 Rust、Slint 和 libmpv 构建的本地音视频播放器。当前为 Windows x64 开发预览。
 
@@ -15,6 +16,14 @@
 - 界面定制：简洁 / 时尚主题、浅色 / 深色与主题色，可跟随 Windows 系统；音乐 / 视频库及歌词页各有 4 款主题色背景，也可分别选本地图片并调透明度、模糊；支持减少动效，以及界面、歌词、字幕字体设置。
 
 macOS / Linux 尚未验收；HDR 显示输出、位准确输出、ASIO / DSD 和无缝播放仍待完善。独占输出不等于位准确输出。
+
+## 截图
+![音乐库](./images/musiclib.png)
+![歌词页](./images/musicdetail.png)
+![音频选项](./images/musicsetting.png)
+![视频库](./images/videolib.png)
+![视频播放](./images/videoplay.png)
+![项目设置](./images/settings.png)
 
 ## 编译
 
