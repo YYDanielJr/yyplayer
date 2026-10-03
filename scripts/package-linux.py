@@ -29,6 +29,12 @@ def run(args, **kwargs):
 def output(args):
     return subprocess.check_output([str(a) for a in args], text=True).strip()
 
+def git_command(*args):
+    # CI containers can run as a different owner from the mounted checkout.
+    # Trust only this script's repository for this command, without modifying
+    # global configuration or trusting every repository via safe.directory=*.
+    return ["git", "-c", f"safe.directory={ROOT}", "-C", str(ROOT), *args]
+
 def digest(path):
     with Path(path).open("rb") as file:
         return hashlib.file_digest(file, "sha256").hexdigest()
@@ -152,7 +158,7 @@ def source_kit(binary, offline):
     # user configuration are excluded. Locked Rust dependency source archives
     # are provided beside the artifacts in the same source kit.
     kit = DIST / "YYPlayer-linux-source.tar.gz"
-    names = subprocess.check_output(["git", "-C", ROOT, "ls-files", "--cached", "--others", "--exclude-standard", "-z"])
+    names = subprocess.check_output(git_command("ls-files", "--cached", "--others", "--exclude-standard", "-z"))
     tracked = [os.fsdecode(name) for name in names.split(b"\0") if name]
     # Cargo resolves conditional manifests for other platforms even when the
     # eventual build target is Linux. Include the entire locked graph so a
@@ -243,13 +249,14 @@ def main():
     args = parser.parse_args()
     if output(["dpkg", "--print-architecture"]) != "amd64":
         raise RuntimeError("本轮包仅资格验证 Ubuntu amd64")
+    # Check repository access before the potentially expensive Release build.
+    revision = output(git_command("rev-parse", "--short=12", "HEAD"))
     if not args.skip_build:
         run(["cargo", "build", "--locked", "--release", "-p", "yyplayer-app", "--bin", "yyplayer"] + (["--offline"] if args.offline else []), cwd=ROOT)
     binary = args.binary.resolve()
     if not binary.is_file():
         raise RuntimeError(f"Release executable missing: {binary}")
     version = tomllib.loads((ROOT / "Cargo.toml").read_text())["workspace"]["package"]["version"]
-    revision = output(["git", "-C", ROOT, "rev-parse", "--short=12", "HEAD"])
     package_version = version + "+linux." + revision
     DIST.mkdir(exist_ok=True)
     TARGET.mkdir(parents=True, exist_ok=True)
@@ -264,7 +271,7 @@ def main():
         deb = stage / "deb"
         docs = common(deb, binary)
         rust_notices(docs)
-        info = {"application": "YYPlayer", "version": package_version, "base_commit": revision, "dirty": bool(output(["git", "-C", ROOT, "status", "--porcelain"])), "target": "x86_64-unknown-linux-gnu", "host": Path("/etc/os-release").read_text(), "rustc": output(["rustc", "--version"]), "binary_sha256": digest(binary), "libmpv_package": output(["dpkg-query", "-W", "-f=${Version}", "libmpv2"]), "libmpv_original_sha256": digest(mpv)}
+        info = {"application": "YYPlayer", "version": package_version, "base_commit": revision, "dirty": bool(output(git_command("status", "--porcelain"))), "target": "x86_64-unknown-linux-gnu", "host": Path("/etc/os-release").read_text(), "rustc": output(["rustc", "--version"]), "binary_sha256": digest(binary), "libmpv_package": output(["dpkg-query", "-W", "-f=${Version}", "libmpv2"]), "libmpv_original_sha256": digest(mpv)}
         write_json(docs / "BUILD-INFO.json", info)
         (deb / "DEBIAN").mkdir()
         libc_version = output(["dpkg-query", "-W", "-f=${Version}", "libc6"]).split("-")[0]

@@ -1,5 +1,13 @@
 # YYPlayer 进度与证据
 
+## 2026-10-03：Linux CI 打包 Git 所有者检查修复
+
+状态：Done（针对用户所贴 Git 所有者错误的修复 / 本地回归）；远端完整打包待新提交重跑。用户日志证明 Release 编译成功，后续 `git rev-parse` 因容器挂载 checkout 的所有者检查返回 128；不能将本日志当成已生成 deb / AppImage。
+
+- 改动：`scripts/package-linux.py` 的提交号、dirty 状态、源码清单统一使用仅当前命令生效的 `safe.directory=<当前仓库>`；预检提交号前移至 Cargo 编译前。新增 `scripts/test-linux-packaging-git.py` 并接入 `.github/workflows/linux-packages.yml`；更新 CHANGELOG / Linux 指南 / 本条 STATUS，新增 [验证记录](validation/linux-packaging-git.md)。没有全局 Git 配置修改、所有权修改或通配仓库信任。
+- 检查：4 个真实 Git 测试通过，使用 Git 上游 foreign-owner hook，先复现 128 再验证三处查询 / NUL 路径清单 / 信任范围 / 预检失败不启动编译；Python 编译、actionlint 1.7.12 workflow 检查和 git diff --check 通过。未重新编译 Rust / 打包 dist / 触发远端；没有 apt 安装。
+- 下一具体动作：用户推送修复后新运行 `Ubuntu 26.04 packages`，确认 deb / AppImage 和对应源码 artifacts 全部生成；原失败运行的 Re-run 仍使用旧提交，不能拿来验证本修复。最低编译矩阵是另一 workflow，本日志不补充旧发行版兼容结论。
+
 ## 2026-10-03：手动 Linux 最低编译版本矩阵
 
 状态：Done（工作流 / 汇总程序实现及本地验证）；真实 GitHub Actions 矩阵待用户手动运行，最低编译版本尚未实测。按明确要求覆盖 Ubuntu 18.04、20.04、22.04、24.04、26.04，以及当期 stable 起点 Debian 9 至 Debian 13；Debian 14 testing 可选且不参与正式版最低结论。

@@ -28,6 +28,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - name: Check packaging Git queries with mismatched checkout ownership
+        run: python3 scripts/test-linux-packaging-git.py
       - name: Install stable Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh

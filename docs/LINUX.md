@@ -63,6 +63,8 @@ python3 scripts/package-linux.py --offline --skip-build
 - `YYPlayer-linux-runtime-manifest.json`：每个播放依赖的原始 / 打包 hash、发行包版本、对应 source package 和精确源码页面；AppImage 包内保留每个发行包完整 copyright 和许可原文。
 - `YYPlayer-linux-BUILD-INFO.json` 与 `SHA256SUMS-linux`：构建平台、工具链、dirty 状态、程序 / 源码校验和。
 
+GitHub 容器内 checkout 可能与当前执行用户的所有者不同。打包脚本的 Git 查询对当前仓库路径使用命令级 `safe.directory`，不需要手动更改全局 Git 配置；先检查提交号，再执行 Release 构建。该问题及回归记录见 [CI 打包修复](validation/linux-packaging-git.md)。
+
 AppImage 工具固定 1.9.1 和 SHA-256，缓存到项目 target。使用这个已校验工具本身包含的 runtime，不下载可变的 continuous runtime。源码、Rust 源码清单、runtime 源码与许可清单须与二进制一同提供；上游发行包的精确源码获取页面以清单为准。
 
 安装包验收不需要 root：

@@ -2,6 +2,11 @@
 
 记录已交付的开发预览变更，按日期倒序排列。尚未完成的目标见 [开发规划](docs/DEVELOPMENT_PLAN.md)，检查结果与资格限制见 [实际状态](docs/STATUS.md)。
 
+## 2026-10-03 · Linux CI 打包仓库权限修复
+
+- 修复容器内 checkout 所有者不匹配时，Release 编译成功但打包 Git 查询被拒绝的问题；提交号、dirty 状态和源码清单均使用仅当前命令生效的仓库信任设置，并在编译前检查 Git 访问。
+- 添加真实 Git 所有者检查回归测试并接入 Ubuntu 打包 workflow；远端完整打包待使用新提交重跑。
+
 ## 2026-10-03 · 手动 Linux 编译兼容性矩阵
 
 - 新增仅手动触发的 GitHub Actions，覆盖 Ubuntu 18.04–26.04 全部 LTS 和 Debian 9–13，Debian 14 testing 可选。
