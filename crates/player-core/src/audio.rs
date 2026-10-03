@@ -205,7 +205,9 @@ pub struct AudioSettings {
     pub global_eq: EqPreset,
     pub presets: BTreeMap<String, EqPreset>,
     pub device_presets: BTreeMap<String, String>,
+    #[serde(with = "crate::path_serde::map")]
     pub file_eq: BTreeMap<PathBuf, EqPreset>,
+    #[serde(with = "crate::path_serde::path_map")]
     pub lyric_files: BTreeMap<PathBuf, PathBuf>,
     pub lyric_offset_ms: i64,
 }

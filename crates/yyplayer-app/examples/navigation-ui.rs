@@ -65,6 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let timer = Timer::default();
     let mut step = 0;
     let mut due = Instant::now() + Duration::from_millis(800);
+    let mut deadline = due + Duration::from_secs(6);
     let failure = Rc::new(RefCell::new(None));
     let result = failure.clone();
     let complete = Rc::new(Cell::new(false));
@@ -75,7 +76,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let run=||->Result<(),Box<dyn std::error::Error>> {
             let size=w.window().size().to_logical(w.window().scale_factor());
             let page=w.get_page(); let opacity=w.get_content_opacity(); let left=w.get_content_left(); let width=w.get_content_width();
-            if opacity<0.99 {return Err(format!("Page {page} is still transparent: {opacity}").into());}
+            // A synchronous GPU snapshot may delay the next Wayland frame and
+            // queued Slint change/timer callbacks. Observe completion over event
+            // loop iterations, while still failing a permanently invisible page.
+            if opacity<0.99 {
+                if Instant::now() >= deadline {return Err(format!("Page {page} is still transparent: {opacity}").into());}
+                return Ok(());
+            }
             let gap=if page!=1 && model.borrow().appearance.design==1 {12.} else {0.};
             let expected=size.width-left-if w.get_panel_open(){370.+gap}else{0.};
             if (width-expected).abs()>1. {return Err(format!("Page shrank: {width}, expected {expected}").into());}
@@ -100,7 +107,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         let mut run=run;
         if let Err(e)=run(){*result.borrow_mut()=Some(format!("stage {step}: {e}"));let _=slint::quit_event_loop();}
-        step+=1;due=Instant::now()+Duration::from_millis(800);
+        // Only advance after recording and exercising this stage.
+        if records.last().is_some_and(|r| r["stage"].as_i64()==Some(step)) {
+            step+=1;due=Instant::now()+Duration::from_millis(800);deadline=due+Duration::from_secs(6);
+        }
     });
     ui.run()?;
     if let Some(e) = failure.borrow_mut().take() {

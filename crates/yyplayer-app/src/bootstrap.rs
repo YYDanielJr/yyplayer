@@ -17,6 +17,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .backend_name("winit".into())
         .renderer_name("femtovg".into())
         .select()?;
+    slint::set_xdg_app_id("yyplayer")?;
     let controller = Rc::new(RefCell::new(AppController::live(
         MpvEngine::start(),
         player_platform::current(),
@@ -275,6 +276,19 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 let snapshot = controller.engine_mut().snapshot();
                 let mut data = serde_json::json!({ "phase": format!("{:?}",snapshot.phase), "position": snapshot.position.map(|position| position.as_secs_f64()), "duration": snapshot.duration.map(|duration| duration.as_secs_f64()), "speed": snapshot.speed, "volume": snapshot.volume, "muted": snapshot.muted, "runtime": snapshot.runtime, "hwdec": snapshot.hwdec, "video": snapshot.video, "devices": snapshot.devices.iter().map(|device| &device.name).collect::<Vec<_>>(), "tracks": snapshot.tracks.len(), "render_frames": window.get_render_frames(), "render_error": window.get_render_error().as_str(), "error": snapshot.error, "media_info": snapshot.info, "file_tag_info":view.info, "device_ids":snapshot.devices.iter().map(|d|&d.id).collect::<Vec<_>>(), "audio_info": snapshot.audio_info, "audio_log": snapshot.audio_log, "audio_source_rate":snapshot.audio_source_rate, "audio_output_rate":snapshot.audio_output_rate, "audio_fallback":snapshot.audio_fallback, "audio_status": snapshot.audio_status, "exclusive": snapshot.exclusive_confirmed, "eq_filter": snapshot.eq_filter, "music_title": view.selected_title, "artist": view.selected_artist, "album": view.audio.album, "fonts": {"ui": view.fonts.ui, "lyrics": view.fonts.lyrics, "families": view.fonts.names.len().saturating_sub(1), "subtitle_actual": snapshot.subtitle_font, "ass_actual": snapshot.subtitle_font_overrides}, "library_columns": {"song": view.column_song, "artist": view.column_artist}, "window_surface": {"preference":surface.state.preference,"result":surface.state.result}, "decorated": window.window().with_winit_window(|w| w.is_decorated()), "lyric_count": view.audio.lyrics.len(), "active_lyric": view.audio.active_lyric, "page": view.page, "cover_width": view.audio.cover.size().width, "script_steps": actions, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "checkpoints": checkpoints });
                 data["render_lifecycle"] = serde_json::json!({"initializations":window.get_render_initializations(),"ready":window.get_render_ready(),"video_output_enabled":snapshot.video_output_enabled});
+                data["ready"] = serde_json::json!(snapshot.ready);
+                data["audio_blocked"] = serde_json::json!(snapshot.audio_blocked);
+                data["status"] = serde_json::json!(view.status);
+                data["window_system"] = serde_json::json!(window.window().with_winit_window(|native| {
+                    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+                    match native.window_handle().map(|h| h.as_raw()) {
+                        Ok(RawWindowHandle::Wayland(_)) => "wayland",
+                        Ok(RawWindowHandle::Xlib(_) | RawWindowHandle::Xcb(_)) => "x11",
+                        Ok(RawWindowHandle::Win32(_)) => "win32",
+                        Ok(RawWindowHandle::AppKit(_)) => "appkit",
+                        _ => "unknown",
+                    }
+                }));
                 let _ = std::fs::write(path,serde_json::to_vec_pretty(&data).unwrap());
             }
             let _ = slint::quit_event_loop();

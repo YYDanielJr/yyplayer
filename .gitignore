@@ -1,5 +1,8 @@
 /target/
 /dist/
+/compat-results/
+/compat-report/
+__pycache__/
 *.log
 *.pdb
 *.dmp
@@ -32,4 +35,5 @@ docs/validation/*.json
 !docs/validation/video-library-results.json
 !docs/validation/video-library-gpu.json
 !docs/validation/video-library-memory.json
+!docs/validation/linux-results.json
 docs/validation/source-frame.png

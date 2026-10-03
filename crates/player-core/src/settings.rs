@@ -40,11 +40,14 @@ impl DecodeOptions {
 pub struct Settings {
     pub version: u32,
     pub global: DecodeOptions,
+    #[serde(with = "crate::path_serde::map")]
     pub folders: BTreeMap<PathBuf, DecodeOptions>,
+    #[serde(with = "crate::path_serde::map")]
     pub files: BTreeMap<PathBuf, DecodeOptions>,
     pub shortcuts: ShortcutSettings,
     pub volume: f32,
     pub device: String,
+    #[serde(with = "crate::path_serde::vec")]
     pub recent: Vec<PathBuf>,
     pub audio: crate::audio::AudioSettings,
     pub appearance: crate::appearance::Appearance,

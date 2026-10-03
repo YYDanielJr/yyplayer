@@ -116,6 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 1 => {
                     ensure!(v.page == 5 && !w.get_render_ready(), "sidebar must open video library without renderer");
+                    if w.get_content_opacity() <= 0.99 { return Ok(false); }
                     ensure!(w.get_content_opacity() > 0.99 && w.get_content_width() > 800., "video library transparent / shrunk");
                     capture(&w, "empty")?;
                     c.prepare_video_paths(true, vec![fixture.clone(), fixture.join("A")]);

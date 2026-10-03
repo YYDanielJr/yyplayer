@@ -1,0 +1,352 @@
+{
+  "environment": {
+    "os": "Ubuntu 26.04.1 LTS amd64",
+    "desktop": "GNOME native Wayland",
+    "gpu": "NVIDIA RTX 3060 Laptop",
+    "driver": "610.57.04",
+    "mpv": "0.41.0-2ubuntu4",
+    "pipewire": "1.6.2",
+    "rust": "1.99.0",
+    "slint": "1.17.1"
+  },
+  "checks": {
+    "fmt": true,
+    "strict_clippy": true,
+    "workspace_all_targets_tests": true,
+    "unique_tests": 36,
+    "debug_build": true,
+    "release_build": true
+  },
+  "wayland_all": {
+    "backend": "wayland",
+    "headless": false,
+    "suite": "all",
+    "ui": "PASS",
+    "playback": {
+      "idle": {
+        "phase": "Idle",
+        "position": null,
+        "error": "",
+        "exclusive": null,
+        "render_frames": 0,
+        "render_lifecycle": {
+          "initializations": 0,
+          "ready": false,
+          "video_output_enabled": false
+        },
+        "window_system": "wayland"
+      },
+      "shared": {
+        "phase": "Playing",
+        "position": 4.672172,
+        "error": "",
+        "exclusive": false,
+        "render_frames": 0,
+        "render_lifecycle": {
+          "initializations": 0,
+          "ready": false,
+          "video_output_enabled": false
+        },
+        "window_system": "wayland"
+      },
+      "video": {
+        "phase": "Playing",
+        "position": 15.2,
+        "error": "",
+        "exclusive": null,
+        "render_frames": 312,
+        "render_lifecycle": {
+          "initializations": 1,
+          "ready": true,
+          "video_output_enabled": true
+        },
+        "window_system": "wayland"
+      },
+      "pipewire_device": "pipewire/alsa_output.pci-0000_06_00.6.analog-stereo",
+      "pulse_device": "pulse/alsa_output.pci-0000_06_00.6.analog-stereo"
+    },
+    "integration": "PASS",
+    "render": {
+      "fixture_sha256": "f41a5315ece6510bc3450f1792f975ebf36f24aa4bca1dad664b42d0bc440929",
+      "results": [
+        {
+          "case": "software",
+          "frames": 169,
+          "hwdec": "no"
+        },
+        {
+          "case": "deband",
+          "frames": 179,
+          "hwdec": "nvdec"
+        },
+        {
+          "case": "hardware",
+          "frames": 180,
+          "hwdec": "nvdec"
+        }
+      ],
+      "hardware_required": true
+    },
+    "passed": true
+  },
+  "x11_ui": {
+    "backend": "x11",
+    "headless": true,
+    "suite": "ui",
+    "ui": "PASS",
+    "passed": true
+  },
+  "gpu_metrics": {
+    "hardware": {
+      "bad_pixel_fraction": 0.0,
+      "channel_threshold": 12,
+      "height": 1200,
+      "max_bad_fraction": 0.01,
+      "max_mean_error": 1.5,
+      "mean_absolute_rgb_error": 0.0,
+      "passed": true,
+      "region": [
+        49,
+        180,
+        1553,
+        780
+      ],
+      "width": 1653
+    },
+    "deband": {
+      "bad_pixel_fraction": 0.0,
+      "channel_threshold": 12,
+      "height": 1200,
+      "max_bad_fraction": 0.01,
+      "max_mean_error": 1.5,
+      "mean_absolute_rgb_error": 0.23038728460492788,
+      "passed": true,
+      "region": [
+        49,
+        180,
+        1553,
+        780
+      ],
+      "width": 1653
+    }
+  },
+  "ui_customization": [
+    {
+      "column_song": 0.5600000023841858,
+      "cover_navigation": true,
+      "font_families": 325,
+      "library_rows": 79,
+      "minimize_confirmed": false,
+      "native_corner_hresult": null,
+      "native_corner_preference": null,
+      "native_window": "maximize/restore/close",
+      "result": "PASS",
+      "silent_play_save": true,
+      "stages": 22,
+      "subtitle_font": "Times New Roman",
+      "visible_thumbnails": true
+    }
+  ],
+  "alsa": {
+    "backend": "wayland",
+    "headless": false,
+    "suite": "alsa",
+    "alsa": {
+      "device": "alsa/hw:CARD=Generic,DEV=0",
+      "result": "hardware opened and negotiated",
+      "exclusive": true,
+      "source_rate": 44100,
+      "api_rate": 48000,
+      "log": [
+        "ao/alsa 60: BUFFER_TIME: 100000",
+        "ao/alsa 60: BUFFER_SIZE: 4800",
+        "ao/alsa 60: BUFFER_BYTES: 19200",
+        "ao/alsa 60: TICK_TIME: ALL",
+        "ao/alsa 60: ---",
+        "ao/alsa 60: Final HW params:",
+        "ao/alsa 60: ---",
+        "ao/alsa 60: ACCESS:  RW_INTERLEAVED",
+        "ao/alsa 60: FORMAT:  S16_LE",
+        "ao/alsa 60: SUBFORMAT:  STD",
+        "ao/alsa 60: SAMPLE_BITS: 16",
+        "ao/alsa 60: FRAME_BITS: 32",
+        "ao/alsa 60: CHANNELS: 2",
+        "ao/alsa 60: RATE: 48000",
+        "ao/alsa 60: PERIOD_TIME: 20000",
+        "ao/alsa 60: PERIOD_SIZE: 960",
+        "ao/alsa 60: PERIOD_BYTES: 3840",
+        "ao/alsa 60: PERIODS: 5",
+        "ao/alsa 60: BUFFER_TIME: 100000",
+        "ao/alsa 60: BUFFER_SIZE: 4800",
+        "ao/alsa 60: BUFFER_BYTES: 19200",
+        "ao/alsa 60: TICK_TIME: 0",
+        "ao/alsa 60: ---",
+        "ao/alsa 50: channel map reported by ALSA: FL FR",
+        "ao/alsa 50: which we understand as: stereo",
+        "ao/alsa 50: which is what we requested.",
+        "ao/alsa 50: hw pausing supported: yes",
+        "ao/alsa 50: buffersize: 4800 samples",
+        "ao/alsa 50: period size: 960 samples",
+        "ao/alsa 50: device buffer: 4800 samples.",
+        "ao/alsa 50: using soft-buffer of 9600 samples.",
+        "ao/alsa 50: starting AO"
+      ],
+      "error": ""
+    },
+    "passed": true
+  },
+  "alsa_busy": {
+    "phase": "Error",
+    "position": null,
+    "exclusive": null,
+    "audio_fallback": false,
+    "audio_status": "音频输出未确认，已暂停；ALSA 直连不会自动改走其他设备",
+    "audio_log": [
+      "ao/alsa 50: requested format: 44100 Hz, stereo channels, s16",
+      "ao/alsa 50: using ALSA version: 1.2.15.3",
+      "ao/alsa 50: opening device 'hw:CARD=Generic,DEV=0'",
+      "ao/alsa 20: Playback open error: Device or resource busy"
+    ],
+    "error": "音频输出未确认，已暂停；ALSA 直连不会自动改走其他设备"
+  },
+  "packages": {
+    "passed": true,
+    "backend": "wayland",
+    "headless": false,
+    "suite": "packages",
+    "fuse_launch_verified": true,
+    "damaged_bundle_refused": true,
+    "unavailable_saved_device_refused": true,
+    "installed_as_root": false,
+    "packages": [
+      {
+        "package": "deb",
+        "audio_phase": "Playing",
+        "video_frames": 190,
+        "hwdec": "nvdec",
+        "window_system": "wayland"
+      },
+      {
+        "package": "appimage-extracted",
+        "audio_phase": "Playing",
+        "video_frames": 188,
+        "hwdec": "nvdec",
+        "window_system": "wayland"
+      },
+      {
+        "package": "appimage-fuse",
+        "audio_phase": "Playing",
+        "video_frames": 191,
+        "hwdec": "nvdec",
+        "window_system": "wayland"
+      }
+    ],
+    "bundled_eq_steps": 7
+  },
+  "source_kit": {
+    "passed": true,
+    "offline_empty_cargo_home": true,
+    "crate_count": 614,
+    "workspace_members": 5,
+    "source_only_no_build": true
+  },
+  "source_rate_guard": {
+    "passed": true,
+    "phase": "Paused",
+    "position": 0.000396,
+    "exclusive": true,
+    "audio_source_rate": 44100,
+    "audio_output_rate": 48000,
+    "audio_status": "设备未接受源采样率；按严格源格式策略暂停",
+    "error": "设备未接受源采样率；按严格源格式策略暂停"
+  },
+  "x11_native_idle": {
+    "ready": true,
+    "window_system": "x11",
+    "error": "",
+    "render_lifecycle": {
+      "initializations": 0,
+      "ready": false,
+      "video_output_enabled": false
+    }
+  },
+  "final_playback": {
+    "passed": true,
+    "backend": "wayland",
+    "idle": {
+      "phase": "Idle",
+      "position": null,
+      "error": "",
+      "exclusive": null,
+      "audio_blocked": false,
+      "audio_output_rate": null,
+      "tracks": 0,
+      "render_frames": 0,
+      "render_lifecycle": {
+        "initializations": 0,
+        "ready": false,
+        "video_output_enabled": false
+      },
+      "window_system": "wayland",
+      "status": ""
+    },
+    "shared": {
+      "phase": "Playing",
+      "position": 4.458845,
+      "error": "",
+      "exclusive": false,
+      "audio_blocked": false,
+      "audio_output_rate": 44100,
+      "tracks": 3,
+      "render_frames": 0,
+      "render_lifecycle": {
+        "initializations": 0,
+        "ready": false,
+        "video_output_enabled": false
+      },
+      "window_system": "wayland",
+      "status": ""
+    },
+    "missing_saved_device": {
+      "phase": "Idle",
+      "position": null,
+      "error": "当前输出设备或独占策略不可用；请先选择可用设备 / 共享模式再重试",
+      "exclusive": null,
+      "audio_blocked": true,
+      "audio_output_rate": null,
+      "tracks": 0,
+      "render_frames": 0,
+      "render_lifecycle": {
+        "initializations": 0,
+        "ready": false,
+        "video_output_enabled": false
+      },
+      "window_system": "wayland",
+      "status": "当前输出设备或独占策略不可用；请先选择可用设备 / 共享模式再重试"
+    },
+    "video": {
+      "phase": "Playing",
+      "position": 15.233333,
+      "error": "",
+      "exclusive": null,
+      "audio_blocked": false,
+      "audio_output_rate": null,
+      "tracks": 1,
+      "render_frames": 311,
+      "render_lifecycle": {
+        "initializations": 1,
+        "ready": true,
+        "video_output_enabled": true
+      },
+      "window_system": "wayland",
+      "status": "设置已保存"
+    }
+  },
+  "final_controller_integration": {
+    "backend": "wayland",
+    "headless": false,
+    "suite": "integration",
+    "integration": "PASS",
+    "passed": true
+  }
+}

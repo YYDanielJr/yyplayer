@@ -82,7 +82,15 @@ impl UiShell {
     }
 
     pub fn run(&self) -> Result<(), slint::PlatformError> {
-        self.window.run()
+        self.window.window().show()?;
+        let result = slint::run_event_loop();
+        // Drop the UI's borrowed video image before the backend suspends its GL
+        // renderer. Wayland suspension holds a mutable backend-window borrow;
+        // changing UI properties from RenderingTeardown would re-enter it.
+        self.window.set_video_frame(slint::Image::default());
+        self.window.set_render_ready(false);
+        let hidden = self.window.window().hide();
+        result.and(hidden)
     }
 
     /// Window access for future native presenters and the developer preview example.

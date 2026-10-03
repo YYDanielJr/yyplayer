@@ -2,9 +2,14 @@
 use super::*;
 use player_core::{AudioMode, AudioRequest};
 use std::time::Instant;
+#[cfg(target_os = "linux")]
+#[path = "audio_linux.rs"]
+mod linux;
 
 #[derive(Default)]
 pub(super) struct AudioState {
+    #[cfg(target_os = "linux")]
+    linux: linux::Evidence,
     request: AudioRequest,
     accepted: Option<bool>,
     initialized: bool,
@@ -105,6 +110,26 @@ impl AudioState {
     }
 }
 impl Core {
+    #[cfg(target_os = "linux")]
+    pub(super) fn apply_audio(
+        &mut self,
+        request: AudioRequest,
+        snapshot: &mut PlaybackSnapshot,
+        resume: &mut Option<(String, f64, bool)>,
+    ) -> Result<(), String> {
+        self.apply_linux_audio(request, snapshot, resume)
+    }
+    #[cfg(target_os = "linux")]
+    pub(super) fn audio_tick(
+        &mut self,
+        snapshot: &mut PlaybackSnapshot,
+        resume: &mut Option<(String, f64, bool)>,
+    ) -> Result<(), String> {
+        self.linux_audio_tick(snapshot, resume)
+    }
+}
+impl Core {
+    #[cfg(not(target_os = "linux"))]
     pub(super) fn apply_audio(
         &mut self,
         request: AudioRequest,
@@ -204,6 +229,7 @@ impl Core {
             self.set("pause", if paused { "yes" } else { "no" })
         }
     }
+    #[cfg(not(target_os = "linux"))]
     pub(super) fn audio_tick(
         &mut self,
         snapshot: &mut PlaybackSnapshot,

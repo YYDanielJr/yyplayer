@@ -1,0 +1,113 @@
+name: Linux compatibility compile matrix
+
+on:
+  workflow_dispatch:
+    inputs:
+      rust_version:
+        description: Exact Rust version for every OS (workspace requires >= 1.92.0)
+        type: string
+        default: '1.99.0'
+        required: true
+      include_testing:
+        description: Also test Debian 14/forky testing (excluded from stable minimum)
+        type: boolean
+        default: false
+      keep_binaries:
+        description: Include successful executables in per-OS artifacts
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      targets: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Validate report inference
+        run: python3 scripts/linux-compat/test_reports.py
+      - name: Select distributions
+        id: targets
+        env:
+          INCLUDE_TESTING: ${{ inputs.include_testing }}
+        run: |
+          args=()
+          if [[ "$INCLUDE_TESTING" == true ]]; then args+=(--include-testing); fi
+          targets=$(python3 scripts/linux-compat/run.py matrix "${args[@]}")
+          echo "matrix=$targets" >> "$GITHUB_OUTPUT"
+
+  compile:
+    needs: matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 105
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.matrix.outputs.targets) }}
+    name: Compile ${{ matrix.id }}
+    steps:
+      # Node Actions stay on the modern host; Node 24 cannot start in old glibc containers.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build inside the selected distribution
+        env:
+          CASE_ID: ${{ matrix.id }}
+          RUST_VERSION: ${{ inputs.rust_version }}
+          KEEP_BINARIES: ${{ inputs.keep_binaries }}
+        run: |
+          args=()
+          if [[ "$KEEP_BINARIES" == true ]]; then args+=(--keep-binary); fi
+          python3 scripts/linux-compat/run.py run --case "$CASE_ID" \
+            --rust-version "$RUST_VERSION" --timeout-seconds 5400 \
+            --output "compat-results/$CASE_ID" "${args[@]}"
+      - name: Preserve logs and per-OS result, including failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-compat-case-${{ github.run_attempt }}-${{ matrix.id }}
+          path: compat-results/${{ matrix.id }}/
+          if-no-files-found: warn
+          retention-days: 30
+
+  report:
+    needs: [matrix, compile]
+    if: ${{ !cancelled() && needs.matrix.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Download per-OS observations
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: linux-compat-case-${{ github.run_attempt }}-*
+          path: compat-results
+          merge-multiple: false
+      - name: Aggregate oldest successful builds and unresolved cases
+        if: ${{ !cancelled() }}
+        env:
+          RUST_VERSION: ${{ inputs.rust_version }}
+          INCLUDE_TESTING: ${{ inputs.include_testing }}
+        run: |
+          args=()
+          if [[ "$INCLUDE_TESTING" == true ]]; then args+=(--include-testing); fi
+          python3 scripts/linux-compat/run.py aggregate --input compat-results \
+            --output compat-report --rust-version "$RUST_VERSION" \
+            --commit "$GITHUB_SHA" "${args[@]}"
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: linux-compatibility-report-${{ github.run_attempt }}
+          path: compat-report/
+          if-no-files-found: error
+          retention-days: 30

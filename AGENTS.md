@@ -1,6 +1,6 @@
 # YYPlayer 开发执行规则
 
-本文件面向后续人类开发者和代码代理。项目概览与启动方法见 [README.md](README.md)，产品目标、选型依据、模块接口与逐阶段任务以 [开发规划](docs/DEVELOPMENT_PLAN.md) 为准，已交付更新见 [CHANGELOG.md](CHANGELOG.md)。当前已接入 Windows libmpv 视频开发预览：真实播放、GPU 合成、分级解码设置和快捷键已实现；基础 WASAPI 独占 / 分级 EQ / 本地歌词与音乐大页面已接入；USB DAC / 位准确、系统集成和跨平台资格仍未完成。不能把规划描述或示例 UI 当成已实现功能。
+本文件面向后续人类开发者和代码代理。项目概览与启动方法见 [README.md](README.md)，产品目标、选型依据、模块接口与逐阶段任务以 [开发规划](docs/DEVELOPMENT_PLAN.md) 为准，已交付更新见 [CHANGELOG.md](CHANGELOG.md)。当前为 Windows x64 / Ubuntu 26.04 amd64 共用源码的 libmpv 开发预览：真实播放、GPU 合成、分级解码设置、快捷键、媒体库、EQ 与本地歌词已接入；Windows 使用 WASAPI，Linux 使用 PipeWire / PulseAudio / ALSA。用户已确认 dev-linux 的 Windows Actions 编译打包通过；USB DAC / 位准确、系统集成和广泛平台资格仍未完成。不能把规划描述或示例 UI 当成已实现功能。
 
 ## 1. 接手时的执行顺序
 
@@ -15,7 +15,7 @@
 ## 2. 已选定的架构
 
 - Rust + Slint + libmpv，音视频使用统一内核和 AppController。
-- Windows 优先；首发 x64 MSVC。平台逻辑隔离，保留 macOS、Wayland、X11 空间。
+- 同一 Cargo workspace / Cargo.lock 支持 Windows x64 MSVC 与 Linux amd64 GNU；平台实现和依赖用 cfg 隔离，Linux 已接入 Wayland / X11。macOS 仍保留边界，未编译 / 真机验收。
 - 技术关卡必须先验证：共享 / 独占音频、GL Render API 合成、Windows HWND / D3D11 呈现。
 - 当前 Windows 开发预览采用 GL Render API + Slint 借用纹理，事实与限制见 ADR 0001；HWND / D3D11 和 HDR 输出专项仍需独立验证。
 - 不默认引入第二套音频引擎、自建时钟、插件系统、网络服务或全局异步 runtime。
@@ -97,7 +97,7 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - `scripts/Test-Video.ps1` 使用独立配置；新增验收不能改用户默认 APPDATA 设置。
 - 当前媒体位置重载已验证，快速连续打开 / EOF / 设备失联 / 睡眠 / 多屏仍需增加证据。
 
-启动命令与操作见 README。macOS / Linux 仅保留 cfg 与库覆盖入口，未编译 / 真机验收，不能标为已支持。运行报告里区分生产 controller 脚本、状态机单测和实际键盘 / 对话框人工验收。
+启动命令与操作见 README。Ubuntu 26.04 amd64 已有编译 / 本机播放 / GPU 与包提取启动证据，Linux 接续以第 12 节为准；其他发行版与 macOS 仍需各自验收。运行报告里区分生产 controller 脚本、状态机单测和实际键盘 / 对话框人工验收。
 
 ## 8. 音频开发预览接续
 
@@ -119,19 +119,20 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 当前上限：20000 首 / 200000 项 / 64 层，配置 2MB、索引 32MB。没有实时目录监听 / 大库 DB；更改上限先验证内存、响应和退出。OS 对话框 / 正在进行的标签读取返回后才能结束相应服务。
 - 主题遵循 Appearance → platform Observer → view model → Theme 语义令牌，设计 / 明暗 / 主题色 / 减少动态效果独立。不要向每个页面加入 OS 查询或固定绿色，新增设计集中扩展 profile / 选择项并保留旧配置默认。
 - 时尚模式为轻量玻璃印象；不能为折射 / 模糊截图每帧视频，不删除 prepare_gl。动态效果立即响应操作，减少动画同时停掉持续 Timer；隐藏视频控件不改 FBO 尺寸。
-- Windows 外观观察只读注册表 / DWM / 动画偏好；测试不得改系统主题来证明同步。其他平台系统外观尚未验证，记录回退。
+- Windows 外观观察只读注册表 / DWM / 动画偏好；测试不得改系统主题来证明同步。Linux 使用只读 Settings portal，缺失接口时保持回退；macOS 系统外观尚未验证。
 - Test-LibraryTheme 使用独立配置、自有 WAV 和真实 controller / GL presenter；截图不证明位准确或功耗。ui-feedback / audio-ui 的真实 Slint 点击与计时需继续回归。用户魅蓝 DSP 独占确认是用户实测，不能推断格式矩阵 / 数字捕获。
 
-## 源码发布接续（2026-10-02）
+## 源码发布与共用主分支接续（2026-10-03）
 
 - 用户已确定 GPL-3.0-only；workspace 与五个 crate 继承该字段，根 LICENSE 保留标准原文。第三方记录不能替代 runtime 二进制完整 notices / 对应源码安排。
-- 本地正式分支为 master，已包含最新功能与发布准备；dev 保留同一基线供开发。原 main 的全部提交已包含在 master，重复的本地 main 已移除，仅保留 master / dev。此前章节中的分支与未选许可描述是历史执行记录，以当前 STATUS 和 docs/PUBLISHING.md 为准。
-- 用户计划在 VS Code 发布，打开仓库根目录 E:\SourceFiles\rust\yyplayer；代理不代替用户创建远端或推送。发布源码不代表 USB / HDR / 跨平台资格或二进制发行已完成。
+- 正式源码主分支为 master，本次 dev-linux 共用代码与文档正在准备合入 master；未完成实际合并前不能写成已合入。dev / dev-linux 是历史或功能开发分支，不是 Windows / Linux 编译的必要条件，也不假设本地必须存在 dev。原 main 提交保留在 master 历史中；当前分支状态按 git 检查，进度以 STATUS 和 docs/PUBLISHING.md 为准。
+- 用户在自己的完整仓库根目录操作，Windows 历史路径为 E:\SourceFiles\rust\yyplayer，当前 Linux 工作区为 /home/yydaniel/sourcefiles/yyplayer；路径不决定平台。此次授权仅为文档合并准备，代理不执行提交 / 合并 / 推送。发布源码不代表 USB / HDR / 广泛跨平台资格或二进制发行已完成。
+- 用户于 2026-10-03 确认 Windows x64 packages 可以编译打包 dev-linux 的共用代码。记录为用户反馈的编译打包证据，不虚构 run URL / 提交号，也不扩展为播放、安装 / 卸载、WASAPI / GPU 或退出回归通过。修改共用逻辑时继续回归受影响的 Windows / Linux 路径，环境缺失记待验证。
 - `.github/workflows/windows-release.yml` 在 master push 生成短期 Actions CI artifact（portable ZIP + NSIS x64 Setup）；没有自动创建 GitHub Release。NSIS 安装目标限定 x64 Windows。完整 libmpv build notices / corresponding-source arrangement 与 DLL 闭包完成后，才能把 CI 包作为正式二进制发行，不能以成功构建代替发行资格。
 
 ## 10. 窗口表面、缩略图与保存通知接续
 
-- Windows Surface adapter 使用借用句柄和可选 DWM 提示；不以透明分层窗、window region 或 CPU 视频循环实现圆角。窗口化启用原生阴影，最大化 / 全屏关闭；macOS / Linux 保留平台边界，未验收。原生截图与 Slint 截图区分，跨屏 DPI 不由角部截图证明。
+- Windows Surface adapter 使用借用句柄和可选 DWM 提示；不以透明分层窗、window region 或 CPU 视频循环实现圆角。窗口化启用原生阴影，最大化 / 全屏关闭；Linux 圆角 / 阴影由 compositor 决定，不能照搬 DWM 资格；macOS 保留平台边界，未验收。原生截图与 Slint 截图区分，跨屏 DPI 不由角部截图证明。
 - 音乐库可见行信息在 Slint 内更新，由 app tick 投递有界后台服务；不得在 repeater init 回调重新借用 controller。缩略图 64px / 256 项 LRU / 8 项队列与在途，缺失也缓存，重扫取消旧 generation，图片资源 revision 驱动投影。
 - recent 历史保存必须静默，与真实设置 dirty 分离；成功提示需实际设置不同且保存成功。通知 revision 独立于持久化 revision，静默写入不得复活已手动关闭的浮窗。
 - 歌词页通过左下 / 大封面返回音乐库，导入歌词位于播放选项。修改后复验 Test-UiCustomization 的封面点击 / 静默播放、ui-feedback 和导航；截图不代替 WASAPI / 位准确资格。
@@ -146,3 +147,18 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 返回库保存当前媒体 / 位置后 Stop；Engine 的 current-vo 已退出才确认释放条件，GL notifier 再清 UI 图片并 render_free / 删除 FBO / texture。不能只 Pause + vid=no，无音轨视频会变 Ended。继续观看重建并恢复位置，仅本次会话有效。
 - EOF 重播不会重发 FILE_LOADED；快照需在真实 active / 非 EOF 时从 Ended 恢复 Playing / Paused，不在 UI 假设成功。播放回归覆盖普通暂停和 EOF 重播后再次暂停 / 继续，核对位置冻结、generation / renderer 不重建。
 - 保留 prepare_gl / 同上下文 render / 先 render_free 后 core；Slint UI 仍用 OpenGL，音频 0 次 libmpv renderer 不等于 UI 不用 GPU。修改后回归 Test-VideoLibrary、Test-Video / Test-Render 真实 GPU 图片、导航 / ui-feedback / 音乐 UI。测试独立配置 / 自有素材；内存以 Release 同素材 / 同设置 / 同口径比较。
+
+## 12. Ubuntu Linux 接续（2026-10-03）
+
+- Linux 适配起于 dev-linux，当前为准备合入 master 的共用源码；包含当前共用代码的分支在对应系统都应能使用相同 Cargo 命令构建，禁止用分支名 / 开发者绝对路径选择平台。平台 API / 依赖维持 target cfg，Linux apt / Python 打包工具不得变成 Windows 编译前置。
+- 用户明确要求已创建 dev-linux，Ubuntu 26.04 amd64 本机开发预览和 deb / AppImage 适配以当前 STATUS、docs/LINUX.md、ADR 0007 为准；旧章节 Linux 未编译描述为历史边界。其他发行版、AMD / Intel / Xorg 真机、USB / HDR / 物理输入与多屏仍未资格化，不把 Wayland / Xvfb 结果泛化。
+- Linux deb / 开发使用绝对系统 libmpv2 路径和发行版安全更新，策略在 third_party/mpv/linux.json；AppImage 包内 runtime 必须通过自身 manifest / SHA-256，损坏不得静默回退系统库。Windows 固定 hash 策略保持。
+- Linux 不强制 ao 列表，它会覆盖 audio-device 中的具体后端。具体 PipeWire / Pulse / ALSA 设备必须核对实际 AO；ALSA hw 成功打开 / Final HW params 才确认，PipeWire exclusive stream 不等于硬件 DAC 独占 / 位准确。自动设备独占拒绝，失联暂停，ALSA hw 失败不猜测桌面 sink；源率保护比较源与 API。
+- Linux 启动文件在首次 UI tick 前处理；保存的输出策略必须先于首次 Load，Engine 先获得真实设备列表。不可用请求保留 blocked、禁止 Load / Resume，audio_blocked 错误不能因 pending_load 的媒体身份过滤被隐藏。验收要求无默认 AO 初始化，不能只看位置 / Paused。
+- 配置 / 索引 / EQ / 歌词 / 背景保留原始 Unix 字节，普通 UTF-8 旧字符串兼容。特殊 JSON 标记以路径不可能含有的 NUL 起始，不能改成会碰撞合法文件名的普通前缀。FILE_LOADED 比较复制的原始 C bytes；file URI 已解码，不再用显示字符串比身份。
+- UiShell 在 event loop 返回后、hide 前清除 Slint 借用视频图片。RenderingTeardown 只释放 render / GL，不修改 UI 属性，否则 Wayland suspend 的 backend 可变 borrow 会重入；继续保持同上下文 / prepare_gl / 先 render_free 后 core。生命周期修改回归真实视频 10 循环、EOF 暂停、正常退出与 4K GPU 图片。
+- 外观 portal 只读后台查询、字体后台枚举不变。Linux 圆角 / 阴影由 compositor 决定；Wayland 不提供客户端最小化状态 / 还原，例子不能写假确认。UI 截图可能延迟同次 timer 回调，验收等待真实状态并保留明确超时，不能删透明度断言。
+- scripts/check-linux-deps.py 先只读汇总 apt；scripts/test-linux.py / test-linux-packages.py 用独立配置、自有素材，不停止系统音频服务或修改系统主题。硬件 / 竞争测试串行，防自己的不同验收互相占设备。库、字幕、背景、快捷键和音频仍复用同一 controller / Engine。
+- scripts/package-linux.py 固定 appimagetool 归档和 runtime 源码 hash，每次从核验归档重新提取工具；两种包使用同一 Release 快照。源码包必须包含完整锁定图（含 Cargo 解析所需其他平台条件依赖），614 crate 原始归档 / notices 与空 Cargo home 的离线解析证据，不把解析称为再次完整编译。
+- 当前 Ubuntu 26.04 packages 仅在 dev-linux push 自动运行，并支持手动选择分支；合并后可手动选择 master。Linux compatibility compile matrix 仍仅手动运行。文档不得把未修改的 Linux push 触发器写成 master 自动运行。
+- 新 Linux workflow 只生成短期 CI artifact，不代替用户推送 / 发布，也不代替安装 / 升级 / 卸载真机验收。包是开发预览：上游 AppImage runtime 的完整 Alpine 静态闭包 / 可重链接安排仍待补证，见 packaging/linux/runtime-notices/README.md；Windows DLL 闭包保留既有未完成状态。

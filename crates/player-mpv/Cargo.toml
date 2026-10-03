@@ -8,6 +8,7 @@ license.workspace = true
 
 [dependencies]
 player-core.workspace = true
+player-platform.workspace = true
 serde_json.workspace = true
 crossbeam-channel.workspace = true
 libloading.workspace = true

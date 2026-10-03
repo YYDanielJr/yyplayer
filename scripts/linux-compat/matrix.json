@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {"id": "ubuntu-18.04", "family": "ubuntu", "version": "18.04", "codename": "bionic", "image": "ubuntu:18.04", "channel": "stable", "archive": false},
+    {"id": "ubuntu-20.04", "family": "ubuntu", "version": "20.04", "codename": "focal", "image": "ubuntu:20.04", "channel": "stable", "archive": false},
+    {"id": "ubuntu-22.04", "family": "ubuntu", "version": "22.04", "codename": "jammy", "image": "ubuntu:22.04", "channel": "stable", "archive": false},
+    {"id": "ubuntu-24.04", "family": "ubuntu", "version": "24.04", "codename": "noble", "image": "ubuntu:24.04", "channel": "stable", "archive": false},
+    {"id": "ubuntu-26.04", "family": "ubuntu", "version": "26.04", "codename": "resolute", "image": "ubuntu:26.04", "channel": "stable", "archive": false},
+    {"id": "debian-9", "family": "debian", "version": "9", "codename": "stretch", "image": "debian:stretch-slim", "channel": "stable", "archive": true},
+    {"id": "debian-10", "family": "debian", "version": "10", "codename": "buster", "image": "debian:buster-slim", "channel": "stable", "archive": true},
+    {"id": "debian-11", "family": "debian", "version": "11", "codename": "bullseye", "image": "debian:bullseye-slim", "channel": "stable", "archive": false},
+    {"id": "debian-12", "family": "debian", "version": "12", "codename": "bookworm", "image": "debian:bookworm-slim", "channel": "stable", "archive": false},
+    {"id": "debian-13", "family": "debian", "version": "13", "codename": "trixie", "image": "debian:trixie-slim", "channel": "stable", "archive": false},
+    {"id": "debian-14-testing", "family": "debian", "version": "14", "codename": "forky", "image": "debian:forky-slim", "channel": "testing", "archive": false}
+  ]
+}

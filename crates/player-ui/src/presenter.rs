@@ -369,7 +369,9 @@ impl Renderer {
             let _ = write!(file, "P6\n{width} {height}\n255\n");
             for row in (0..height).rev() {
                 let rgb: Vec<_> = pixels[row * width * 4..(row + 1) * width * 4]
-                    .chunks_exact(4)
+                    .as_chunks::<4>()
+                    .0
+                    .iter()
                     .flat_map(|pixel| pixel[..3].iter().copied())
                     .collect();
                 let _ = file.write_all(&rgb);
@@ -521,7 +523,9 @@ pub fn attach(
             }
             RenderingState::RenderingTeardown => {
                 if let Some(renderer) = renderer.take() {
-                    renderer.destroy(window.as_ref());
+                    // UiShell clears borrowed images before hiding. Teardown
+                    // runs inside the backend's suspend borrow; keep it GL-only.
+                    renderer.destroy(None);
                 }
                 failed = false;
             }

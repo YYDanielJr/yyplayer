@@ -104,7 +104,7 @@ impl PlaybackEngine for MpvEngine {
             playback: self.snapshot.ready,
             video: self.snapshot.ready,
             audio_device_selection: self.snapshot.ready,
-            exclusive_audio: self.snapshot.ready && cfg!(windows),
+            exclusive_audio: self.snapshot.ready && cfg!(any(windows, target_os = "linux")),
             equalizer: self.snapshot.ready,
         }
     }
@@ -219,9 +219,17 @@ impl Core {
         }
     }
     fn command(&mut self, args: &[String]) -> Result<(), String> {
+        self.command_bytes(
+            &args
+                .iter()
+                .map(|a| a.as_bytes().to_vec())
+                .collect::<Vec<_>>(),
+        )
+    }
+    fn command_bytes(&mut self, args: &[Vec<u8>]) -> Result<(), String> {
         let strings = args
             .iter()
-            .map(|arg| CString::new(arg.as_str()))
+            .map(|arg| CString::new(arg.as_slice()))
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;
         let mut pointers: Vec<_> = strings.iter().map(|arg| arg.as_ptr()).collect();
@@ -229,6 +237,19 @@ impl Core {
         self.request = self.request.wrapping_add(1).max(1);
         // SAFETY: async API copies this NULL-terminated argument vector before return.
         self.check(unsafe { (self.api.command)(self.handle, self.request, pointers.as_ptr()) })
+    }
+    fn path_bytes(&self) -> Vec<u8> {
+        // SAFETY: worker-owned handle; copy native filename bytes before freeing
+        // the successful mpv allocation. Display strings never identify media.
+        unsafe {
+            let path = (self.api.get_string)(self.handle, c"path".as_ptr());
+            if path.is_null() {
+                return vec![];
+            }
+            let bytes = CStr::from_ptr(path).to_bytes().to_vec();
+            (self.api.free)(path.cast());
+            bytes
+        }
     }
     fn snapshot(&self, snapshot: &mut PlaybackSnapshot) {
         let number = |name| self.get(name).parse::<f64>().ok().filter(|v| v.is_finite());
@@ -263,9 +284,17 @@ impl Core {
             .into_iter()
             .flatten()
             .filter(|item| {
-                !cfg!(windows)
-                    || text(item, "name") == "auto"
-                    || text(item, "name").starts_with("wasapi/")
+                let id = text(item, "name");
+                if cfg!(windows) {
+                    return id == "auto" || id.starts_with("wasapi/");
+                }
+                if cfg!(target_os = "linux") {
+                    return id == "auto"
+                        || ["pipewire/", "pulse/", "alsa/"]
+                            .iter()
+                            .any(|prefix| id.starts_with(prefix));
+                }
+                true
             })
             .map(|item| AudioDevice {
                 id: text(item, "name"),
@@ -276,6 +305,11 @@ impl Core {
                 },
             })
             .collect();
+        for (id, name) in player_platform::audio_devices::direct_devices() {
+            if !snapshot.devices.iter().any(|d| d.id == id) {
+                snapshot.devices.push(AudioDevice { id, name });
+            }
+        }
         snapshot.tracks = self
             .node("track-list")
             .as_array()
@@ -353,12 +387,42 @@ fn text(item: &Value, key: &str) -> String {
 }
 fn source_string(source: &MediaSource) -> Result<String, String> {
     match source {
-        MediaSource::Local(path) => path
-            .to_str()
-            .map(str::to_owned)
-            .ok_or("此内核适配尚不支持非 UTF-8 媒体路径".into()),
+        MediaSource::Local(path) => local_source_string(path),
         MediaSource::Url(url) => Ok(url.clone()),
     }
+}
+fn local_source_string(path: &std::path::Path) -> Result<String, String> {
+    if let Some(text) = path.to_str() {
+        return Ok(text.to_owned());
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        let absolute = if path.is_absolute() {
+            path.to_owned()
+        } else {
+            std::env::current_dir()
+                .map_err(|e| e.to_string())?
+                .join(path)
+        };
+        let mut uri = String::from("file://");
+        for &byte in absolute.as_os_str().as_bytes() {
+            if byte == 0 {
+                return Err("媒体路径不能包含 NUL".into());
+            }
+            if byte.is_ascii_alphanumeric() || b"/.-_~".contains(&byte) {
+                uri.push(char::from(byte));
+            } else {
+                use std::fmt::Write;
+                write!(uri, "%{byte:02X}").unwrap();
+            }
+        }
+        Ok(uri)
+    }
+    #[cfg(not(unix))]
+    path.to_str()
+        .map(str::to_owned)
+        .ok_or("媒体路径不是有效 UTF-8".into())
 }
 fn run(
     commands: Receiver<PlaybackCommand>,
@@ -411,7 +475,10 @@ fn run(
         ("audio-samplerate", "0"),
         ("audio-fallback-to-null", "no"),
         ("stop-playback-on-init-failure", "yes"),
-        ("msg-level", "all=warn,ao/wasapi=debug"),
+        (
+            "msg-level",
+            "all=warn,ao/wasapi=debug,ao/pipewire=debug,ao/pulse=debug,ao/alsa=debug",
+        ),
     ] {
         let name = CString::new(name).unwrap();
         let value = CString::new(value).unwrap();
@@ -420,6 +487,10 @@ fn run(
     }
     #[cfg(windows)]
     core.check(unsafe { (core.api.option)(handle, c"ao".as_ptr(), c"wasapi".as_ptr()) })?;
+    // Linux keeps mpv's automatic AO selection. An explicit `ao` list overrides
+    // the backend encoded in `audio-device` (e.g. alsa/hw:), and could route a
+    // concrete request to the wrong backend. The qualified Ubuntu runtime
+    // prefers PipeWire automatically; a concrete device pins its own AO.
     core.check(unsafe { (core.api.initialize)(handle) })?;
     // SAFETY: static NUL string, worker-owned initialized handle; log payloads copied below.
     core.check(unsafe { (core.api.request_logs)(handle, c"terminal-default".as_ptr()) })?;
@@ -450,6 +521,10 @@ fn run(
         runtime: core.get("mpv-version"),
         ..Default::default()
     };
+    // Saved Linux output settings can precede the first UI tick / media load.
+    // Populate the real device list on Engine before validating those commands.
+    #[cfg(target_os = "linux")]
+    core.snapshot(&mut snapshot);
     let mut pending_resume = None;
     let mut video_gate = video_gate::VideoGate::default();
     let heartbeat = crossbeam_channel::tick(Duration::from_millis(250));
@@ -491,6 +566,11 @@ fn run(
                         let message = unsafe { CStr::from_ptr(log.text) }.to_string_lossy();
                         core.audio.log(&message, log.log_level);
                     }
+                    #[cfg(target_os = "linux")]
+                    if matches!(prefix.as_ref(), "ao/pipewire" | "ao/pulse" | "ao/alsa") {
+                        let message = unsafe { CStr::from_ptr(log.text) }.to_string_lossy();
+                        core.audio.linux_log(&prefix, &message, log.log_level);
+                    }
                 }
                 6 => {
                     snapshot.phase = PlaybackPhase::Loading;
@@ -498,7 +578,7 @@ fn run(
                     snapshot.error.clear();
                 }
                 8 => {
-                    let actual = core.get("path");
+                    let actual = core.path_bytes();
                     if snapshot
                         .source
                         .as_ref()
@@ -561,6 +641,7 @@ fn run(
         if let Err(error) = core.audio_tick(&mut snapshot, &mut pending_resume) {
             snapshot.error = error;
         }
+        snapshot.audio_blocked = core.audio.blocked;
         snapshot.revision += 1;
         *latest.lock().unwrap() = snapshot.clone();
     }
@@ -582,7 +663,9 @@ fn apply(
             video,
         } => {
             decode.validate()?;
-            if !cfg!(windows) && core.audio.exclusive_requested() {
+            #[cfg(target_os = "linux")]
+            core.validate_linux_audio_load(snapshot)?;
+            if !cfg!(any(windows, target_os = "linux")) && core.audio.exclusive_requested() {
                 return Err("此平台独占输出尚未验证，请选择共享模式后重试".into());
             }
             core.audio.blocked = false;
@@ -590,11 +673,12 @@ fn apply(
             snapshot.video_output_enabled = video;
             core.audio.started = Some(std::time::Instant::now());
             core.audio.resume = Some(restore.unwrap_or((0.0, false)));
-            core.audio.restore_pause = if cfg!(windows) && core.audio.exclusive_requested() {
-                Some(restore.is_some_and(|(_, paused)| paused))
-            } else {
-                None
-            };
+            core.audio.restore_pause =
+                if cfg!(any(windows, target_os = "linux")) && core.audio.exclusive_requested() {
+                    Some(restore.is_some_and(|(_, paused)| paused))
+                } else {
+                    None
+                };
             core.set("hwdec", decode.hwdec())?;
             core.set("vd-lavc-threads", &decode.threads.to_string())?;
             core.set("deinterlace", if decode.deinterlace { "yes" } else { "no" })?;
@@ -744,11 +828,25 @@ fn apply(
             }
             .into(),
         ],
-        Screenshot(path) => vec![
-            "screenshot-to-file".into(),
-            source_string(&MediaSource::Local(path))?,
-            "subtitles".into(),
-        ],
+        Screenshot(path) => {
+            #[cfg(unix)]
+            {
+                use std::os::unix::ffi::OsStrExt;
+                return core.command_bytes(&[
+                    b"screenshot-to-file".to_vec(),
+                    path.as_os_str().as_bytes().to_vec(),
+                    b"subtitles".to_vec(),
+                ]);
+            }
+            #[cfg(not(unix))]
+            {
+                vec![
+                    "screenshot-to-file".into(),
+                    source_string(&MediaSource::Local(path))?,
+                    "subtitles".into(),
+                ]
+            }
+        }
         SetAspect(aspect) => return core.set("video-aspect-override", &aspect),
         SetAbLoop(points) => {
             let (a, b) = points
@@ -781,7 +879,7 @@ fn observed_phase(phase: PlaybackPhase, active: bool, paused: bool, eof: bool) -
         PlaybackPhase::Playing
     }
 }
-fn same_media_path(expected: &str, actual: &str) -> bool {
+fn same_media_path(expected: &str, actual: &[u8]) -> bool {
     #[cfg(windows)]
     {
         let normalize = |path: &str| {
@@ -790,17 +888,57 @@ fn same_media_path(expected: &str, actual: &str) -> bool {
                 .replace('\\', "/")
                 .to_lowercase()
         };
-        normalize(expected) == normalize(actual)
+        std::str::from_utf8(actual).is_ok_and(|actual| normalize(expected) == normalize(actual))
     }
     #[cfg(not(windows))]
     {
-        expected == actual
+        if let Some(uri) = expected.strip_prefix("file://") {
+            let mut bytes = Vec::with_capacity(uri.len());
+            let mut input = uri.as_bytes().iter().copied();
+            while let Some(byte) = input.next() {
+                if byte == b'%' {
+                    let Some((a, b)) = input.next().zip(input.next()) else {
+                        return false;
+                    };
+                    let Some((a, b)) = (a as char).to_digit(16).zip((b as char).to_digit(16))
+                    else {
+                        return false;
+                    };
+                    bytes.push((a * 16 + b) as u8);
+                } else {
+                    bytes.push(byte);
+                }
+            }
+            bytes == actual
+        } else {
+            expected.as_bytes() == actual
+        }
     }
 }
 
 #[cfg(test)]
 mod command_tests {
     use super::*;
+    #[cfg(unix)]
+    #[test]
+    fn local_uri_preserves_raw_bytes_and_reserved_characters() {
+        assert!(same_media_path(
+            "file:///media/%FF%20%25%3F%23.wav",
+            b"/media/\xff %?#.wav"
+        ));
+        assert!(!same_media_path(
+            "file:///media/%FF%20%25%3F%23.wav",
+            b"/media/\xef\xbf\xbd %?#.wav"
+        ));
+        use std::os::unix::ffi::OsStringExt;
+        let path = std::path::PathBuf::from(std::ffi::OsString::from_vec(
+            b"/media/\xff %?#.wav".to_vec(),
+        ));
+        assert_eq!(
+            local_source_string(&path).unwrap(),
+            "file:///media/%FF%20%25%3F%23.wav"
+        );
+    }
     #[test]
     fn replay_leaves_eof_and_can_pause_and_resume() {
         use PlaybackPhase::*;

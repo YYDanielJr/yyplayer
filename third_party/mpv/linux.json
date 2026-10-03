@@ -1,0 +1,13 @@
+{
+  "platform": "linux-x86_64",
+  "distribution": "Ubuntu 26.04",
+  "system_package": "libmpv2",
+  "qualified_package_version": "0.41.0-2ubuntu4",
+  "minimum_mpv_version": "0.41.0",
+  "client_api_major": 2,
+  "library": "libmpv.so.2",
+  "system_runtime_policy": "Use absolute distribution library paths; updates are managed by apt, not a frozen Windows DLL hash",
+  "appimage_runtime_policy": "Bundle the installed runtime with a generated manifest and SHA-256; record the complete ELF closure and source package versions",
+  "upstream_source": "https://github.com/mpv-player/mpv/tree/v0.41.0",
+  "distribution_source": "https://launchpad.net/ubuntu/+source/mpv/0.41.0-2ubuntu4"
+}

@@ -3739,6 +3739,7 @@ dependencies = [
  "crossbeam-channel",
  "libloading",
  "player-core",
+ "player-platform",
  "serde_json",
  "sha2",
 ]
@@ -3750,6 +3751,7 @@ dependencies = [
  "fontdb",
  "raw-window-handle",
  "windows-sys 0.61.2",
+ "zbus",
 ]
 
 [[package]]

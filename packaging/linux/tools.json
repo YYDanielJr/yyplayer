@@ -1,0 +1,30 @@
+{
+  "required_host_commands": {
+    "cargo": null,
+    "rustc": null,
+    "git": "git",
+    "dpkg": "dpkg",
+    "dpkg-query": "dpkg",
+    "dpkg-deb": "dpkg",
+    "ldd": "libc-bin",
+    "patchelf": "patchelf",
+    "desktop-file-validate": "desktop-file-utils",
+    "file": "file",
+    "sh": "dash",
+    "dirname": "coreutils",
+    "readlink": "coreutils"
+  },
+  "appimagetool": {
+    "version": "1.9.1",
+    "url": "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage",
+    "sha256": "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0",
+    "source": "https://github.com/AppImage/appimagetool/tree/1.9.1",
+    "runtime": "Use the verified tool AppImage's own embedded type-2 runtime, never a mutable continuous download",
+    "runtime_commit": "caf24f9f712084686bfc24a70b75e50df0aefb9c",
+    "runtime_source": "https://github.com/AppImage/type2-runtime/tree/caf24f9f712084686bfc24a70b75e50df0aefb9c",
+    "runtime_source_archive": {
+      "url": "https://codeload.github.com/AppImage/type2-runtime/tar.gz/caf24f9f712084686bfc24a70b75e50df0aefb9c",
+      "sha256": "944e9bb5c587818c54fec3231067ec03d67b8062c68278f4ca99d504216117be"
+    }
+  }
+}

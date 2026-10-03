@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+appdir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export LD_LIBRARY_PATH="$appdir/usr/lib/yyplayer${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export XDG_DATA_DIRS="$appdir/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export SPA_PLUGIN_DIR="$appdir/usr/lib/yyplayer/spa-0.2"
+export PIPEWIRE_MODULE_DIR="$appdir/usr/lib/yyplayer/pipewire-0.3"
+export PIPEWIRE_CONFIG_DIR="$appdir/usr/share/pipewire"
+# No config relocation: installed and portable packages share the XDG user config.
+exec "$appdir/usr/bin/yyplayer" "$@"
