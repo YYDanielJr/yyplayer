@@ -1,5 +1,14 @@
 # YYPlayer 进度与证据
 
+## 2026-10-03：Linux CI 完整条件依赖源码准备修复
+
+状态：Done（针对用户第二次打包日志的修复、本地回归与完整离线打包验证）；真实远端新容器仍待新提交运行。用户日志中 Release 已成功、Git 查询通过，`rust_notices` 的无过滤 offline metadata 因未下载 `accesskit_ios 0.1.2` 返回 101；Linux 构建本身只准备本平台依赖，不能代替完整源码缓存准备。
+
+- 改动：`scripts/package-linux.py` 在 Git 预检后运行无 target 限制的 `cargo fetch --locked`；`--offline` 追加 offline，`--skip-build` 同样检查完整缓存，缺失时不开始编译 / 创建包。`.github/workflows/linux-packages.yml` 在 Rust 安装后 / lint 前预取，并接入新增 `scripts/test-linux-packaging-sources.py`；更新 Linux 指南 / CHANGELOG / STATUS 和 [验证记录](validation/linux-packaging-sources.md)。保留全平台 metadata / notices / 原始源码归档，Cargo.lock / 应用代码不变。
+- 检查：新增 2 个边界测试覆盖四种模式及失败路径通过；既有 4 个 Git 测试通过，Python 编译、actionlint 1.7.12 和 git diff --check 通过。独立真实 Cargo / 私有缓存 fixture 复现 Linux build 成功但 iOS 条件依赖源码缺失导致 offline metadata 101，补齐后完整 fetch / metadata 成功且 lock hash 不变。
+- 完整本地打包：复用既有 Release，项目 Cargo home、`--offline --skip-build`，独立 `target/linux-source-qualification/dist` 生成 deb / AppImage / source 及 JSON 清单；不覆盖 dist。六产物 hash 通过；614 个原始 registry archive 与锁定图完整一致、各 hash 通过，包含 accesskit_ios archive 及 deb 许可 metadata 条目。原 Release hash 不变。没有 apt 安装、全局设置改动、重新编译应用或播放 / GPU / 安装验收。
+- 下一具体动作：用户推送后新运行 `Ubuntu 26.04 packages`，验证干净 CI 缓存完整下载和六产物上传；已有硬件、安装与正式发行资格限制不变。
+
 ## 2026-10-03：Linux CI 打包 Git 所有者检查修复
 
 状态：Done（针对用户所贴 Git 所有者错误的修复 / 本地回归）；远端完整打包待新提交重跑。用户日志证明 Release 编译成功，后续 `git rev-parse` 因容器挂载 checkout 的所有者检查返回 128；不能将本日志当成已生成 deb / AppImage。

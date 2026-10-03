@@ -55,6 +55,8 @@ python3 scripts/package-linux.py
 python3 scripts/package-linux.py --offline --skip-build
 ```
 
+脚本在编译前执行 `cargo fetch --locked`，下载锁定依赖图中所有平台的源码，用于完整许可记录与对应源码包；Linux 编译目标保持不变。CI 也在 lint / tests 前完成这一步。不要给这次 fetch 加 `--target`，否则其他平台的条件依赖可能缺失。`--offline` 会改为 `cargo fetch --locked --offline`，要求源码和打包工具缓存齐全；`--skip-build` 也会检查源码缓存。说明依据见 [Cargo fetch 文档](https://doc.rust-lang.org/cargo/commands/cargo-fetch.html)。
+
 输出在 `dist/`：
 
 - `yyplayer_<version>_amd64.deb`：安装 `/usr/bin/yyplayer`、桌面入口 / MIME 和图标，依赖系统 `libmpv2 >= 0.41.0`。不强抢默认文件关联，没有删除用户配置的卸载脚本。

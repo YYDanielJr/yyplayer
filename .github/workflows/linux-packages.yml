@@ -35,6 +35,10 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh
           sh /tmp/rustup.sh -y --profile minimal --component rustfmt --component clippy --no-modify-path
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Fetch complete locked dependency sources for packaging
+        run: |
+          python3 scripts/test-linux-packaging-sources.py
+          cargo fetch --locked
       - name: Check format, lint and tests
         run: |
           cargo fmt --all -- --check

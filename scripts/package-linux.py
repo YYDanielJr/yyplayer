@@ -244,13 +244,17 @@ def appimage_tool(offline):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, default=ROOT / "target/release/yyplayer")
-    parser.add_argument("--offline", action="store_true", help="No tool downloads")
+    parser.add_argument("--offline", action="store_true", help="No Cargo or tool downloads; requires complete caches")
     parser.add_argument("--skip-build", action="store_true")
     args = parser.parse_args()
     if output(["dpkg", "--print-architecture"]) != "amd64":
         raise RuntimeError("本轮包仅资格验证 Ubuntu amd64")
     # Check repository access before the potentially expensive Release build.
     revision = output(git_command("rev-parse", "--short=12", "HEAD"))
+    # Build only fetches host dependencies, but notices / corresponding source
+    # require the complete locked graph, including other platforms. Do not use
+    # --target here. In offline mode this verifies the cache before packaging.
+    run(["cargo", "fetch", "--locked"] + (["--offline"] if args.offline else []), cwd=ROOT)
     if not args.skip_build:
         run(["cargo", "build", "--locked", "--release", "-p", "yyplayer-app", "--bin", "yyplayer"] + (["--offline"] if args.offline else []), cwd=ROOT)
     binary = args.binary.resolve()
