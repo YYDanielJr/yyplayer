@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">YYPlayer Liquid Prism Play</title>
+  <desc id="desc">A luminous glass playback lens floating over a blue and cyan field.</desc>
+  <defs>
+    <linearGradient id="bg" x1="170" y1="110" x2="850" y2="930" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#35D9F2"/>
+      <stop offset=".43" stop-color="#2477F4"/>
+      <stop offset="1" stop-color="#6538D7"/>
+    </linearGradient>
+    <radialGradient id="aura" cx="0" cy="0" r="1" gradientTransform="translate(746 246) rotate(132) scale(510)">
+      <stop stop-color="#C9FFF5" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#C9FFF5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="330" y1="300" x2="720" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".62"/>
+      <stop offset=".46" stop-color="#DFFBFF" stop-opacity=".23"/>
+      <stop offset="1" stop-color="#C7D5FF" stop-opacity=".36"/>
+    </linearGradient>
+    <linearGradient id="glyph" x1="438" y1="374" x2="648" y2="650" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D9F8FF" stop-opacity=".78"/>
+    </linearGradient>
+    <clipPath id="tile"><rect x="72" y="72" width="880" height="880" rx="224"/></clipPath>
+    <filter id="blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="48"/></filter>
+    <filter id="lensShadow" x="-40%" y="-40%" width="180%" height="190%">
+      <feDropShadow dx="0" dy="30" stdDeviation="30" flood-color="#13216A" flood-opacity=".34"/>
+    </filter>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect x="72" y="72" width="880" height="880" rx="224" fill="url(#bg)"/>
+    <circle cx="726" cy="250" r="390" fill="url(#aura)"/>
+    <ellipse cx="286" cy="760" rx="270" ry="220" fill="#64FFE1" fill-opacity=".55" filter="url(#blur)"/>
+    <ellipse cx="835" cy="716" rx="240" ry="300" fill="#E272FF" fill-opacity=".40" filter="url(#blur)"/>
+  </g>
+  <circle cx="512" cy="512" r="298" fill="url(#glass)" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="8" filter="url(#lensShadow)"/>
+  <path d="M430 351c-33-20-75 4-75 42v238c0 38 42 62 75 42l198-119c32-19 32-65 0-84L430 351Z" fill="url(#glyph)" stroke="#FFFFFF" stroke-opacity=".72" stroke-width="7"/>
+  <path d="M322 352c78-111 249-166 385-77" fill="none" stroke="#FFFFFF" stroke-opacity=".72" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="750" cy="676" r="22" fill="#FFFFFF" fill-opacity=".70"/>
+</svg>

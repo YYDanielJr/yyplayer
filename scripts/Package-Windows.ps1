@@ -1,12 +1,14 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $runtimeRoot = Join-Path $projectRoot 'third_party/mpv/windows-x64'
+$appIconPath = Join-Path $projectRoot 'assets/icons/yyplayer/liquid-orbit-disc/yyplayer.ico'
 $exePath = Join-Path $projectRoot 'target/x86_64-pc-windows-msvc/release/yyplayer.exe'
 $distRoot = Join-Path $projectRoot 'dist'
 $tempRoot = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() }
 $portableStage = Join-Path $tempRoot 'yyplayer-windows-x64-portable'
 
 if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) { throw "Release executable not found: $exePath" }
+if (-not (Test-Path -LiteralPath $appIconPath -PathType Leaf)) { throw "Windows application icon not found: $appIconPath" }
 if (-not (Test-Path -LiteralPath (Join-Path $runtimeRoot 'libmpv-2.dll') -PathType Leaf)) { throw 'The verified mpv runtime has not been extracted.' }
 if (Test-Path -LiteralPath $portableStage) { throw "Refusing to overwrite existing staging directory: $portableStage" }
 New-Item -ItemType Directory -Path $distRoot -Force | Out-Null
@@ -77,7 +79,7 @@ Compress-Archive -Path (Join-Path $portableStage '*') -DestinationPath $portable
 
 $env:YYPLAYER_PACKAGE_STAGE = $portableStage
 $env:YYPLAYER_PACKAGE_OUTPUT = $distRoot
-& $compiler "/DAPP_VERSION=$version" "/DAPP_COMMIT=$shortCommit" (Join-Path $projectRoot 'packaging/windows/yyplayer.nsi')
+& $compiler "/DAPP_VERSION=$version" "/DAPP_COMMIT=$shortCommit" "/DAPP_ICON=$appIconPath" (Join-Path $projectRoot 'packaging/windows/yyplayer.nsi')
 if ($LASTEXITCODE -ne 0) { throw "NSIS failed with exit code $LASTEXITCODE." }
 if (-not (Test-Path -LiteralPath $setupExe -PathType Leaf)) { throw 'NSIS did not create the expected setup executable.' }
 

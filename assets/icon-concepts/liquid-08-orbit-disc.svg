@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">YYPlayer Liquid Orbit Disc</title>
+  <desc id="desc">A refined glass media disc with a precise color orbit and a clear central play control.</desc>
+  <defs>
+    <linearGradient id="bg" x1="130" y1="104" x2="890" y2="930" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101A3A"/>
+      <stop offset=".48" stop-color="#243B82"/>
+      <stop offset="1" stop-color="#43245F"/>
+    </linearGradient>
+    <radialGradient id="cyanAura" cx="0" cy="0" r="1" gradientTransform="translate(246 776) rotate(-35) scale(490 420)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#25E1CD" stop-opacity=".72"/>
+      <stop offset=".48" stop-color="#1ABBC7" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#1ABBC7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="violetAura" cx="0" cy="0" r="1" gradientTransform="translate(790 248) rotate(132) scale(465 400)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E282FA" stop-opacity=".66"/>
+      <stop offset=".48" stop-color="#9568EA" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#9568EA" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="disc" cx="0" cy="0" r="1" gradientTransform="translate(392 332) rotate(46) scale(510)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".68"/>
+      <stop offset=".34" stop-color="#E6FBFF" stop-opacity=".31"/>
+      <stop offset=".7" stop-color="#B9D4FF" stop-opacity=".14"/>
+      <stop offset="1" stop-color="#AABCF5" stop-opacity=".22"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="302" y1="252" x2="742" y2="792" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".88"/>
+      <stop offset=".4" stop-color="#E9FEFF" stop-opacity=".3"/>
+      <stop offset=".72" stop-color="#839CE1" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".52"/>
+    </linearGradient>
+    <linearGradient id="orbit" x1="286" y1="314" x2="751" y2="724" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#72FFE3"/>
+      <stop offset=".42" stop-color="#65C8FF"/>
+      <stop offset=".72" stop-color="#8EA0FF"/>
+      <stop offset="1" stop-color="#EE91F5"/>
+    </linearGradient>
+    <linearGradient id="button" x1="430" y1="392" x2="610" y2="650" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".96"/>
+      <stop offset=".46" stop-color="#EAFBFF" stop-opacity=".76"/>
+      <stop offset="1" stop-color="#B9D4FF" stop-opacity=".56"/>
+    </linearGradient>
+    <linearGradient id="play" x1="450" y1="440" x2="579" y2="584" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18336F"/>
+      <stop offset="1" stop-color="#334BA0"/>
+    </linearGradient>
+    <clipPath id="tile">
+      <path d="M512 64c191 0 313 7 380 74s68 188 68 374-1 307-68 374-189 74-380 74-313-7-380-74S64 698 64 512s1-307 68-374S321 64 512 64Z"/>
+    </clipPath>
+    <filter id="discShadow" x="-35%" y="-35%" width="170%" height="185%">
+      <feDropShadow dx="0" dy="30" stdDeviation="28" flood-color="#070C2A" flood-opacity=".5"/>
+    </filter>
+    <filter id="buttonShadow" x="-50%" y="-50%" width="200%" height="210%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#14245B" flood-opacity=".36"/>
+    </filter>
+  </defs>
+
+  <!-- Purposeful two-color refraction field inside a custom squircle. -->
+  <g clip-path="url(#tile)">
+    <rect x="64" y="64" width="896" height="896" fill="url(#bg)"/>
+    <rect x="64" y="64" width="896" height="896" fill="url(#cyanAura)"/>
+    <rect x="64" y="64" width="896" height="896" fill="url(#violetAura)"/>
+    <path d="M92 748c207-116 345-62 481-129 132-65 209-184 372-220v561H64V766l28-18Z" fill="#0B347A" fill-opacity=".13"/>
+  </g>
+  <path d="M512 64c191 0 313 7 380 74s68 188 68 374-1 307-68 374-189 74-380 74-313-7-380-74S64 698 64 512s1-307 68-374S321 64 512 64Z" fill="none" stroke="#FFFFFF" stroke-opacity=".14" stroke-width="4"/>
+
+  <!-- The outer disc carries the glass material; the orbit stays geometrically crisp. -->
+  <circle cx="512" cy="512" r="298" fill="url(#disc)" stroke="url(#rim)" stroke-width="8" filter="url(#discShadow)"/>
+  <circle cx="512" cy="512" r="280" fill="none" stroke="#FFFFFF" stroke-opacity=".13" stroke-width="3"/>
+  <circle cx="512" cy="512" r="232" fill="none" stroke="#FFFFFF" stroke-opacity=".15" stroke-width="40"/>
+  <path d="M379 322A232 232 0 1 1 281 532" fill="none" stroke="url(#orbit)" stroke-width="40" stroke-linecap="round"/>
+  <circle cx="281" cy="532" r="20" fill="#FFFFFF" stroke="#78F9E0" stroke-width="8"/>
+
+  <!-- Central control is deliberately oversized for taskbar and Start-menu legibility. -->
+  <circle cx="512" cy="512" r="124" fill="url(#button)" stroke="#FFFFFF" stroke-opacity=".7" stroke-width="7" filter="url(#buttonShadow)"/>
+  <circle cx="512" cy="512" r="107" fill="none" stroke="#FFFFFF" stroke-opacity=".16" stroke-width="3"/>
+  <path d="M494 438c-21-13-48 2-48 27v94c0 25 27 40 48 27l79-47c20-12 20-41 0-53l-79-48Z" fill="url(#play)"/>
+
+</svg>

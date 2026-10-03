@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">YYPlayer Material Library Stack</title>
+  <desc id="desc">A stack of audio and video cards with a crisp central play mark.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#172048" flood-opacity=".25"/>
+    </filter>
+  </defs>
+  <rect x="72" y="72" width="880" height="880" rx="216" fill="#F2F3FF"/>
+  <rect x="112" y="112" width="800" height="800" rx="180" fill="#27315E" filter="url(#shadow)"/>
+  <rect x="264" y="250" width="496" height="444" rx="78" fill="#98A5FF" transform="rotate(-9 512 472)"/>
+  <rect x="264" y="250" width="496" height="444" rx="78" fill="#5E70E8" transform="rotate(7 512 472)"/>
+  <rect x="264" y="250" width="496" height="444" rx="78" fill="#FFFFFF"/>
+  <path d="M468 368c-28-17-64 3-64 36v216c0 33 36 53 64 36l178-108c27-16 27-56 0-72L468 368Z" fill="#3447C5"/>
+  <rect x="280" y="746" width="322" height="42" rx="21" fill="#72E4C6"/>
+  <rect x="628" y="746" width="116" height="42" rx="21" fill="#FFCF5C"/>
+</svg>

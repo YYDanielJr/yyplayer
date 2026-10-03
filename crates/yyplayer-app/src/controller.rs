@@ -15,6 +15,10 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 #[path = "audio_controller.rs"]
 mod audio_controller;
+#[path = "background_controller.rs"]
+mod background_controller;
+#[path = "backgrounds.rs"]
+mod backgrounds;
 #[path = "font_controller.rs"]
 mod font_controller;
 #[path = "font_service.rs"]
@@ -102,6 +106,7 @@ pub struct AppController {
     library_busy: bool,
     library_message: String,
     appearance_observer: Option<player_platform::appearance::Observer>,
+    backgrounds: Option<backgrounds::Backgrounds>,
     font_task: Option<font_service::Task>,
     font_names: std::rc::Rc<Vec<String>>,
     font_revision: u64,
@@ -182,6 +187,7 @@ impl AppController {
             library_busy: false,
             library_message: "添加目录，建立你的音乐空间".into(),
             appearance_observer: None,
+            backgrounds: None,
             font_task: None,
             font_names: std::rc::Rc::new(vec![String::new()]),
             font_revision: 1,
@@ -200,6 +206,10 @@ impl AppController {
         controller.shortcut_draft = settings.shortcuts.clone();
         controller.decode_draft = settings.global.clone();
         controller.settings = settings;
+        controller.backgrounds = Some(backgrounds::Backgrounds::start());
+        for kind in 0..2 {
+            controller.request_background(kind);
+        }
         controller.library_service = Some(library_service::Service::start(
             path.with_extension("library.json"),
             controller.settings.library.clone(),
@@ -539,6 +549,9 @@ impl AppController {
             return;
         }
         if self.library_control(action, value) {
+            return;
+        }
+        if self.background_control(action, value) {
             return;
         }
         if self.audio_control(action, value) {
@@ -975,6 +988,7 @@ impl AppController {
                 }
                 DialogReply::Subtitle(path) => self.send(PlaybackCommand::AddSubtitle(path)),
                 DialogReply::Screenshot(path) => self.send(PlaybackCommand::Screenshot(path)),
+                DialogReply::Background(kind, path) => self.set_background_file(kind, path),
                 DialogReply::Error(error) => self.status = error,
             }
         }
@@ -1006,6 +1020,17 @@ impl AppController {
             self.refresh_library();
         }
         self.poll_fonts();
+        if let Some(backgrounds) = &mut self.backgrounds {
+            for (kind, result) in backgrounds.poll() {
+                if let Err(error) = result {
+                    self.status = format!(
+                        "{}背景：{error}",
+                        if kind == 0 { "媒体库" } else { "歌词页" }
+                    );
+                    self.notice_revision += 1;
+                }
+            }
+        }
         if self.engine.snapshot().ready && !self.initial_audio {
             self.initial_audio = true;
             self.send(PlaybackCommand::SetVolume(self.settings.volume));
@@ -1395,6 +1420,9 @@ impl AppController {
         self.font_task = None;
         if let Some(t) = self.thumbnails.take() {
             t.finish();
+        }
+        if let Some(backgrounds) = self.backgrounds.take() {
+            backgrounds.finish();
         }
         self.dialogs = None;
         self.assets_service = None;

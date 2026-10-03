@@ -11,6 +11,11 @@ Unicode true
 !define APP_STAGE "$%YYPLAYER_PACKAGE_STAGE%"
 !define OUTPUT_DIR "$%YYPLAYER_PACKAGE_OUTPUT%"
 !define APP_ID "{A858C6E1-6B63-4A1B-90EC-275C31F61D38}"
+!ifndef APP_ICON
+  !error "APP_ICON must point to assets/icons/yyplayer/liquid-orbit-disc/yyplayer.ico"
+!endif
+!define MUI_ICON "${APP_ICON}"
+!define MUI_UNICON "${APP_ICON}"
 
 Name "YYPlayer ${APP_VERSION}"
 OutFile "${OUTPUT_DIR}\YYPlayer-${APP_VERSION}-${APP_COMMIT}-windows-x64-setup.exe"
@@ -54,10 +59,11 @@ Section "YYPlayer" MainSection
   File /r "${APP_STAGE}\*"
   WriteUninstaller "$INSTDIR\uninstall.exe"
   CreateDirectory "$SMPROGRAMS\YYPlayer"
-  CreateShortcut "$SMPROGRAMS\YYPlayer\YYPlayer.lnk" "$INSTDIR\yyplayer.exe"
-  CreateShortcut "$SMPROGRAMS\YYPlayer\Uninstall YYPlayer.lnk" "$INSTDIR\uninstall.exe"
+  CreateShortcut "$SMPROGRAMS\YYPlayer\YYPlayer.lnk" "$INSTDIR\yyplayer.exe" "" "$INSTDIR\yyplayer.exe" 0
+  CreateShortcut "$SMPROGRAMS\YYPlayer\Uninstall YYPlayer.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\yyplayer.exe" 0
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "DisplayName" "YYPlayer"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "DisplayVersion" "${APP_VERSION}"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "DisplayIcon" "$INSTDIR\yyplayer.exe,0"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}" "NoModify" 1

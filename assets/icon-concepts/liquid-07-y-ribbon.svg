@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">YYPlayer Liquid Y Ribbon</title>
+  <desc id="desc">Two translucent ribbons converge into a Y-shaped media mark.</desc>
+  <defs>
+    <linearGradient id="bg" x1="126" y1="100" x2="902" y2="934" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0BD9BE"/>
+      <stop offset=".48" stop-color="#1276D8"/>
+      <stop offset="1" stop-color="#201D78"/>
+    </linearGradient>
+    <linearGradient id="leftGlass" x1="256" y1="250" x2="548" y2="698" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".78"/>
+      <stop offset=".42" stop-color="#B8FFF2" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#7BD8F6" stop-opacity=".48"/>
+    </linearGradient>
+    <linearGradient id="rightGlass" x1="754" y1="252" x2="494" y2="710" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F2D5FF" stop-opacity=".84"/>
+      <stop offset=".5" stop-color="#DDD7FF" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#B6F7FF" stop-opacity=".48"/>
+    </linearGradient>
+    <linearGradient id="stem" x1="444" y1="526" x2="596" y2="806" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4FFFF" stop-opacity=".84"/>
+      <stop offset="1" stop-color="#A8DFFF" stop-opacity=".42"/>
+    </linearGradient>
+    <clipPath id="tile"><rect x="72" y="72" width="880" height="880" rx="224"/></clipPath>
+    <filter id="blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="55"/></filter>
+    <filter id="shadow" x="-35%" y="-35%" width="170%" height="180%">
+      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#062657" flood-opacity=".34"/>
+    </filter>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect x="72" y="72" width="880" height="880" rx="224" fill="url(#bg)"/>
+    <circle cx="190" cy="280" r="240" fill="#8AFFF0" fill-opacity=".46" filter="url(#blur)"/>
+    <circle cx="820" cy="330" r="270" fill="#D278FF" fill-opacity=".44" filter="url(#blur)"/>
+    <ellipse cx="540" cy="896" rx="360" ry="170" fill="#0FE0FF" fill-opacity=".28" filter="url(#blur)"/>
+  </g>
+  <g filter="url(#shadow)" stroke="#FFFFFF" stroke-opacity=".48" stroke-width="7" stroke-linejoin="round">
+    <path d="M226 286c-13-23 4-52 30-52h112c14 0 27 7 35 19l153 231-88 128L226 286Z" fill="url(#leftGlass)"/>
+    <path d="M798 286c13-23-4-52-30-52H656c-14 0-27 7-35 19L468 484l88 128 242-326Z" fill="url(#rightGlass)"/>
+    <path d="M468 484h88v296c0 25-20 45-45 45s-45-20-45-45l2-296Z" fill="url(#stem)"/>
+  </g>
+  <path d="M320 272 474 500" fill="none" stroke="#FFFFFF" stroke-opacity=".76" stroke-width="13" stroke-linecap="round"/>
+  <path d="M701 267 566 470" fill="none" stroke="#FFFFFF" stroke-opacity=".58" stroke-width="13" stroke-linecap="round"/>
+  <path d="M488 546c-18-11-41 2-41 23v96c0 21 23 34 41 23l80-48c17-10 17-36 0-46l-80-48Z" fill="#FFFFFF" fill-opacity=".92"/>
+</svg>

@@ -1,5 +1,6 @@
 //! Persisted choices; material tokens live in the renderer, OS observations in platform.
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Scheme {
     #[default]
@@ -15,12 +16,48 @@ pub enum Design {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
+pub struct Background {
+    /// 0 keeps the original surface, 1..=4 are bundled art, 5 uses `file`.
+    pub style: u8,
+    pub file: Option<PathBuf>,
+    pub opacity: u8,
+    pub blur: u8,
+}
+impl Default for Background {
+    fn default() -> Self {
+        Self {
+            style: 0,
+            file: None,
+            opacity: 35,
+            blur: 0,
+        }
+    }
+}
+impl Background {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.style > 5 || self.opacity > 100 || self.blur > 32 {
+            return Err("背景样式、透明度或模糊值超出范围".into());
+        }
+        if self
+            .file
+            .as_ref()
+            .is_some_and(|path| path.as_os_str().is_empty())
+        {
+            return Err("自定义背景路径不能为空".into());
+        }
+        Ok(())
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
 pub struct Appearance {
     pub scheme: Scheme,
     pub design: Design,
     pub system_accent: bool,
     pub accent: String,
     pub reduce_motion: bool,
+    pub library_background: Background,
+    pub lyrics_background: Background,
 }
 impl Default for Appearance {
     fn default() -> Self {
@@ -30,11 +67,15 @@ impl Default for Appearance {
             system_accent: true,
             accent: "#6875e8".into(),
             reduce_motion: false,
+            library_background: Background::default(),
+            lyrics_background: Background::default(),
         }
     }
 }
 impl Appearance {
     pub fn validate(&self) -> Result<(), String> {
+        self.library_background.validate()?;
+        self.lyrics_background.validate()?;
         parse_color(&self.accent)
             .map(|_| ())
             .ok_or_else(|| "主题色需为 #RRGGBB".into())
@@ -97,6 +138,16 @@ mod tests {
         assert!(luminance(text_accent(0xffffff, false)) < 0.3);
         let s: crate::settings::Settings = serde_json::from_str("{\"version\":1}").unwrap();
         assert_eq!(s.appearance.scheme, Scheme::System);
+        assert_eq!(s.appearance.library_background.style, 0);
+        let mut background = Background {
+            style: 5,
+            opacity: 100,
+            blur: 32,
+            ..Default::default()
+        };
+        assert!(background.validate().is_ok());
+        background.blur = 33;
+        assert!(background.validate().is_err());
         assert!(s.library.roots.is_empty());
     }
 }

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">YYPlayer Liquid Wave Panel</title>
+  <desc id="desc">A floating glass control panel with a vivid audio waveform and play control.</desc>
+  <defs>
+    <linearGradient id="bg" x1="108" y1="104" x2="914" y2="922" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7D9B"/>
+      <stop offset=".46" stop-color="#8B4FE5"/>
+      <stop offset="1" stop-color="#285ED3"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="212" y1="290" x2="804" y2="726" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".58"/>
+      <stop offset=".5" stop-color="#F8EFFF" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#D6EDFF" stop-opacity=".34"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="254" y1="514" x2="708" y2="514" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset=".52" stop-color="#C9FFF6"/>
+      <stop offset="1" stop-color="#9EDCFF"/>
+    </linearGradient>
+    <clipPath id="tile"><rect x="72" y="72" width="880" height="880" rx="224"/></clipPath>
+    <filter id="blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="52"/></filter>
+    <filter id="shadow" x="-30%" y="-40%" width="160%" height="190%">
+      <feDropShadow dx="0" dy="34" stdDeviation="30" flood-color="#32105A" flood-opacity=".38"/>
+    </filter>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect x="72" y="72" width="880" height="880" rx="224" fill="url(#bg)"/>
+    <circle cx="250" cy="244" r="250" fill="#FFD1A8" fill-opacity=".55" filter="url(#blur)"/>
+    <circle cx="780" cy="760" r="290" fill="#39E6F2" fill-opacity=".44" filter="url(#blur)"/>
+    <path d="M74 718c195-150 319-88 452-151 138-65 210-223 426-250v635H72l2-234Z" fill="#2148B8" fill-opacity=".22"/>
+  </g>
+  <rect x="188" y="302" width="648" height="420" rx="132" fill="url(#panel)" stroke="#FFFFFF" stroke-opacity=".54" stroke-width="8" filter="url(#shadow)"/>
+  <path d="M255 518h42l34-78 52 158 58-250 64 328 56-238 51 150 42-104 36 34h48" fill="none" stroke="url(#wave)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="742" cy="518" r="74" fill="#FFFFFF" fill-opacity=".72" stroke="#FFFFFF" stroke-opacity=".74" stroke-width="7"/>
+  <path d="M728 482c-13-8-30 1-30 17v38c0 16 17 25 30 17l32-19c13-8 13-26 0-34l-32-19Z" fill="#6252C8"/>
+  <path d="M254 340c118-66 307-70 427-20" fill="none" stroke="#FFFFFF" stroke-opacity=".67" stroke-width="14" stroke-linecap="round"/>
+</svg>
