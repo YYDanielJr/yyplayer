@@ -146,3 +146,16 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 返回库保存当前媒体 / 位置后 Stop；Engine 的 current-vo 已退出才确认释放条件，GL notifier 再清 UI 图片并 render_free / 删除 FBO / texture。不能只 Pause + vid=no，无音轨视频会变 Ended。继续观看重建并恢复位置，仅本次会话有效。
 - EOF 重播不会重发 FILE_LOADED；快照需在真实 active / 非 EOF 时从 Ended 恢复 Playing / Paused，不在 UI 假设成功。播放回归覆盖普通暂停和 EOF 重播后再次暂停 / 继续，核对位置冻结、generation / renderer 不重建。
 - 保留 prepare_gl / 同上下文 render / 先 render_free 后 core；Slint UI 仍用 OpenGL，音频 0 次 libmpv renderer 不等于 UI 不用 GPU。修改后回归 Test-VideoLibrary、Test-Video / Test-Render 真实 GPU 图片、导航 / ui-feedback / 音乐 UI。测试独立配置 / 自有素材；内存以 Release 同素材 / 同设置 / 同口径比较。
+
+## 12. Ubuntu Linux 接续（2026-10-03）
+
+- 用户明确要求已创建 dev-linux，Ubuntu 26.04 amd64 本机开发预览和 deb / AppImage 适配以当前 STATUS、docs/LINUX.md、ADR 0007 为准；旧章节 Linux 未编译描述为历史边界。其他发行版、AMD / Intel / Xorg 真机、USB / HDR / 物理输入与多屏仍未资格化，不把 Wayland / Xvfb 结果泛化。
+- Linux deb / 开发使用绝对系统 libmpv2 路径和发行版安全更新，策略在 third_party/mpv/linux.json；AppImage 包内 runtime 必须通过自身 manifest / SHA-256，损坏不得静默回退系统库。Windows 固定 hash 策略保持。
+- Linux 不强制 ao 列表，它会覆盖 audio-device 中的具体后端。具体 PipeWire / Pulse / ALSA 设备必须核对实际 AO；ALSA hw 成功打开 / Final HW params 才确认，PipeWire exclusive stream 不等于硬件 DAC 独占 / 位准确。自动设备独占拒绝，失联暂停，ALSA hw 失败不猜测桌面 sink；源率保护比较源与 API。
+- Linux 启动文件在首次 UI tick 前处理；保存的输出策略必须先于首次 Load，Engine 先获得真实设备列表。不可用请求保留 blocked、禁止 Load / Resume，audio_blocked 错误不能因 pending_load 的媒体身份过滤被隐藏。验收要求无默认 AO 初始化，不能只看位置 / Paused。
+- 配置 / 索引 / EQ / 歌词 / 背景保留原始 Unix 字节，普通 UTF-8 旧字符串兼容。特殊 JSON 标记以路径不可能含有的 NUL 起始，不能改成会碰撞合法文件名的普通前缀。FILE_LOADED 比较复制的原始 C bytes；file URI 已解码，不再用显示字符串比身份。
+- UiShell 在 event loop 返回后、hide 前清除 Slint 借用视频图片。RenderingTeardown 只释放 render / GL，不修改 UI 属性，否则 Wayland suspend 的 backend 可变 borrow 会重入；继续保持同上下文 / prepare_gl / 先 render_free 后 core。生命周期修改回归真实视频 10 循环、EOF 暂停、正常退出与 4K GPU 图片。
+- 外观 portal 只读后台查询、字体后台枚举不变。Linux 圆角 / 阴影由 compositor 决定；Wayland 不提供客户端最小化状态 / 还原，例子不能写假确认。UI 截图可能延迟同次 timer 回调，验收等待真实状态并保留明确超时，不能删透明度断言。
+- scripts/check-linux-deps.py 先只读汇总 apt；scripts/test-linux.py / test-linux-packages.py 用独立配置、自有素材，不停止系统音频服务或修改系统主题。硬件 / 竞争测试串行，防自己的不同验收互相占设备。库、字幕、背景、快捷键和音频仍复用同一 controller / Engine。
+- scripts/package-linux.py 固定 appimagetool 归档和 runtime 源码 hash，每次从核验归档重新提取工具；两种包使用同一 Release 快照。源码包必须包含完整锁定图（含 Cargo 解析所需其他平台条件依赖），614 crate 原始归档 / notices 与空 Cargo home 的离线解析证据，不把解析称为再次完整编译。
+- 新 Linux workflow 只生成短期 CI artifact，不代替用户推送 / 发布，也不代替安装 / 升级 / 卸载真机验收。包是开发预览：上游 AppImage runtime 的完整 Alpine 静态闭包 / 可重链接安排仍待补证，见 packaging/linux/runtime-notices/README.md；Windows DLL 闭包保留既有未完成状态。

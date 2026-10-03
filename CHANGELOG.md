@@ -2,6 +2,19 @@
 
 记录已交付的开发预览变更，按日期倒序排列。尚未完成的目标见 [开发规划](docs/DEVELOPMENT_PLAN.md)，检查结果与资格限制见 [实际状态](docs/STATUS.md)。
 
+## 2026-10-03 · 手动 Linux 编译兼容性矩阵
+
+- 新增仅手动触发的 GitHub Actions，覆盖 Ubuntu 18.04–26.04 全部 LTS 和 Debian 9–13，Debian 14 testing 可选。
+- 每个发行版独立完整 Release 编译，统一工具链与 Cargo.lock；生成中文 Markdown / JSON 报告和逐系统日志，分别汇总最早编译通过版本，环境失败、超时和缺失结果保持未决。
+- 工作流本地验证通过；远端矩阵尚待手动运行，不将编译结果代替播放器运行或安装资格。
+
+## 2026-10-03 · Ubuntu 26.04 amd64
+
+- 新建 dev-linux，接入 Linux 系统 libmpv、原生 Wayland / X11 和 XDG 桌面入口；沿用音乐 / 视频库、歌词 / 封面、分级 EQ、字幕字体、快捷键、主题与背景功能。
+- 输出支持具体 PipeWire / PulseAudio 设备和稳定 ID 的 ALSA hw 直连；独占分别确认实际流 / 硬件初始化，严格失败暂停、同设备回退保持可见，不把 PipeWire 独占流称为 DAC 位准确。
+- 外观 Observer 只读 desktop portal；配置 / 索引保留 Unix 原始路径字节，修复非 UTF-8 播放身份比较与 Wayland 视频退出清理重入。
+- 增加 apt 只读审计、真实播放 / UI / GPU / 包验收脚本和 Ubuntu 26.04 CI artifact workflow；生成 deb、AppImage、对应源码 / notices / hash 清单。硬件、物理交互和正式二进制发行的限制见 [Linux 验收](docs/validation/linux.md)。
+
 ## 2026-10-03 · 媒体库与歌词背景
 
 - 音乐库 / 视频库共用 4 款可随主题色变化的背景；歌词页另有 4 款，原有背景仍可选择。

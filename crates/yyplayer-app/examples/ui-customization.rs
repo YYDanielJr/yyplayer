@@ -11,7 +11,7 @@ mod services;
 mod window_surface;
 use player_core::{PlaybackCommand, PlaybackEngine};
 use player_ui::{UiAction, UiShell};
-use slint::{ComponentHandle, Timer, TimerMode};
+use slint::{ComponentHandle, Timer, TimerMode, winit_030::WinitWindowAccessor};
 use std::{
     cell::RefCell,
     rc::Rc,
@@ -96,6 +96,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut drag_width = 0.;
     let mut selected_font = String::new();
     let mut font_count = 0;
+    let mut minimize_observable = false;
     let mut records = Vec::new();
     let mut surface = window_surface::Surface::default();
     let failure = Rc::new(RefCell::new(None));
@@ -116,7 +117,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
    macro_rules! ensure {($v:expr,$m:expr)=>{let accepted:bool=$v;if !accepted{return Err($m.into());}};}
    match step {
     0=>{if view.library.busy || view.fonts.busy || view.library.rows.len()!=80{return Ok(());}
-      if view.library.rows[0].artwork.size().width==0{return Ok(());}ensure!(view.library.rows[0].artwork.size().width<=64,"Thumbnail size invalid");ensure!(surface.state.result==Some(0) && surface.state.preference==Some(2),"Native rounding preference failed");font_count=view.fonts.names.len()-1;ensure!(font_count>10,"Font catalog empty");capture(&w,"library-default")?;
+      if view.library.rows[0].artwork.size().width==0{return Ok(());}ensure!(view.library.rows[0].artwork.size().width<=64,"Thumbnail size invalid");if cfg!(windows){ensure!(surface.state.result==Some(0) && surface.state.preference==Some(2),"Native rounding preference failed");}else{ensure!(surface.state.result.is_none() && surface.state.preference.is_none(),"Unsupported DWM state was fabricated");}font_count=view.fonts.names.len()-1;ensure!(font_count>10,"Font catalog empty");capture(&w,"library-default")?;
       drag_width=size.width-202.-48.-24.-38.-88.-58.;let x=202.+24.+88.+drag_width*0.46;pointer(&w,x,243.,true);w.window().dispatch_event(slint::platform::WindowEvent::PointerMoved{position:slint::LogicalPosition::new(x+drag_width*0.1,243.)});pointer(&w,x+drag_width*0.1,243.,false);},
     1=>{ensure!((w.get_column_song()-0.56).abs()<0.015,"Column drag failed");capture(&w,"library-resized")?;w.window().set_size(slint::LogicalSize::new(1000.,640.));},
     2=>{capture(&w,"library-minimum")?;w.window().set_size(slint::LogicalSize::new(1240.,900.));test.borrow_mut().dispatch(UiAction::Navigate(3));},
@@ -129,9 +130,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     9=>{capture(&w,"subtitle-ass")?;control(&test,"font-ass","no");},
     10=>{ensure!(test.borrow_mut().engine_mut().snapshot().subtitle_font_overrides.is_empty(),"ASS default not restored");test.borrow_mut().dispatch(UiAction::Navigate(0));w.set_window_controls_left(true);},
     11=>{capture(&w,"left-controls")?;click(&w,103.,18.);w.set_window_controls_left(false);},
-    12=>{ensure!(w.window().is_maximized(),"Native maximize click failed");ensure!(surface.state.preference==Some(1),"Maximized corners not reset");click(&w,size.width-67.,18.);},
-    13=>{ensure!(!w.window().is_maximized(),"Native restore click failed");ensure!(surface.state.preference==Some(2),"Restored rounding not applied");click(&w,size.width-107.,18.);},
-    14=>{ensure!(w.window().is_minimized(),"Native minimize click failed");w.window().set_minimized(false);},
+    12=>{ensure!(w.window().is_maximized(),"Native maximize click failed");if cfg!(windows){ensure!(surface.state.preference==Some(1),"Maximized corners not reset");}click(&w,size.width-67.,18.);},
+    13=>{ensure!(!w.window().is_maximized(),"Native restore click failed");if cfg!(windows){ensure!(surface.state.preference==Some(2),"Restored rounding not applied");}minimize_observable=w.window().with_winit_window(|native|native.is_minimized().is_some()).unwrap_or(false);if minimize_observable{click(&w,size.width-107.,18.);}},
+    // xdg-shell neither exposes minimized state nor permits restoring it from
+    // the client. Do not fabricate a confirmation or hide the test's remaining
+    // stages; physical minimize/dock restoration is separately qualified.
+    14=>{if minimize_observable{ensure!(w.window().is_minimized(),"Native minimize click failed");w.window().set_minimized(false);}},
     15=>{capture(&w,"buttons-scrollbar")?;click(&w,size.width-66.,299.);},
     16=>{ensure!(view.library.rows.len()==79,"Library removal failed");control(&test,"library-play",&view.library.rows[0].id.to_string());},
     17=>{if view.has_video || view.audio.lyrics.is_empty(){return Ok(());}ensure!(!w.get_toast_visible(),"Playing song showed settings toast");test.borrow_mut().engine_mut().submit(PlaybackCommand::Pause)?;control(&test,"music-detail","");},
@@ -139,7 +143,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     19=>{ensure!(view.page==0,"Bottom artwork did not return to library");click(&w,44.,size.height-40.);},
     20=>{ensure!(view.page==4,"Bottom artwork did not expand music");click(&w,size.width*0.27,size.height*0.4);},
     21=>{ensure!(view.page==0,"Large artwork did not return to library");capture(&w,"library-covers")?;
-      records.push(serde_json::json!({"result":"PASS","stages":22,"native_corner_preference":surface.state.preference,"native_corner_hresult":surface.state.result,"silent_play_save":true,"cover_navigation":true,"visible_thumbnails":true,"font_families":font_count,"subtitle_font":selected_font,"column_song":view.column_song,"native_window":"maximize/restore/minimize/close","library_rows":view.library.rows.len()}));std::fs::write(root.join("results.json"),serde_json::to_vec_pretty(&records)?)?;success.set(true);click(&w,size.width-29.,18.);},
+      records.push(serde_json::json!({"result":"PASS","stages":22,"native_corner_preference":surface.state.preference,"native_corner_hresult":surface.state.result,"silent_play_save":true,"cover_navigation":true,"visible_thumbnails":true,"font_families":font_count,"subtitle_font":selected_font,"column_song":view.column_song,"native_window":"maximize/restore/close","minimize_confirmed":minimize_observable,"library_rows":view.library.rows.len()}));std::fs::write(root.join("results.json"),serde_json::to_vec_pretty(&records)?)?;success.set(true);click(&w,size.width-29.,18.);},
     _=>unreachable!(),
    }
    step+=1;last=Instant::now();Ok(())

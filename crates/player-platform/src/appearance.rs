@@ -52,9 +52,13 @@ impl Drop for Observer {
         }
     }
 }
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 fn read() -> SystemAppearance {
     SystemAppearance::default()
+}
+#[cfg(target_os = "linux")]
+fn read() -> SystemAppearance {
+    crate::linux::appearance().unwrap_or_default()
 }
 #[cfg(windows)]
 fn read() -> SystemAppearance {

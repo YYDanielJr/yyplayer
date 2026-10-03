@@ -14,3 +14,6 @@ windows-sys = { version = "0.61", features = ["Win32_Graphics_Gdi", "Win32_Syste
 
 [target.'cfg(not(windows))'.dependencies]
 fontdb = { version = "=0.23.0", default-features = false, features = ["std", "fs"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = { version = "=5.19.0", default-features = false, features = ["async-io", "blocking-api"] }

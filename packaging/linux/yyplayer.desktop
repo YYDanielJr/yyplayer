@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=YYPlayer
+GenericName=Media Player
+GenericName[zh_CN]=音视频播放器
+Comment=Local audio and video player
+Comment[zh_CN]=本地音乐库、歌词、均衡器与视频播放
+Exec=yyplayer %F
+TryExec=yyplayer
+Icon=yyplayer
+Terminal=false
+Categories=AudioVideo;Player;
+MimeType=audio/mpeg;audio/flac;audio/x-flac;audio/x-wav;audio/ogg;audio/opus;audio/mp4;video/mp4;video/x-matroska;video/webm;video/quicktime;video/x-msvideo;video/mpeg;
+StartupNotify=true
+StartupWMClass=yyplayer

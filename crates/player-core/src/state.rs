@@ -48,6 +48,8 @@ pub struct PlaybackSnapshot {
     pub eq_filter: String,
     pub audio_log: Vec<String>,
     pub audio_fallback: bool,
+    /// Output policy prevents loading or resuming; independent of media identity.
+    pub audio_blocked: bool,
     pub audio_source_rate: Option<u64>,
     pub audio_output_rate: Option<u64>,
 }

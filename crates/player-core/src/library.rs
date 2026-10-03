@@ -4,8 +4,11 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct LibrarySettings {
+    #[serde(with = "crate::path_serde::vec")]
     pub roots: Vec<PathBuf>,
+    #[serde(with = "crate::path_serde::vec")]
     pub files: Vec<PathBuf>,
+    #[serde(with = "crate::path_serde::vec")]
     pub excluded: Vec<PathBuf>,
 }
 impl LibrarySettings {
@@ -19,6 +22,7 @@ impl LibrarySettings {
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Song {
+    #[serde(with = "crate::path_serde")]
     pub path: PathBuf,
     pub title: String,
     pub artist: String,

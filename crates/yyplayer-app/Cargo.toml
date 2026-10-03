@@ -21,11 +21,11 @@ serde.workspace = true
 rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "async-std"] }
 lofty = { version = "=0.25.1", default-features = false, features = ["id3v2_compression_support"] }
 encoding_rs = "0.8"
+raw-window-handle = "0.6"
 image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
-raw-window-handle = "0.6"
 
 [dev-dependencies]
 slint = { workspace = true, features = ["renderer-software", "software-renderer-path"] }

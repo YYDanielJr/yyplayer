@@ -1,5 +1,40 @@
 # YYPlayer 进度与证据
 
+## 2026-10-03：手动 Linux 最低编译版本矩阵
+
+状态：Done（工作流 / 汇总程序实现及本地验证）；真实 GitHub Actions 矩阵待用户手动运行，最低编译版本尚未实测。按明确要求覆盖 Ubuntu 18.04、20.04、22.04、24.04、26.04，以及当期 stable 起点 Debian 9 至 Debian 13；Debian 14 testing 可选且不参与正式版最低结论。
+
+- 改动：新增 `.github/workflows/linux-compatibility.yml`、`scripts/linux-compat/` 四个文件、`docs/LINUX_COMPATIBILITY_CI.md`、`docs/validation/linux-compatibility-ci.md`，更新 README / CHANGELOG / STATUS 和生成目录忽略项。没有应用或 dist 变更，没有推送 / 触发远端。
+- 验收设计：现代宿主执行 Node Actions，各发行版独立 Docker 用户空间 / apt / 编译器，统一精确 Rust 1.99.0 与 Cargo.lock，Release 完整编译并检查 ELF。源码只读、target 不跨系统复用，Debian 9 / 10 走官方签名归档；libmpv 动态加载，不用运行时版本拦住纯编译实验。
+- 汇总：分别输出 Ubuntu / Debian 最早成功，环境 / 工具链 / 下载 / 镜像 / 资源失败与超时保持未决；缺失、重复、错报版本、旧 commit / Cargo.lock / run attempt 不可成为最低版本证据。Markdown 写入 GitHub Summary，JSON 与逐系统完整日志上传 artifact；仅清理本 job 的唯一容器。
+- 本地检查：14 个 Python 边界测试通过、Python 编译 / Bash 语法通过、actionlint 1.7.12 工作流检查通过（未启用外部 shellcheck / pyflakes）；YAML 手动入口 / 10+11 个 case 与容器保护检查通过，git diff --check 通过。只读确认 11 个官方镜像均提供 amd64。没有 apt 安装；本机无 Docker，未运行真实旧系统构建。原 Release hash 不变，报告见 [验证记录](validation/linux-compatibility-ci.md)。
+- 下一具体动作：用户提交并推送，在默认分支注册 workflow_dispatch 后选择 dev-linux 手动运行；查看 [指南](LINUX_COMPATIBILITY_CI.md) 和该次报告。失败环境项先复测；最低成功候选后续再验真实播放 / GPU / 安装，不将源码编译下限写成已有 Linux 包通用支持。
+
+## 2026-10-03：最低系统版本与链接说明
+
+状态：Done（文档推测范围）。根据用户要求核对 Rust 链接方式、平台 API、锁定依赖及实际 ELF / deb，将最低条件与已验证版本写入 README。改动 README.md、docs/validation/platform-minimums.md、本条 STATUS；应用代码与 dist 产物不变。
+
+- 实测 file / ldd / readelf：主程序动态链接，acosf / atan2f 引用 GLIBC_2.43；dpkg-deb 的依赖确为 libc6 >= 2.43 / libmpv2 >= 0.41。AppImage 不携带 glibc，不能消除该门槛；deb 不能按格式推断 Debian 系通用或由 pacman 安装。
+- 核对官方资料与本地依赖源码：Windows 核心推测 10 1607，圆角为 Windows 11 Build 22000；现有 Ubuntu 包 26.04，Debian 14/forky testing 仅为依赖满足候选，Debian 13 不满足。更旧系统重编译需单独配套 runtime / 验证；没有宣称新的实际支持。
+- 检查：链接 / 包字段 / Cargo feature 图只读检查及 git diff --check；纯文档更新不重跑播放、编译或测试，不重打包已有对应源码档。报告见 [核查记录](validation/platform-minimums.md)。下一步只有明确要求降基线时，才在旧系统构建 / 验收完整依赖与独立包。
+
+## 2026-10-03：Ubuntu 26.04 / dev-linux
+
+状态：Done（Ubuntu 26.04 amd64 本机开发预览适配与打包范围）；广泛硬件 / 物理交互 / 正式发行资格保留待验证。按用户要求从 master `6e9e9c42e2d7` 新建并切换 dev-linux；未提交 / 合并 / 推送，Windows 分支与既有实现保持。目标是复用当前功能完成 Ubuntu 26.04 amd64 适配，输出 deb / AppImage，先统一审计 apt。
+
+- Core：配置 / 索引 / 文件级 EQ / 歌词 / 背景原始路径字节无损，普通 version=1 UTF-8 数据兼容；特殊编码用实际路径不能出现的 NUL 标记，防旧合法文件名碰撞。新增身份 / 坏编码 / NUL 边界单测。
+- Platform / mpv：系统 libmpv2 0.41.0 绝对路径或包内 manifest + hash；Linux 音频采用具体 PipeWire / Pulse / ALSA hw 设备、实际 AO 与初始化日志确认，严格失败暂停、同设备共享回退透明。修正强制 ao 列表覆盖设备后端；原 Windows WASAPI 方法通过 cfg 原样保留。ALSA 稳定 ID 从 proc 在 Engine 枚举，portal 外观后台只读；无新增全局 runtime，zbus 使用既有锁定版本。
+- 启动输出：Linux 首次 Load 前提交保存音量 / 设备，Engine 预先枚举实际设备；失联设备拒绝加载和恢复，无默认 AO 初始化。audio_blocked 独立于媒体身份，使 pending_load 期间仍显示错误；请求 / 实际后端不一致不确认独占。真实失联配置为 Idle、0 tracks、无 API 输出格式、错误可见。
+- UI / app：原生 Wayland / X11、XDG app id / 图标 / 桌面 MIME、现有库 / 封面 / 歌词 / EQ / 字体 / 背景 / 控件功能；hide 前清 Slint 借用图片，teardown 只释放 GL，修复 Wayland suspend 时 UI 属性重入。prepare_gl、同上下文、先 render_free 后 core、按需视频租约继续保留。实际诊断新增原生窗口系统与 ready。
+- Packaging：新增 Linux apt 审计、播放 / UI / GPU / ALSA / 包验收与源码离线准备脚本、desktop / AppRun / tool manifest / notices、Ubuntu 26.04 容器 CI artifact workflow。deb 依赖系统 runtime；AppImage 携带非驱动依赖 / SPA / PipeWire 模块，保留宿主 glibc / GPU 驱动 / 桌面服务；附源码、原始 crate / notices、运行库精确源码版本 / copyright 与 SHA-256。无 root 安装脚本删除用户配置或媒体。
+- 已完成检查：fmt、严格 locked / offline workspace all-targets clippy、workspace all-targets tests（36 个独立测试，例子复用不重复计数）、Debug bins / examples 和 Release 构建通过；Python 编译与 git diff --check 通过。apt 全面复审缺失为“无”，代理没有执行 apt 安装或更改全局设置。
+- 本机：原生 GNOME Wayland、RTX 3060 Laptop / 610.57.04，PipeWire 1.6.2；真实 FLAC / 标签 / 封面 / 歌词、共享 / 独占流、Pulse 具体 AO / 回退、EQ 7 步、无效 UTF-8 文件名及视频 11 动作已通过。ALSA hw 真实 busy 拒绝，空闲时实际打开 / HW 参数 / 播放；源 44100 / API 48000 Hz，物理 DAC 未知。Wayland / 独立 X11 界面例子、音乐库 13 阶段、视频库 21 阶段 / 10 循环 / EOF 暂停、字体字幕等 22 阶段通过。4K 软件 / NVDEC / 去色带真实 GPU 图片比较通过，不能由帧数代替。
+- 最终顺序 Wayland all 验收通过；4K 软件 / 去色带 / NVDEC 为 169 / 179 / 180 次 render，硬解 RGB 差 0、去色带 0.230387、明显偏差 0。ALSA 严格源率保护实测 44100→48000 Hz 后 Paused、位置 0.000396 秒，未播放。deb 提取版 / AppImage 提取版 / FUSE 直接启动分别真实音频与 4K NVDEC 播放、正常退出通过；损坏 bundle 清单拒绝初始化、不回退系统库通过。六个产物 SHA-256 均通过。
+- 源码与发布：打包使用同一 Release 快照，记录 dirty 实际工作树；完整 614 个锁定 crate 原始归档 / 原文 notices，包含 Cargo 解析仍需要的 Windows / macOS 条件依赖。源码包准备脚本核验 hash / 生成 vendor，在独立空 CARGO_HOME 中 locked / offline 解析五 crate 完整图通过；这项不是额外源码包完整编译。产物在 dist，二进制 / archives 不提交 Git；功能 / 包检查、图片及源码解析摘要归档到 docs/validation/linux-results.json。
+- 未验证：物理对话框 / 输入法 / 快捷键 / 拖放、拖动 / 边缘缩放、Wayland 最小化 / dock 恢复、多屏 / 睡眠、USB DAC / 数字捕获、HDR / AMD / Intel / 其他 compositor、干净系统真正安装 / 升级 / 卸载。Linux 圆角 / 阴影由 compositor 决定，DWM 值为 null；不宣称位准确或所有平台。Windows 本轮未编译 / 真机回归，GitHub workflow 未执行。
+- 发行限制：本轮为开发预览包；AppImage 上游预构建 runtime 的完整 Alpine 静态版本 / 可重链接安排仍待补证，Windows 固定 DLL 发行闭包也保留既有待验证条件。详见 [Linux 指南](LINUX.md)、[ADR 0007](adr/0007-ubuntu-linux-and-packaging.md) 和 [验收报告](validation/linux.md)。
+- 下一具体动作：用户运行 dist 的 Linux 包；在独立 Ubuntu 用户 / VM 做真实安装和物理操作，再用 USB DAC 验收格式 / 失联 / 捕获矩阵。正式发布前补齐 AppImage 静态 runtime 的精确发行安排，并在真实 runner 执行新 workflow。
+
 ## 2026-10-03：媒体库与歌词页可选背景
 
 状态：Windows 开发预览功能实现，独立配置 / 自有 UI 渲染与解码单测通过；物理文件选择和用户图片组合待人工验收。用户要求先核清两个分支、提交既有改动，再于 dev 实现。本地 master 工作区干净，dev 上既有应用图标改动已单独提交为 `da9941b`；本轮背景改动仅在 dev。

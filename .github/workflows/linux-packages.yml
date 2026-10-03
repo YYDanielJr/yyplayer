@@ -1,0 +1,58 @@
+name: Ubuntu 26.04 packages
+
+on:
+  push:
+    branches: [dev-linux]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Install container build and package dependencies
+        run: |
+          apt-get update
+          apt-get install --no-install-recommends -y ca-certificates curl git build-essential pkg-config python3 \
+            libfontconfig-dev libwayland-dev libxkbcommon-dev libegl-dev libgl-dev libx11-dev \
+            libxkbcommon-x11-dev libx11-xcb-dev libxcursor-dev libxi-dev libxrandr-dev \
+            libmpv2 mpv ffmpeg patchelf desktop-file-utils squashfs-tools libudev-dev libasound2-dev \
+            libegl-mesa0 libglx-mesa0 libgl1-mesa-dri \
+            libfuse2t64 xvfb weston xauth fonts-noto-cjk xdg-desktop-portal xdg-desktop-portal-gtk
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install stable Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh
+          sh /tmp/rustup.sh -y --profile minimal --component rustfmt --component clippy --no-modify-path
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Check format, lint and tests
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --locked --workspace --all-targets -- -D warnings
+          cargo test --locked --workspace --all-targets
+      - name: Build application and qualification examples
+        run: cargo build --locked -p yyplayer-app --bin yyplayer --examples
+      - name: Native X11 UI checks in independent Xvfb
+        run: python3 scripts/test-linux.py --backend x11 --headless --suite ui --skip-build
+      - name: Build Release and both packages
+        run: python3 scripts/package-linux.py
+      - name: Upload binaries and corresponding source records
+        uses: actions/upload-artifact@v7
+        with:
+          name: YYPlayer-ubuntu-26.04-amd64-${{ github.sha }}
+          path: |
+            dist/*_amd64.deb
+            dist/*.AppImage
+            dist/YYPlayer-linux-*.json
+            dist/YYPlayer-linux-source.tar.gz
+            dist/SHA256SUMS-linux
+          if-no-files-found: error
+          retention-days: 30

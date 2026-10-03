@@ -19,6 +19,7 @@ pub enum Design {
 pub struct Background {
     /// 0 keeps the original surface, 1..=4 are bundled art, 5 uses `file`.
     pub style: u8,
+    #[serde(with = "crate::path_serde::option")]
     pub file: Option<PathBuf>,
     pub opacity: u8,
     pub blur: u8,

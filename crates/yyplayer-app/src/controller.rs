@@ -362,6 +362,15 @@ impl AppController {
         self.ab_start = None;
         self.ab_active = false;
         self.selected_id = index;
+        // Startup paths arrive before the first UI tick. Queue saved settings
+        // first so an unavailable device cannot briefly play through `auto`.
+        #[cfg(target_os = "linux")]
+        if !self.initial_audio {
+            self.initial_audio = true;
+            self.send(PlaybackCommand::SetVolume(self.settings.volume));
+            self.apply_output();
+            self.apply_subtitle_font();
+        }
         self.send(PlaybackCommand::Pause);
         self.read_assets(&source);
         self.apply_eq();
@@ -1042,6 +1051,7 @@ impl AppController {
             let snapshot = self.engine.snapshot().clone();
             if !snapshot.error.is_empty()
                 && (!snapshot.ready
+                    || snapshot.audio_blocked
                     || !self.pending_load
                     || snapshot.source.as_ref() == self.queue.get(self.selected_id as usize))
             {
