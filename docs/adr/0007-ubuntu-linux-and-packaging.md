@@ -1,6 +1,6 @@
 # ADR 0007：Ubuntu Linux 输出、桌面边界与打包
 
-日期：2026-10-03。状态：`dev-linux` 开发预览采用；实际组合与证据见 [Linux 验收](../validation/linux.md)。
+日期：2026-10-03。状态：Windows/Linux 共用源码的 Linux 开发预览采用，准备由 `dev-linux` 合入 `master`；实际组合与证据见 [Linux 验收](../validation/linux.md)。
 
 ## 背景
 

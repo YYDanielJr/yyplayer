@@ -1,5 +1,17 @@
 # YYPlayer 进度与证据
 
+## 2026-10-03：Windows/Linux 共用源码合并准备
+
+状态：Done（文档与 AGENTS 接续规则更新）；用户准备将 dev-linux 合入 master，实际提交 / 合并 / 推送尚未由代理执行。目标是在相应系统用相同 Cargo 命令分别生成 Windows exe 与 Linux ELF，平台 API / 依赖继续使用 cfg 隔离。
+
+- 新证据：用户明确确认 Windows x64 packages 工作流能够编译打包 dev-linux 的共用代码，记录为用户反馈的编译打包通过。未提供 run URL / 提交号，不虚构；此次未新增 Windows 播放 / WASAPI / GPU / 退出 / 安装回归证据。此前 Linux 本机验收与包验证范围保留。
+- 改动：README、AGENTS、CONTRIBUTING、发布 / Linux / 矩阵指南、规划当前状态、ADR 0007 状态、libmpv 运行时说明、CHANGELOG 及 [合并准备记录](validation/shared-source-merge-preparation.md)。说明开发分支不决定平台，去除当前入口中仅 Windows 或 Linux 未编译的过时描述；历史日期记录保留，不能据旧“本轮未编译”否定后续用户验证。
+- 检查：git diff --check、变更 Markdown 相对文件链接检查、工作流触发器与文档核对、变更范围检查通过。本轮仅改文档，不重复 Rust / GUI / 硬件 / 打包测试，不修改 workflow 或 Cargo.lock。
+- 当前触发器：Windows 在 master push 自动打包；Ubuntu 26.04 仍仅 dev-linux push 自动打包，合并后可以手动选择 master；Linux 最低版本矩阵仍只手动运行，未收到真实报告。
+- 下一具体动作：用户提交文档后将 dev-linux 合入 master、推送并检查 Windows 自动构建，手动选择 master 运行 Ubuntu 打包与最低版本矩阵。干净系统安装 / 物理输入 / 多设备 / USB / HDR / 广泛发行版与正式二进制发行条件继续按既有报告补证。
+
+以下条目按当时事实保留；当前平台、分支与验证状态以最新条目和相关报告为准。
+
 ## 2026-10-03：Linux CI AppImage 宿主工具依赖修复
 
 状态：Done（针对用户第三次日志的依赖补齐、提前检查及实际 AppImage 工具验证）；干净远端 workflow 待新提交运行。日志已证明 Release / deb 成功，新错误为 appimagetool 必需的 file 在 CI 缺失。本地已安装它，此前完整本机打包通过不能证明原 CI 依赖清单齐全。

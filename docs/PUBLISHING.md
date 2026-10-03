@@ -1,58 +1,68 @@
-# 用 VS Code 发布源码到 GitHub
+# 共用源码合并与 GitHub 构建
 
-准备日期：2026-10-02。用户已选择 **GPL-3.0-only**；本轮仅做本地源码仓库准备，GitHub 发布由用户在 VS Code 完成。
+更新：2026-10-03。源码许可为 **GPL-3.0-only**。正式主分支为 `master`，本次 Windows/Linux 共用代码在 `dev-linux` 准备合入主分支；本文更新不代表实际合并已经执行。提交、合并和推送由用户完成。
 
-## 应打开的目录
+## 共用源码与仓库目录
 
-在 VS Code 选择 **文件 → 打开文件夹**，打开：
+Windows x64 MSVC 与 Linux amd64 GNU 使用同一个 Cargo workspace、Cargo.lock、core、controller 和 Slint 界面；平台 API 与依赖通过 target cfg 选择。在各自系统安装构建依赖后，都可以执行：
 
-```text
-E:\SourceFiles\rust\yyplayer
+```bash
+cargo build --locked --release -p yyplayer-app --bin yyplayer
 ```
 
-这个目录包含 `.git`、Cargo.toml、Cargo.lock、README 和 crates，是完整仓库根目录。直接打开根目录即可识别现有 Git 历史与五个 Rust crate。
+默认本机目标的 Windows 产物为 `target/release/yyplayer.exe`，Linux 产物为 `target/release/yyplayer`。分支名不决定编译平台，运行时和安装包仍按系统分别准备，见 [README](../README.md) 与 [Linux 指南](LINUX.md)。
 
-## 已完成的本地准备
+VS Code 打开完整仓库根目录，即包含 `.git`、Cargo.toml、Cargo.lock 和 crates 的目录。Windows 历史工作区为 `E:\SourceFiles\rust\yyplayer`，当前 Linux 工作区为 `/home/yydaniel/sourcefiles/yyplayer`；这些是开发者本机路径，不是编译时必须使用的路径。
 
-- 最新功能和发布文档已合入 **master**，当前停留在 master，工作区干净。dev 保留同版本作为后续开发入口；重复的本地 main 已移除，原 main 的全部提交保留在 master 历史中。
-- 根目录 LICENSE 为完整 GPLv3 标准文本，README 明确 **GPL-3.0-only**，五个 crate 继承 workspace 许可字段。保留 Cargo.lock；不自动发布 crates.io。
-- THIRD_PARTY_NOTICES.md 记录 Slint 1.17.1 的 GPL 选择、固定 GPL 组合的 libmpv 与原创 SVG。docs/dependency-licenses.md 记录锁定 Windows normal / build 依赖元数据；不等同于二进制完整 notices。
-- `.gitignore` 排除编译产物 / runtime DLL / 下载 archive、临时媒体 / 本地设置 / .env / dump、音乐库缓存和损坏配置备份；VS Code 本机配置默认忽略，extensions / tasks 可按需要提交。`.gitattributes` 固定源码文本 LF 和 PNG 二进制。
-- 已检查工作区 / 历史大文件 / 常见密钥标记；没有把用户媒体、截图附件或 APPDATA 配置加入仓库。Git 历史最大 blob 约 1.32 MiB，是自有验收图片，无大型编译产物。
-- 没有配置 Git 远端、创建 GitHub 仓库或执行 push。当前发布的是源码；本地 target/release/yyplayer.exe 和 libmpv DLL 均不上传。
+## 本次合并准备
 
-## VS Code 操作
+- 用户已确认：使用 **Windows x64 packages** 工作流，可以编译打包 `dev-linux` 内的共用代码。该证据限 Windows 编译与打包，没有提供 run URL / 提交号，也没有新增 Windows 播放、设备或安装回归记录。
+- Ubuntu 26.04 amd64 已有本机编译、Wayland 实际播放 / GPU、独立 X11 UI、deb / AppImage 提取启动与 hash 校验记录；干净系统安装、其他发行版和硬件资格仍按 STATUS 保留。
+- README、AGENTS 和开发 / 发布指南已按共用源码更新。历史 STATUS / ADR 的分支与验收表述保留当时事实；最新状态见 [STATUS](STATUS.md) 与 [合并准备记录](validation/shared-source-merge-preparation.md)。
+- Cargo.lock、LICENSE 和第三方记录保留；不提交 DLL / so、编译产物、下载缓存、用户媒体、用户配置或凭据。
 
-1. 打开上述目录，检查左下角当前分支为 **master**，源代码管理没有待提交改动。
-2. 按 **Ctrl+Shift+P** 打开命令面板，输入并运行 **Publish to GitHub**（发布到 GitHub）。需要时按提示登录自己的 GitHub 账号。
-3. 输入可用仓库名，例如 `YYPlayer`，选择 **Public / 公开仓库**。现有提交已准备好；出现文件选择提示时保留源码、LICENSE、Cargo.lock 和文档，遵循现有忽略规则。
-4. 完成后到 GitHub 确认 master 是默认分支、最新 README / LICENSE 可见，VS Code 已添加 origin 并设置 master 的 upstream。
-5. 需要公开开发分支时再切到 dev，使用 Publish Branch 发布；日常新代码在 dev 完成、验证后合入 master。本地只保留 master / dev 两个分支。
+在 VS Code 源代码管理中检查分支与待提交变更，提交本轮文档到 `dev-linux` 后，将该分支合入 `master`；也可以通过已有 GitHub 仓库的 PR 完成。合并后检查 `master` 包含预期代码与文档，并按用户自己的发布方式推送。开发分支是否保留由用户决定，不要求按 Windows / Linux 分别维护两份应用源码。
 
-如果 GitHub 上已经手动创建了空仓库，使用 **Git: Add Remote** 添加该仓库 URL（名称 origin），再 Push master；不需要再次创建另一个仓库。首次空仓库不要另生成冲突的 README / LICENSE 提交。官方操作说明：[VS Code 仓库与远端](https://code.visualstudio.com/docs/sourcecontrol/repos-remotes#publish-to-github)。
+只读复查命令：
 
-## 发布后的本地复查
-
-```powershell
+```bash
 git status --short
 git branch -vv
 git remote -v
 git log -1 --oneline
 ```
 
-这些命令应显示工作区干净、master 关联 origin/master，远端为你自己的 GitHub 仓库。发布前远端为空是预期状态。Git 的提交历史也随 master 上传，而不是把目录内所有文件打包上传。
+不要把合并准备描述为已合并，也不要从某次编译成功推断未测试的播放或安装场景已通过。
 
-## 后续二进制发行
+## GitHub 构建与报告
 
-### master 推送的 Windows x64 构建
+以下为当前仓库工作流的实际触发方式；本次只更新文档，未修改 workflow。
 
-`.github/workflows/windows-release.yml` 在每次向 `master` 推送时使用 `windows-2022` x64 MSVC runner 构建，并可从 Actions 页面手动运行。工作流校验固定的 libmpv archive / DLL hash，再生成两个提交号命名的文件：
+| 工作流 | 自动触发 | 手动用途 |
+| --- | --- | --- |
+| Windows x64 packages | `master` push | Run workflow 选择含工作流的分支；用户已验证 `dev-linux` 编译打包成功 |
+| Ubuntu 26.04 packages | `dev-linux` push | 合并后可选择 `master` 构建 deb / AppImage；当前没有 `master` push 自动触发 |
+| Linux compatibility compile matrix | 无 | 合并后选择 `master`，测试 Ubuntu / Debian 各版本源码编译下限 |
 
-- `YYPlayer-<版本>-<提交号>-windows-x64-portable.zip`：解压后从 `yyplayer.exe` 启动，运行时 DLL 位于 `runtime/`。播放器配置仍保存在当前 Windows 用户的 `%APPDATA%`。
-- `YYPlayer-<版本>-<提交号>-windows-x64-setup.exe`：NSIS 安装器，要求 x64 Windows 和管理员安装权限，默认安装到 64 位 Program Files，创建开始菜单快捷方式并提供卸载；卸载不删除用户配置。
+最低版本矩阵需要工作流在 GitHub 默认分支注册；真实报告尚未提供，当前不能填写实测最低源码编译版本。操作与报告边界见 [矩阵指南](LINUX_COMPATIBILITY_CI.md)。
 
-两份实际文件会一起出现在该次 Actions run 的 `YYPlayer-windows-x64-<commit>` artifact 中，保留 30 天。它们是逐提交 CI 构建产物，不会创建 GitHub Releases 页面上的版本发布；源代码发布仍由用户 push。NSIS 被选为安装器，因为其开源许可适用于商业和非商业用途，Windows 2022 hosted runner 已预装 NSIS 与 7-Zip。[NSIS 官方许可](https://nsis.sourceforge.io/Docs/AppendixI.html)、[GitHub Windows 2022 runner 清单](https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md)
+### Windows x64 产物
 
-NSIS setup 本身由 NSIS 编译，但它只在 x64 Windows 上安装 x64 app。Windows 2022 runner 镜像和 NSIS 版本可能更新，工作流会在找不到 7-Zip / `makensis.exe` 时明确失败。
+`.github/workflows/windows-release.yml` 使用 `windows-2022` x64 MSVC runner，校验固定 libmpv archive / DLL hash，生成：
 
-构建包随附本项目 GPL 与当前第三方许可记录、固定 mpv manifest、源码提交链接和 NSIS 构建工具归属说明。`THIRD_PARTY_NOTICES.md` 明确当前还不是 libmpv 构建内部所有 FFmpeg / codec 组件的完整 notices；对应源码 / 构建脚本安排与 DLL 闭包也未完成最终发行审计。因此这些自动产物用于本仓库的提交构建，不将其描述为完成了二进制发行合规审计。正式 GitHub Release 还需先补齐上述事项并做干净 Windows 安装 / 卸载与运行时依赖验收，参见 [运行时说明](../third_party/mpv/README.md)。CI 编译包也不代表 USB 位准确、HDR 或 macOS / Linux 资格。
+- `YYPlayer-<版本>-<提交号>-windows-x64-portable.zip`：解压后从 `yyplayer.exe` 启动，运行时 DLL 位于 `runtime/`，配置在 `%APPDATA%`。
+- `YYPlayer-<版本>-<提交号>-windows-x64-setup.exe`：NSIS 安装器，限 x64 Windows，需要管理员权限，安装到 64 位 Program Files，创建快捷方式和卸载入口；卸载不删除用户配置。
+
+文件位于该次 Actions run 的 `YYPlayer-windows-x64-<commit>` artifact，保留 30 天。7-Zip / NSIS 缺失时工作流明确失败。
+
+### Linux 产物
+
+`.github/workflows/linux-packages.yml` 在 Ubuntu 26.04 容器中检查格式、lint、测试和独立 X11 UI，随后生成 deb / AppImage、对应源码归档、Rust 源码清单、runtime manifest、构建信息和校验和。产物位于 `YYPlayer-ubuntu-26.04-amd64-<commit>` artifact，保留 30 天。完整目录与运行方式见 [Linux 指南](LINUX.md)。
+
+合并后手动运行这个工作流即可验证 `master` 的 Linux 包；若希望 `master` push 同时自动构建 Linux，需要另行修改它的 branches 触发条件。
+
+## 正式二进制发行边界
+
+工作流生成逐提交 CI artifact，不会自动创建 GitHub Release。Windows 的完整 libmpv 内部组件 notices / 对应源码安排与 DLL 闭包、Linux 上游 AppImage runtime 的完整静态闭包 / 可重链接安排仍待补证。构建通过不代表正式二进制发行审计、干净系统安装 / 升级 / 卸载、USB 位准确或 HDR 资格完成。
+
+Windows 运行时见 [libmpv 说明](../third_party/mpv/README.md)，Linux 发行剩余事项见 [runtime 记录](../packaging/linux/runtime-notices/README.md)。

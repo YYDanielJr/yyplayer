@@ -2,6 +2,12 @@
 
 记录已交付的开发预览变更，按日期倒序排列。尚未完成的目标见 [开发规划](docs/DEVELOPMENT_PLAN.md)，检查结果与资格限制见 [实际状态](docs/STATUS.md)。
 
+## 2026-10-03 · Windows/Linux 共用源码合并准备
+
+- 用户确认 dev-linux 共用代码通过 Windows Actions 编译打包；记录证据范围，保留运行 / 设备 / 安装的独立验收条件。
+- README、AGENTS 与开发 / 发布文档统一为同一源码按目标平台构建 exe / ELF，准备合入 master；保留历史记录，更新 Linux 运行时与实际 CI 触发方式。
+- 本次只更新文档，未改应用或 workflow，未执行提交 / 合并 / 推送。
+
 ## 2026-10-03 · Linux CI AppImage 宿主工具检查
 
 - 补齐 CI 漏掉的 appimagetool 必需包 `file`；宿主打包命令集中声明，本地 apt 审计和打包预检共用清单。

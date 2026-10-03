@@ -5,11 +5,11 @@
 ## 手动运行
 
 1. 将工作流和 `scripts/linux-compat/` 配套文件提交、推送到 GitHub 默认分支（本项目为 `master`），使手动工作流入口注册。待测试分支也必须包含这些文件及 Linux 适配代码。只放在非默认分支时，GitHub 页面可能没有 Run workflow 按钮，详见 [GitHub 手动运行说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)。
-2. 打开仓库 **Actions → Linux compatibility compile matrix → Run workflow**，选择 `dev-linux` 或其他待测试分支。
+2. 打开仓库 **Actions → Linux compatibility compile matrix → Run workflow**，选择含有共用代码及工作流的分支；合并后选 `master`，合并前可选 `dev-linux`。
 3. 保留默认参数运行，等待 `report` job 完成；单个发行版编译失败不会取消其他发行版。
 4. 在该次运行 Summary 查看中文报告，或下载 `linux-compatibility-report-<attempt>`，其中包含 `report.md` 和 `report.json`。逐系统日志位于 `linux-compat-case-<attempt>-<系统>`。
 
-本轮只编写及本地验证工作流，没有替用户推送分支、注册远端入口或触发 GitHub Actions。无需为这项远端测试在本机安装 apt 库；GitHub 的宿主 runner 提供 Docker，依赖安装只发生在临时容器内。
+工作流已有本地验证证据；当前尚未收到真实远端矩阵报告，最低源码编译版本仍待实测。Windows 共用代码的编译打包已由用户确认，不替代此 Linux 矩阵的结果。无需为这项远端测试在本机安装 apt 库；GitHub 的宿主 runner 提供 Docker，依赖安装只发生在临时容器内。
 
 | 参数 | 默认值 | 用途 |
 | --- | --- | --- |
