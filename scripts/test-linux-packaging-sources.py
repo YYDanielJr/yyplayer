@@ -28,7 +28,7 @@ class SourcePreparationTests(unittest.TestCase):
                     binary.write_bytes(b"fixture")
                     (root / "Cargo.toml").write_text('[workspace.package]\nversion="0.0.1"\n')
                     argv = ["package-linux.py"] + (["--offline"] if offline else []) + (["--skip-build"] if skip_build else [])
-                    with patch.object(packaging, "ROOT", root), patch.object(packaging, "DIST", root / "dist"), patch.object(packaging, "TARGET", root / "staging"), patch.object(sys, "argv", argv), patch.object(packaging, "output", side_effect=["amd64", "0123456789ab"]), patch.object(packaging, "run") as run, patch.object(packaging, "system_mpv", side_effect=StopBeforeStaging):
+                    with patch.object(packaging, "ROOT", root), patch.object(packaging, "DIST", root / "dist"), patch.object(packaging, "TARGET", root / "staging"), patch.object(sys, "argv", argv), patch.object(packaging, "check_host_tools"), patch.object(packaging, "output", side_effect=["amd64", "0123456789ab"]), patch.object(packaging, "run") as run, patch.object(packaging, "system_mpv", side_effect=StopBeforeStaging):
                         with self.assertRaises(StopBeforeStaging):
                             packaging.main()
                         commands = [call.args[0] for call in run.call_args_list]
@@ -42,7 +42,7 @@ class SourcePreparationTests(unittest.TestCase):
     def test_missing_source_cache_stops_before_build_and_output_creation(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            with patch.object(packaging, "ROOT", root), patch.object(packaging, "DIST", root / "dist"), patch.object(packaging, "TARGET", root / "staging"), patch.object(sys, "argv", ["package-linux.py", "--offline"]), patch.object(packaging, "output", side_effect=["amd64", "0123456789ab"]), patch.object(packaging, "run", side_effect=subprocess.CalledProcessError(101, ["cargo", "fetch"])) as run, patch.object(packaging, "system_mpv") as mpv:
+            with patch.object(packaging, "ROOT", root), patch.object(packaging, "DIST", root / "dist"), patch.object(packaging, "TARGET", root / "staging"), patch.object(sys, "argv", ["package-linux.py", "--offline"]), patch.object(packaging, "check_host_tools"), patch.object(packaging, "output", side_effect=["amd64", "0123456789ab"]), patch.object(packaging, "run", side_effect=subprocess.CalledProcessError(101, ["cargo", "fetch"])) as run, patch.object(packaging, "system_mpv") as mpv:
                 with self.assertRaises(subprocess.CalledProcessError):
                     packaging.main()
                 self.assertEqual(run.call_count, 1)

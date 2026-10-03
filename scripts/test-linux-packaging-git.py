@@ -75,7 +75,7 @@ class RepositoryOwnershipTests(unittest.TestCase):
             if args[0] == "dpkg":
                 return "amd64"
             raise subprocess.CalledProcessError(128, args)
-        with patch.object(sys, "argv", ["package-linux.py"]), patch.object(packaging, "output", side_effect=output), patch.object(packaging, "run") as run:
+        with patch.object(sys, "argv", ["package-linux.py"]), patch.object(packaging, "check_host_tools"), patch.object(packaging, "output", side_effect=output), patch.object(packaging, "run") as run:
             with self.assertRaises(subprocess.CalledProcessError):
                 packaging.main()
             run.assert_not_called()

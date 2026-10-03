@@ -50,10 +50,13 @@ python3 scripts/test-linux.py --backend wayland --suite alsa --alsa-device 'alsa
 ## 生成 deb 和 AppImage
 
 ```bash
+python3 scripts/package-linux.py --check-tools
 python3 scripts/package-linux.py
 # 已缓存工具、已构建 Release 时可完全离线重包：
 python3 scripts/package-linux.py --offline --skip-build
 ```
+
+`--check-tools` 只读检查全部宿主打包命令，不下载或编译。清单集中在 `packaging/linux/tools.json`，本地 apt 审计复用同一清单；缺项一次性列出命令和对应 apt 包。`file` 是固定版 appimagetool 的必需宿主命令，不能依赖开发桌面已安装它；CI 明确安装。正常打包入口也会先检查工具，含 `--skip-build` 模式。固定工具内置的 mksquashfs / desktop-file-validate / zsyncmake 已单独核对，见 [打包工具验证记录](validation/linux-packaging-tools.md)。
 
 脚本在编译前执行 `cargo fetch --locked`，下载锁定依赖图中所有平台的源码，用于完整许可记录与对应源码包；Linux 编译目标保持不变。CI 也在 lint / tests 前完成这一步。不要给这次 fetch 加 `--target`，否则其他平台的条件依赖可能缺失。`--offline` 会改为 `cargo fetch --locked --offline`，要求源码和打包工具缓存齐全；`--skip-build` 也会检查源码缓存。说明依据见 [Cargo fetch 文档](https://doc.rust-lang.org/cargo/commands/cargo-fetch.html)。
 

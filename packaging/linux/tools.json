@@ -1,4 +1,19 @@
 {
+  "required_host_commands": {
+    "cargo": null,
+    "rustc": null,
+    "git": "git",
+    "dpkg": "dpkg",
+    "dpkg-query": "dpkg",
+    "dpkg-deb": "dpkg",
+    "ldd": "libc-bin",
+    "patchelf": "patchelf",
+    "desktop-file-validate": "desktop-file-utils",
+    "file": "file",
+    "sh": "dash",
+    "dirname": "coreutils",
+    "readlink": "coreutils"
+  },
   "appimagetool": {
     "version": "1.9.1",
     "url": "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage",

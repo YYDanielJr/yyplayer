@@ -18,7 +18,7 @@ jobs:
       - name: Install container build and package dependencies
         run: |
           apt-get update
-          apt-get install --no-install-recommends -y ca-certificates curl git build-essential pkg-config python3 \
+          apt-get install --no-install-recommends -y ca-certificates curl git file build-essential pkg-config python3 \
             libfontconfig-dev libwayland-dev libxkbcommon-dev libegl-dev libgl-dev libx11-dev \
             libxkbcommon-x11-dev libx11-xcb-dev libxcursor-dev libxi-dev libxrandr-dev \
             libmpv2 mpv ffmpeg patchelf desktop-file-utils squashfs-tools libudev-dev libasound2-dev \
@@ -35,6 +35,10 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh
           sh /tmp/rustup.sh -y --profile minimal --component rustfmt --component clippy --no-modify-path
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Check all required host packaging commands before compiling
+        run: |
+          python3 scripts/test-linux-packaging-tools.py
+          python3 scripts/package-linux.py --check-tools
       - name: Fetch complete locked dependency sources for packaging
         run: |
           python3 scripts/test-linux-packaging-sources.py

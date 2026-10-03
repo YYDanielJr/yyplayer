@@ -1,5 +1,14 @@
 # YYPlayer 进度与证据
 
+## 2026-10-03：Linux CI AppImage 宿主工具依赖修复
+
+状态：Done（针对用户第三次日志的依赖补齐、提前检查及实际 AppImage 工具验证）；干净远端 workflow 待新提交运行。日志已证明 Release / deb 成功，新错误为 appimagetool 必需的 file 在 CI 缺失。本地已安装它，此前完整本机打包通过不能证明原 CI 依赖清单齐全。
+
+- 改动：`.github/workflows/linux-packages.yml` 显式安装 file，编译前运行新的工具回归和 `scripts/package-linux.py --check-tools`。`packaging/linux/tools.json` 集中声明必需宿主命令 / apt 包，打包入口与 `scripts/check-linux-deps.py` 共用；任何下载 / 编译 / 输出前报出全部缺项。新增工具边界测试，既有 Git / 源码测试隔离工具阶段；更新 Linux 指南 / CHANGELOG / STATUS 与 [验证记录](validation/linux-packaging-tools.md)。不改应用、Cargo.lock、固定工具 hash 或 dist。
+- 检查：工具 / 源码 / Git 共 8 个测试通过；实际校验、解压固定 appimagetool，以仅 dirname / readlink 的宿主 PATH 复现缺 file，补回 file 后真正生成自有最小 AppImage。核对其内置 mksquashfs / desktop-file-validate / zsyncmake 及当前参数需要的外部命令，未把未启用可选路径加成必需依赖。Python 编译、actionlint 1.7.12、git diff --check、文档链接检查通过。
+- 本机：只读工具和 apt 全面审计通过，无需新 apt 安装；没有全局设置改动。本轮不重复 Rust / UI / GPU 或播放器完整打包，实际工具测试及此前完整打包结果范围分开。
+- 下一具体动作：用户推送后新运行 `Ubuntu 26.04 packages`，检查新工具预检、AppImage 生成、源码及六产物上传；远端成功前不标为 CI 完整打包通过。
+
 ## 2026-10-03：Linux CI 完整条件依赖源码准备修复
 
 状态：Done（针对用户第二次打包日志的修复、本地回归与完整离线打包验证）；真实远端新容器仍待新提交运行。用户日志中 Release 已成功、Git 查询通过，`rust_notices` 的无过滤 offline metadata 因未下载 `accesskit_ios 0.1.2` 返回 101；Linux 构建本身只准备本平台依赖，不能代替完整源码缓存准备。

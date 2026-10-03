@@ -40,6 +40,10 @@ PACKAGES = {
     "desktop-file-utils": "桌面入口校验",
     "xdg-desktop-portal": "原生文件选择及外观",
 }
+HOST_COMMANDS = json.loads((Path(__file__).resolve().parents[1] / "packaging/linux/tools.json").read_text())["required_host_commands"]
+for package in HOST_COMMANDS.values():
+    if package:
+        PACKAGES.setdefault(package, "deb / AppImage 宿主打包命令")
 
 def audit():
     packages = {}
@@ -47,7 +51,8 @@ def audit():
         result = subprocess.run(["dpkg-query", "-W", "-f=${db:Status-Status}\t${Version}", name], capture_output=True, text=True)
         fields = result.stdout.split("\t", 1)
         packages[name] = {"installed": fields[0] == "installed", "version": fields[1] if len(fields) == 2 else None, "purpose": purpose}
-    return {"os": Path("/etc/os-release").read_text(), "architecture": subprocess.check_output(["dpkg", "--print-architecture"], text=True).strip(), "packages": packages, "tools": {name: shutil.which(name) for name in ["cargo", "rustc", "dpkg-deb", "patchelf", "ffmpeg", "mpv", "Xvfb", "weston"]}}
+    tool_names = sorted(set(HOST_COMMANDS) | {"ffmpeg", "mpv", "Xvfb", "weston"})
+    return {"os": Path("/etc/os-release").read_text(), "architecture": subprocess.check_output(["dpkg", "--print-architecture"], text=True).strip(), "packages": packages, "tools": {name: shutil.which(name) for name in tool_names}}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)

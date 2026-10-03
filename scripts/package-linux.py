@@ -19,6 +19,7 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "target/linux-packaging"
 DIST = ROOT / "dist"
+REQUIRED_HOST_COMMANDS = json.loads((ROOT / "packaging/linux/tools.json").read_text())["required_host_commands"]
 # Host ABI, graphics vendors, fonts and desktop services remain system-owned.
 # libmpv, FFmpeg, libplacebo, sound clients and their non-driver dependencies bundle.
 HOST_LIBS = re.compile(r"^(ld-linux.*|lib(c|m|pthread|dl|rt|resolv)\.so\..*|lib(GL|GLX|GLdispatch|EGL|OpenGL|GLESv[12])\.so\..*|lib(nvidia|cuda|nvcuvid).*|libvulkan\.so\..*|libdrm[^/]*\.so\..*|libgbm\.so\..*)$")
@@ -34,6 +35,19 @@ def git_command(*args):
     # Trust only this script's repository for this command, without modifying
     # global configuration or trusting every repository via safe.directory=*.
     return ["git", "-c", f"safe.directory={ROOT}", "-C", str(ROOT), *args]
+
+def check_host_tools():
+    tools = {name: shutil.which(name) for name in REQUIRED_HOST_COMMANDS}
+    missing = [name for name, path in tools.items() if path is None]
+    if missing:
+        packages = sorted({REQUIRED_HOST_COMMANDS[name] for name in missing if REQUIRED_HOST_COMMANDS[name]})
+        message = "缺少打包工具：" + ", ".join(missing)
+        if packages:
+            message += "\n所需 apt 包：" + " ".join(packages)
+        if any(REQUIRED_HOST_COMMANDS[name] is None for name in missing):
+            message += "\n请安装 Rust 工具链并将 cargo / rustc 加入 PATH。"
+        raise RuntimeError(message)
+    return tools
 
 def digest(path):
     with Path(path).open("rb") as file:
@@ -246,7 +260,12 @@ def main():
     parser.add_argument("--binary", type=Path, default=ROOT / "target/release/yyplayer")
     parser.add_argument("--offline", action="store_true", help="No Cargo or tool downloads; requires complete caches")
     parser.add_argument("--skip-build", action="store_true")
+    parser.add_argument("--check-tools", action="store_true", help="Only check required host commands; no build, download or packaging")
     args = parser.parse_args()
+    check_host_tools()
+    if args.check_tools:
+        print("deb / AppImage 宿主打包工具检查通过。")
+        return
     if output(["dpkg", "--print-architecture"]) != "amd64":
         raise RuntimeError("本轮包仅资格验证 Ubuntu amd64")
     # Check repository access before the potentially expensive Release build.
