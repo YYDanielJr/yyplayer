@@ -1,0 +1,13 @@
+{
+  "version": "0.5.1",
+  "branch": "dev",
+  "executable": "target/release/yyplayer.exe",
+  "file_version": "0.5.1",
+  "product_version": "0.5.1",
+  "bytes": 30511104,
+  "sha256": "84365cf4ed0aa5efb546161db27d6753e86ea8f4b62de4ab57a4cfaf81afcee4",
+  "release_startup_exit_code": 0,
+  "configuration": "E:\\SourceFiles\\rust\\yyplayer\\target\\frontend-0.5.1-smoke-07661b65970648cea83fc6a7b4800799\\settings.json",
+  "graphics_decision": "OpenGL; Vulkan investigation closed by user",
+  "checked_at_utc": "2026-10-12T13:17:14.5710097Z"
+}

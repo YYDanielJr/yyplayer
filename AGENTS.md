@@ -173,7 +173,21 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 
 ## 13. Windows 自动编译打包接续（2026-10-12）
 
-- 当前 dev 应用版本为 0.3.1，五个 workspace crate 继承根版本，保留更新后的 Cargo.lock；EXE 版本资源、NSIS 与包名从同一 Cargo 版本生成，不添加独立硬编码默认。master 仅在授权合入 dev 后接收版本更新。
+- 当前 dev 应用版本为 0.5.1，五个 workspace crate 继承根版本，保留更新后的 Cargo.lock；EXE 版本资源、NSIS 与包名从同一 Cargo 版本生成，不添加独立硬编码默认。master 仅在授权合入 dev 后接收版本更新。
 - Package-Windows 在预检后自动执行 locked x64 MSVC Release build；使用本次 Cargo compiler-artifact.executable，检查实际退出码 / build-finished / 版本与 hash。不要恢复为读取固定旧 EXE，CI 不再另做重复编译。
 - 自定义 Cargo 产物目录放 target 子目录或仓库外；.gitignore 不替代暂存 diff 检查，不强制加入运行时二进制、包、缓存或用户配置。临时 NSIS 工具仅在 target 内使用，无需修改全局设置。
 - 修改打包执行 Test-WindowsPackaging，覆盖旧 EXE / 编译失败 / 自定义目录 / NSIS 失败 / 重试 / 已有包保护；兼容 PowerShell 5.1 / 7 原生 stderr。当前本机 ZIP / Setup 与独立启动证据见 docs/validation/windows-packaging.md，安装 / 卸载及正式发行资格仍待验。
+
+## 14. 0.5.0 歌单与独立播放列表接续
+
+- 音乐 / 视频各自保留 SessionQueue 和 PlayOrder，抽屉切标签只浏览，点击项才切实际队列。自动 EOF 仅由 controller 推进，保留源身份 / pending load / Ended 边界，不另开 mpv 文件循环；load_index 在匹配 FILE_LOADED 后恢复明确播放意图，仍服从 Engine 的输出确认 / blocked 规则。
+- 本地歌单与我喜欢使用版本化 Playlists、稳定 ID 和原始 PathBuf，复用 settings 后台原子保存；队列仅为会话状态。移除目录 / 歌单 / 成员不删磁盘文件或改当前队列；失联 / 未索引成员保留。限 128 个歌单、合计 20000 成员、单队列 20000 项，配置 2MB；扩容先测响应 / 内存 / 退出。
+- 音乐库可见 row ID 对应 Browser.paths，不再直接索引 library_songs；缩略图、点击、多选、移除均用当前路径投影。歌手 / 专辑分组不读文件，专辑键包含歌手；模型按库 / 分类 / 选择 revision 更新，不覆盖正在编辑的歌单名称。
+- 抽屉覆盖内容 / 视频，不挤压 FBO；小窗口音乐页显式可伸展，空库边距避免最小高度撑大窗口。修改相关功能回归 Test-Collections、Test-UiCustomization、navigation-ui、ui-feedback、audio-ui、Test-VideoLibrary / Test-Video / Test-Render；GUI / 硬件测试串行，自有 fixture / 独立配置。详情见 docs/MUSIC_PLAYLISTS.md、ADR 0010 与 docs/validation/frontend-0.5.0.md。
+
+## 15. 桌面 GL 与 AMD 去色带接续
+
+- 用户于 2026-10-12 确认继续使用 OpenGL，停止 Vulkan 探索。既有样机脚本与结果只作历史证据，不将 Vulkan 集成列为接续任务；后续除非用户重新明确要求，不继续该方向。
+- 生产与真实 GPU 例子共用 player_ui::select_gpu_backend。Windows 请求桌面 OpenGL 3.3，presenter 检查实际上下文，不能静默使用 GLES 或低版本并显示视频成功；Linux / macOS 本轮保持原选择。保留 prepare_gl、同上下文与资源释放边界，不关闭去色带或强制软件解码掩盖异常。
+- Radeon 860M / 驱动 32.0.31041.1004 的 GLES 3.2 拒绝固定 mpv shader 的 average 函数名；桌面 GL 修复通过实际像素对照。不能泛化为 AMD 独显已验收。固定 Render API 的 Vulkan 请求实测返回 -19；原生 vo=gpu / gpu-next 的 Vulkan 样机不代表当前 Slint 可直接导入 Vulkan 图像。
+- Test-Render 校验实际 GL 版本与 shader 编译日志，再比较自有 4K HEVC 像素；deband 例子覆盖暂停去色带 / 软硬解重载、位置及释放 / 继续观看。Test-GpuBackends.py 仅 Windows 验收，固定 DLL hash、自有 fixture、原生样机输出与像素均写 target，不增加生产 Python 依赖。当前事实见 ADR 0011 与 docs/validation/compact-toolbar-amd-deband.md。

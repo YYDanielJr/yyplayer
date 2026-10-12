@@ -1,0 +1,210 @@
+{
+  "library_sha256": "0d5b9dbecb73e179ef39dc94314ff8905fab926a80f8d60a2367d824b7254e2e",
+  "fixture_sha256": "3cbbf6d3a5d62541a5574528b224802acbd586338625c4dcf889193ced65ecd2",
+  "render_api": {
+    "api": "vulkan",
+    "code": -19,
+    "message": "operation not implemented"
+  },
+  "results": [
+    {
+      "case": "gpu-opengl-plain",
+      "requested_api": "opengl",
+      "deband": false,
+      "current_vo": "gpu",
+      "hwdec": "d3d11va-copy",
+      "position": "1.533333",
+      "pause": "yes",
+      "mpv_version": "mpv v0.41.0-1087-ge470f8986",
+      "screenshot": "gpu-opengl-plain.png",
+      "passed": true,
+      "gpu_evidence": [
+        "[   0.263][v][vo/gpu] GL_VERSION='4.6.0 Compatibility Profile Context 26.8.1.260810'",
+        "[   0.263][v][vo/gpu] GL_RENDERER='AMD Radeon(TM) 860M Graphics'"
+      ]
+    },
+    {
+      "case": "gpu-opengl-deband",
+      "requested_api": "opengl",
+      "deband": true,
+      "current_vo": "gpu",
+      "hwdec": "d3d11va-copy",
+      "position": "1.533333",
+      "pause": "yes",
+      "mpv_version": "mpv v0.41.0-1087-ge470f8986",
+      "screenshot": "gpu-opengl-deband.png",
+      "passed": true,
+      "gpu_evidence": [
+        "[   2.197][v][vo/gpu] GL_VERSION='4.6.0 Compatibility Profile Context 26.8.1.260810'",
+        "[   2.197][v][vo/gpu] GL_RENDERER='AMD Radeon(TM) 860M Graphics'"
+      ]
+    },
+    {
+      "case": "gpu-vulkan-plain",
+      "requested_api": "vulkan",
+      "deband": false,
+      "current_vo": "gpu",
+      "hwdec": "d3d11va-copy",
+      "position": "1.500000",
+      "pause": "yes",
+      "mpv_version": "mpv v0.41.0-1087-ge470f8986",
+      "screenshot": "gpu-vulkan-plain.png",
+      "passed": true,
+      "gpu_evidence": [
+        "[   4.722][v][vo/gpu/libplacebo]     Device Name: AMD Radeon(TM) 860M Graphics"
+      ]
+    },
+    {
+      "case": "gpu-vulkan-deband",
+      "requested_api": "vulkan",
+      "deband": true,
+      "current_vo": "gpu",
+      "hwdec": "d3d11va-copy",
+      "position": "1.533333",
+      "pause": "yes",
+      "mpv_version": "mpv v0.41.0-1087-ge470f8986",
+      "screenshot": "gpu-vulkan-deband.png",
+      "passed": true,
+      "gpu_evidence": [
+        "[   7.172][v][vo/gpu/libplacebo]     Device Name: AMD Radeon(TM) 860M Graphics"
+      ]
+    },
+    {
+      "case": "gpu-next-vulkan-plain",
+      "requested_api": "vulkan",
+      "deband": false,
+      "current_vo": "gpu-next",
+      "hwdec": "d3d11va-copy",
+      "position": "1.500000",
+      "pause": "yes",
+      "mpv_version": "mpv v0.41.0-1087-ge470f8986",
+      "screenshot": "gpu-next-vulkan-plain.png",
+      "passed": true,
+      "gpu_evidence": [
+        "[   9.672][v][vo/gpu-next/libplacebo]     Device Name: AMD Radeon(TM) 860M Graphics"
+      ]
+    },
+    {
+      "case": "gpu-next-vulkan-deband",
+      "requested_api": "vulkan",
+      "deband": true,
+      "current_vo": "gpu-next",
+      "hwdec": "d3d11va-copy",
+      "position": "1.500000",
+      "pause": "yes",
+      "mpv_version": "mpv v0.41.0-1087-ge470f8986",
+      "screenshot": "gpu-next-vulkan-deband.png",
+      "passed": true,
+      "gpu_evidence": [
+        "[  12.067][v][vo/gpu-next/libplacebo]     Device Name: AMD Radeon(TM) 860M Graphics"
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "reference": "gpu-opengl-plain",
+      "candidate": "gpu-opengl-deband",
+      "exit_code": 0,
+      "metrics": {
+        "bad_pixel_fraction": 0.0,
+        "channel_threshold": 12,
+        "height": 270,
+        "max_bad_fraction": 0.01,
+        "max_mean_error": 1.5,
+        "mean_absolute_rgb_error": 0.18302607961144546,
+        "passed": true,
+        "region": [
+          14,
+          40,
+          451,
+          175
+        ],
+        "width": 480
+      }
+    },
+    {
+      "reference": "gpu-vulkan-plain",
+      "candidate": "gpu-vulkan-deband",
+      "exit_code": 0,
+      "metrics": {
+        "bad_pixel_fraction": 0.0,
+        "channel_threshold": 12,
+        "height": 270,
+        "max_bad_fraction": 0.01,
+        "max_mean_error": 1.5,
+        "mean_absolute_rgb_error": 0.20728539752929998,
+        "passed": true,
+        "region": [
+          14,
+          40,
+          451,
+          175
+        ],
+        "width": 480
+      }
+    },
+    {
+      "reference": "gpu-next-vulkan-plain",
+      "candidate": "gpu-next-vulkan-deband",
+      "exit_code": 0,
+      "metrics": {
+        "bad_pixel_fraction": 0.0,
+        "channel_threshold": 12,
+        "height": 270,
+        "max_bad_fraction": 0.01,
+        "max_mean_error": 1.5,
+        "mean_absolute_rgb_error": 0.10204202301763278,
+        "passed": true,
+        "region": [
+          14,
+          40,
+          451,
+          175
+        ],
+        "width": 480
+      }
+    },
+    {
+      "reference": "gpu-opengl-plain",
+      "candidate": "gpu-vulkan-plain",
+      "exit_code": 0,
+      "metrics": {
+        "bad_pixel_fraction": 0.0,
+        "channel_threshold": 12,
+        "height": 270,
+        "max_bad_fraction": 0.01,
+        "max_mean_error": 1.5,
+        "mean_absolute_rgb_error": 0.16449794108330693,
+        "passed": true,
+        "region": [
+          14,
+          40,
+          451,
+          175
+        ],
+        "width": 480
+      }
+    },
+    {
+      "reference": "gpu-opengl-deband",
+      "candidate": "gpu-vulkan-deband",
+      "exit_code": 0,
+      "metrics": {
+        "bad_pixel_fraction": 0.0,
+        "channel_threshold": 12,
+        "height": 270,
+        "max_bad_fraction": 0.01,
+        "max_mean_error": 1.5,
+        "mean_absolute_rgb_error": 0.1530693696547355,
+        "passed": true,
+        "region": [
+          14,
+          40,
+          451,
+          175
+        ],
+        "width": 480
+      }
+    }
+  ]
+}

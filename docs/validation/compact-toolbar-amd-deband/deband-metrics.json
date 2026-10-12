@@ -1,0 +1,16 @@
+{
+  "bad_pixel_fraction": 0.0,
+  "channel_threshold": 12,
+  "height": 1575,
+  "max_bad_fraction": 0.01,
+  "max_mean_error": 1.5,
+  "mean_absolute_rgb_error": 0.22561756405038216,
+  "passed": true,
+  "region": [
+    65,
+    236,
+    2039,
+    1023
+  ],
+  "width": 2170
+}

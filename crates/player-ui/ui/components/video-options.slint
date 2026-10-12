@@ -18,8 +18,8 @@ export component VideoOptions inherits Rectangle {
     private property <bool> info-open;
     callback control(string,string);
     background: Theme.glass;
-    private property <float> entrance: 0; init => { root.entrance = 1; }
-    opacity: root.entrance; animate entrance { duration: Theme.smooth; easing: ease-out; }
+    in property <float> entrance: 1;
+    opacity: root.entrance;
     ScrollView {
         width: parent.width; height: parent.height; viewport-width: self.width;
         VerticalLayout {
@@ -35,7 +35,7 @@ export component VideoOptions inherits Rectangle {
                 }
             }
             AudioOptions { form: root.audio-form; status: root.audio-status; origin: root.eq-origin; binding: root.eq-binding; headroom: root.eq-headroom-text; control(action,value) => { root.control(action,value); } }
-            HorizontalLayout { CheckBox { controlled: false; text: "单文件循环"; toggled(next) => { root.control("loop", next ? "yes" : "no"); } } Button { text: "A / B / 清除"; clicked => { root.control("ab-loop", ""); } } }
+            Button { text: "A / B / 清除"; clicked => { root.control("ab-loop", ""); } }
             if root.video: VerticalLayout {
             Text { text: "音轨 / 字幕"; color: Theme.muted; height: 20px; }
             ComboBox { model: root.audio-tracks; current-index: root.audio-index; selected(value, choice) => { root.control("audio-track", "" + choice); } }
@@ -59,8 +59,6 @@ export component VideoOptions inherits Rectangle {
             Text { text: "硬解可因 codec / GPU / 驱动限制回退。\n实际运行路径见媒体信息。"; color: Theme.faint; height: 36px; font-size: 13px; }
             }
             Button { text: "编辑播放快捷键"; clicked => { root.control("settings", ""); } }
-            Text { text: "当前队列"; color: Theme.text; font-size: 16px; height: 30px; }
-            for track in root.queue: QueueRow { track: track; selected: root.selected-id == track.item-id; clicked => { root.control("queue", "" + track.item-id); } }
         }
     }
 }

@@ -57,6 +57,9 @@ pub struct Settings {
     pub fonts: crate::typography::Fonts,
     pub lyrics: crate::lyrics::LyricStyle,
     pub library_columns: crate::typography::LibraryColumns,
+    pub playlists: crate::playlists::Playlists,
+    pub music_order: crate::queue::PlayOrder,
+    pub video_order: crate::queue::PlayOrder,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -77,6 +80,9 @@ impl Default for Settings {
             fonts: Default::default(),
             lyrics: Default::default(),
             library_columns: Default::default(),
+            playlists: Default::default(),
+            music_order: Default::default(),
+            video_order: Default::default(),
         }
     }
 }
@@ -96,6 +102,7 @@ impl Settings {
         self.fonts.validate()?;
         self.lyrics.validate()?;
         self.library_columns.validate()?;
+        self.playlists.validate()?;
         for options in self.folders.values().chain(self.files.values()) {
             options.validate()?;
         }
@@ -124,6 +131,19 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn old_config_gains_persistent_playlists_and_independent_orders() {
+        let mut s: Settings = serde_json::from_str(r#"{"version":1,"volume":70}"#).unwrap();
+        assert_eq!(s.playlists.lists[0].name, "我喜欢");
+        s.music_order = crate::queue::PlayOrder::Shuffle;
+        let id = s.playlists.create("夜航").unwrap();
+        s.playlists.add(id, vec!["music/夜航.flac".into()]).unwrap();
+        let restored: Settings = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
+        restored.validate().unwrap();
+        assert_eq!(restored.video_order, crate::queue::PlayOrder::Sequential);
+        assert_eq!(restored.music_order, crate::queue::PlayOrder::Shuffle);
+        assert_eq!(restored.playlists, s.playlists);
+    }
     #[test]
     fn old_settings_gain_an_independent_empty_video_library() {
         let mut settings: Settings =

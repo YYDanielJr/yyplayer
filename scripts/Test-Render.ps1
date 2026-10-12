@@ -5,7 +5,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $evidence = Join-Path $projectRoot 'target/render-regression/static'
 New-Item -ItemType Directory -Path $evidence -Force | Out-Null
 Push-Location $projectRoot
-$names = @('YYPLAYER_CONFIG','YYPLAYER_SMOKE_SECONDS','YYPLAYER_SMOKE_SCRIPT','YYPLAYER_DIAGNOSTICS','YYPLAYER_UI_CAPTURE','YYPLAYER_RENDER_TRACE')
+$names = @('YYPLAYER_CONFIG','YYPLAYER_SMOKE_SECONDS','YYPLAYER_SMOKE_SCRIPT','YYPLAYER_DIAGNOSTICS','YYPLAYER_UI_CAPTURE','YYPLAYER_RENDER_TRACE','YYPLAYER_MPV_LOG')
 $previous = @{}
 foreach ($name in $names) { $previous[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 try {
@@ -32,6 +32,7 @@ try {
         $env:YYPLAYER_RENDER_TRACE = $null
         $env:YYPLAYER_DIAGNOSTICS = Join-Path $evidence "$caseName.json"
         $env:YYPLAYER_UI_CAPTURE = Join-Path $evidence "$caseName.ppm"
+        $env:YYPLAYER_MPV_LOG = Join-Path $evidence "$caseName-mpv.log"
         $started = [DateTime]::UtcNow
         $process = Start-Process -FilePath $player -ArgumentList ('"' + $fixture + '"') -WindowStyle Hidden -PassThru
         if (-not $process.WaitForExit(30000)) { $process.Kill(); throw "$caseName timed out" }
@@ -42,6 +43,9 @@ try {
         $state = Get-Content -LiteralPath $env:YYPLAYER_DIAGNOSTICS -Raw -Encoding UTF8 | ConvertFrom-Json
         if ($state.error -or $state.render_error -or $state.render_frames -lt 60 -or -not $state.video) { throw "$caseName failed; inspect $evidence" }
         if ($caseName -ne 'software' -and (-not $state.hwdec -or $state.hwdec -eq 'no')) { throw 'Hardware regression unverified: no hardware decoder used' }
+        $gpuLog = [IO.File]::ReadAllText($env:YYPLAYER_MPV_LOG)
+        if ($gpuLog -notmatch "GL_VERSION='3\.3" -and $gpuLog -notmatch "GL_VERSION='[4-9]\.") { throw 'Desktop OpenGL 3.3+ was not confirmed in GPU log' }
+        if ($gpuLog -match 'compile log \(status=0\)|shader link log \(status=0\)|compilation errors') { throw "$caseName shader compilation failed" }
         & $Ffmpeg -hide_banner -loglevel error -y -i $env:YYPLAYER_UI_CAPTURE -frames:v 1 (Join-Path $evidence "$caseName.png")
         if ($LASTEXITCODE -ne 0) { throw 'Screenshot conversion failed' }
         $results += @{case=$caseName;hwdec=$state.hwdec;frames=$state.render_frames;exit_code=$process.ExitCode}

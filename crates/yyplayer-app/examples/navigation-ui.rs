@@ -22,10 +22,7 @@ fn click(w: &player_ui::AppWindow, x: f32, y: f32) {
         });
 }
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     std::fs::create_dir_all("target/navigation-ui")?;
     let ui = UiShell::new()?;
     let model = Rc::new(RefCell::new(ShellViewModel {
@@ -94,9 +91,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 0=>click(&w,size.width-296.5,62.), // video header: library
                 1=>{if page!=5 {return Err("Video -> library click failed".into());} click(&w,100.,size.height-152.);},
                 2=>{if page!=3 {return Err("Settings nav click failed".into());} click(&w,100.,166.);},
-                3=>{if page!=0 {return Err("Music nav click failed".into());} click(&w,left+width/2.-67.,size.height/2.+83.);},
-                4=>{if imported.get()!=1 {return Err("Empty-state add-directory click failed".into());} click(&w,size.width-35.,size.height-40.);},
-                5=>{if !w.get_panel_open(){return Err("Player options click failed".into());} w.window().set_size(slint::LogicalSize::new(1000.,640.));},
+                3=>{if page!=0 {return Err("Music nav click failed".into());} click(&w,left+88.,148.);},
+                4=>{if imported.get()!=1 {return Err("Empty-state add-directory click failed".into());} click(&w,size.width-73.,size.height-40.);},
+                5=>{if !w.get_panel_open() || w.get_options_opacity()<0.99 {return Err("Player options click / opacity failed".into());} w.window().set_size(slint::LogicalSize::new(1000.,640.));},
                 6=>w.window().set_size(slint::LogicalSize::new(1460.,920.)),
                 7=>{let mut m=model.borrow_mut();m.panel_open=false;m.appearance.dark=false;m.appearance.reduce_motion=true;ui_projection(&w,&m);drop(m);click(&w,100.,size.height-152.);},
                 8=>{if page!=3 {return Err("Reduced-motion settings click failed".into());} let mut m=model.borrow_mut();m.appearance.design=0;ui_projection(&w,&m);drop(m);click(&w,100.,156.);},

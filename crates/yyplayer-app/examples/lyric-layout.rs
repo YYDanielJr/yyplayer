@@ -32,10 +32,7 @@ slint::slint! {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     std::fs::create_dir_all("target/lyric-layout")?;
     let window = LayoutProbe::new()?;
     let weak = window.as_weak();

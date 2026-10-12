@@ -1,6 +1,5 @@
 use super::*;
 use player_core::appearance::{Design, Scheme, ink, parse_color};
-use std::rc::Rc;
 impl AppController {
     pub(super) fn library_request(&mut self, request: library_service::Request) {
         if let Some(service) = &self.library_service
@@ -108,46 +107,29 @@ impl AppController {
             self.settings.library.files.iter().collect();
         let excluded: std::collections::BTreeSet<_> =
             self.settings.library.excluded.iter().collect();
-        self.library_rows = Rc::new(
-            self.library_songs
-                .iter()
-                .enumerate()
-                .filter(|(_, s)| {
-                    (loose_files.contains(&s.path)
-                        || self
-                            .settings
-                            .library
-                            .roots
-                            .iter()
-                            .any(|p| s.path.starts_with(p)))
-                        && !excluded.contains(&s.path)
-                        && (!loose || loose_files.contains(&s.path))
-                        && folder.is_none_or(|p| s.path.starts_with(p))
-                        && (query.is_empty()
-                            || format!("{} {} {} {}", s.title, s.artist, s.album, s.path.display())
-                                .to_lowercase()
-                                .contains(&query))
-                })
-                .map(|(i, s)| MediaPreview {
-                    id: i as i32,
-                    title: s.title.clone(),
-                    artist: s.artist.clone(),
-                    collection: s.album.clone(),
-                    duration: if s.seconds > 0 {
-                        format_time(Some(Duration::from_secs(s.seconds)))
-                    } else {
-                        "".into()
-                    },
-                    cover: -1,
-                    artwork: self
-                        .thumbnails
-                        .as_ref()
-                        .map(|t| t.image(&s.path))
-                        .unwrap_or_default(),
-                })
-                .collect(),
-        );
-        self.library_revision += 1;
+        let indices = self
+            .library_songs
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| {
+                (loose_files.contains(&s.path)
+                    || self
+                        .settings
+                        .library
+                        .roots
+                        .iter()
+                        .any(|p| s.path.starts_with(p)))
+                    && !excluded.contains(&s.path)
+                    && (!loose || loose_files.contains(&s.path))
+                    && folder.is_none_or(|p| s.path.starts_with(p))
+                    && (query.is_empty()
+                        || format!("{} {} {} {}", s.title, s.artist, s.album, s.path.display())
+                            .to_lowercase()
+                            .contains(&query))
+            })
+            .map(|(i, _)| i)
+            .collect();
+        self.build_collection(indices);
     }
     pub(super) fn library_control(&mut self, action: &str, value: &str) -> bool {
         let index = value.parse::<usize>().ok();
@@ -184,17 +166,17 @@ impl AppController {
                 }
             }
             "library-song-remove" => {
-                if let Some(song) = index.and_then(|i| self.library_songs.get(i)).cloned() {
-                    self.settings.library.files.retain(|p| p != &song.path);
-                    if !self.settings.library.excluded.contains(&song.path) {
+                if let Some(path) = index.and_then(|i| self.browser.paths.get(i)).cloned() {
+                    self.settings.library.files.retain(|p| p != &path);
+                    if !self.settings.library.excluded.contains(&path) {
                         if self.settings.library.excluded.len() >= 10000 {
                             self.status = "单曲排除已达到 10000 首，请按目录管理".into();
                             return true;
                         }
-                        self.settings.library.excluded.push(song.path.clone());
+                        self.settings.library.excluded.push(path.clone());
                     }
                     self.settings_dirty = Some(Instant::now());
-                    self.library_songs.retain(|s| s.path != song.path);
+                    self.library_songs.retain(|s| s.path != path);
                     self.refresh_library();
                     self.scan_library();
                 }
@@ -205,14 +187,17 @@ impl AppController {
                     .iter()
                     .position(|r| Some(r.id as usize) == index)
                 {
-                    self.queue = self
-                        .library_rows
+                    let sources = self
+                        .browser
+                        .paths
                         .iter()
-                        .filter_map(|r| self.library_songs.get(r.id as usize))
-                        .map(|s| MediaSource::Local(s.path.clone()))
+                        .cloned()
+                        .map(MediaSource::Local)
                         .collect();
-                    self.queue_version += 1;
-                    self.load_index(row as i32);
+                    if self.replace_queue(QueueKind::Music, sources) {
+                        self.preview = false;
+                        self.load_index(row as i32);
+                    }
                 }
             }
             "appearance-design" => {
@@ -261,7 +246,7 @@ impl AppController {
         let selected = current
             .and_then(|src| {
                 if let MediaSource::Local(p) = src {
-                    self.library_songs.iter().position(|s| &s.path == p)
+                    self.browser.paths.iter().position(|path| path == p)
                 } else {
                     None
                 }

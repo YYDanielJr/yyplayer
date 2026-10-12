@@ -13,10 +13,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     slint::set_xdg_app_id("yyplayer")?;
     let controller = Rc::new(RefCell::new(AppController::live(
         MpvEngine::start(),

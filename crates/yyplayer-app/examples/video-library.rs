@@ -54,10 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::write(&bad, b"deliberately invalid own video fixture")?;
     let bad = bad.canonicalize()?;
     services::atomic_save(&path, &Default::default())?;
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     let c = Rc::new(RefCell::new(controller::AppController::live(
         player_mpv::MpvEngine::start(),
         player_platform::current(),
@@ -136,7 +133,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 4 => {
                     ensure!(v.video_library.rows.len() == 3, "all videos filter failed");
                     capture(&w, "populated")?;
-                    pending_click = Some((w.get_content_left() + 110., 302.));
+                    pending_click = Some((w.get_content_left() + 110., 348.));
                 }
                 5 => {
                     if !v.playing || !w.get_render_ready() || w.get_render_frames() < 12 { return Ok(false); }
@@ -156,7 +153,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 8 => {
                     ensure!(w.get_render_frames() == frames, "hidden video continues rendering");
-                    pending_click = Some((w.get_content_left() + 110., 302.));
+                    pending_click = Some((w.get_content_left() + 110., 348.));
                 }
                 9 => {
                     if !v.playing || !w.get_render_ready() || w.get_render_frames() < frames + 12 { return Ok(false); }

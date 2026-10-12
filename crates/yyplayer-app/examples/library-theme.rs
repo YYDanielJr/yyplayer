@@ -43,10 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let root = PathBuf::from("target/theme-validation/library").canonicalize()?;
     services::atomic_save(&path, &Default::default())?;
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     let c = Rc::new(RefCell::new(controller::AppController::live(
         player_mpv::MpvEngine::start(),
         player_platform::current(),

@@ -10,6 +10,7 @@ import { LyricOptions } from "components/lyric-options.slint";
 import { WindowChrome } from "components/window-chrome.slint";
 import { IconButton } from "components/controls.slint";
 import { VideoOptions } from "components/video-options.slint";
+import { QueueDrawer } from "components/queue-drawer.slint";
 import { MusicPage } from "pages/music.slint";
 import { NowPlaying } from "pages/now-playing.slint";
 import { VideoPlayer } from "components/video-player.slint";
@@ -72,6 +73,20 @@ export component AppWindow inherits Window {
     changed appearance-dark => { root.apply-theme(); }
     in property <[TrackRow]> library-tracks; in property <[string]> library-folders; in property <int> library-folder; in property <int> library-selected;
     in property <int> library-revision; in property <bool> library-busy;
+    in property <int> collection-revision: -1; in property <int> collection-category;
+    in property <[TrackRow]> collection-groups; in property <bool> collection-group-open;
+    in property <string> collection-title; in property <[string]> playlists; in property <int> playlist-index;
+    in property <[bool]> library-checked; in property <int> library-checked-count;
+    in-out property <int> collection-dialog;
+    in property <bool> queue-open; in property <int> drawer-tab; in property <int> drawer-order;
+    in property <int> drawer-selected: -1; in property <[TrackRow]> drawer-tracks; in property <int> drawer-revision: -1;
+    in property <int> music-queue-count; in property <int> video-queue-count;
+    private property <float> drawer-progress: root.queue-open ? 1 : 0;
+    animate drawer-progress { duration: Theme.smooth; easing: ease-out; }
+    out property <float> drawer-x: queue-card.x / 1px;
+    out property <float> drawer-y: queue-card.y / 1px;
+    out property <float> drawer-width: queue-card.width / 1px;
+    out property <float> drawer-height: queue-card.height / 1px;
     in property <[TrackRow]> video-library-tracks; in property <[string]> video-library-folders;
     in property <int> video-library-folder; in property <int> video-library-selected;
     in property <int> video-library-revision: -1; in property <bool> video-library-busy;
@@ -151,6 +166,10 @@ export component AppWindow inherits Window {
     in property <[string]> audio-tracks; in property <int> audio-index;
     in property <[string]> subtitle-tracks; in property <int> subtitle-index; in property <[string]> chapters;
     in property <bool> panel-open; in property <bool> fullscreen-mode; in property <int> window-mode;
+    private property <float> options-entrance: 0;
+    out property <float> options-opacity: root.options-entrance;
+    animate options-entrance { duration: Theme.smooth; easing: ease-out; }
+    changed panel-open => { root.options-entrance = root.panel-open ? 1 : 0; }
     in property <int> decode-mode; in property <int> decode-threads; in property <bool> deinterlace;
     in property <bool> deband; in property <int> decode-scope; in property <string> decode-origin;
     in property <[ShortcutRow]> shortcut-rows; in property <int> seek-step; in property <int> volume-step;
@@ -165,16 +184,16 @@ export component AppWindow inherits Window {
     out property <float> content-width: content.width / 1px;
     out property <float> content-bottom: (root.chrome-height + content.y + content.height) / 1px;
     private property <bool> search-focused;
-    out property <bool> shortcuts-blocked: root.page == 3 || root.page == 6 || root.panel-open || root.lyric-options-open || playback-bar.input-focused || ((root.page == 0 || root.page == 5) && root.search-focused);
+    out property <bool> shortcuts-blocked: root.page == 3 || root.page == 6 || root.panel-open || root.queue-open || root.collection-dialog > 0 || root.lyric-options-open || playback-bar.input-focused || ((root.page == 0 || root.page == 5) && root.search-focused);
     private property <bool> immersive: root.page == 1 && root.fullscreen-mode;
     private property <bool> controls-awake: true;
     in-out property <bool> pointer-in-controls;
     in-out property <bool> pointer-in-header;
     in-out property <bool> pointer-held;
-    out property <bool> controls-visible: !root.immersive || root.controls-awake || root.panel-open || root.pointer-in-controls || root.pointer-held;
+    out property <bool> controls-visible: !root.immersive || root.controls-awake || root.panel-open || root.queue-open || root.pointer-in-controls || root.pointer-held;
     out property <length> controls-height: root.page == 1 ? 70px : 104px;
     out property <length> header-height: 52px;
-    out property <bool> header-visible: root.page == 1 && (root.controls-awake || root.panel-open || root.pointer-in-header || root.pointer-held);
+    out property <bool> header-visible: root.page == 1 && (root.controls-awake || root.panel-open || root.queue-open || root.pointer-in-header || root.pointer-held);
     in-out property <bool> toast-visible;
     callback pointer-activity();
     callback dismiss-toast();
@@ -194,7 +213,7 @@ export component AppWindow inherits Window {
     changed status-revision => { root.toast-visible = root.status-message != ""; hide-toast.restart(); }
     hide-controls := Timer {
         interval: 3s;
-        running: root.page == 1 && root.controls-awake && !root.panel-open && !root.pointer-in-controls && !root.pointer-in-header && !root.pointer-held;
+        running: root.page == 1 && root.controls-awake && !root.panel-open && !root.queue-open && !root.pointer-in-controls && !root.pointer-in-header && !root.pointer-held;
         triggered => { root.controls-awake = false; }
     }
     hide-toast := Timer {
@@ -281,7 +300,13 @@ export component AppWindow inherits Window {
                         if root.page == 1: VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value) => { root.control("window-mode", "" + self.current-index); } } }
                         VerticalLayout { width: root.page == 6 && root.online-compact ? 72px : 100px; alignment: center; Button { text: root.page == 6 && root.online-compact ? (root.panel-open ? "关闭" : "选项") : (root.panel-open ? "关闭选项" : "播放选项"); clicked => { root.control("panel", ""); } } }
                     }
-                    if root.page == 0: MusicPage { visible-first <=> root.library-visible-first; visible-count <=> root.library-visible-count; column-song <=> root.column-song; column-artist <=> root.column-artist; library-tracks: root.library-tracks; folders: root.library-folders; folder-index: root.library-folder; scanning: root.library-busy; library-selected: root.library-selected; control(action,value) => { root.control(action,value); } preview: root.preview; tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); } }
+                    if root.page == 0: MusicPage {
+                        dialog <=> root.collection-dialog;
+                        category: root.collection-category; groups: root.collection-groups; group-open: root.collection-group-open;
+                        collection-title: root.collection-title; playlists: root.playlists; playlist-index: root.playlist-index;
+                        checked: root.library-checked; checked-count: root.library-checked-count;
+                        visible-first <=> root.library-visible-first; visible-count <=> root.library-visible-count; column-song <=> root.column-song; column-artist <=> root.column-artist; library-tracks: root.library-tracks; folders: root.library-folders; folder-index: root.library-folder; scanning: root.library-busy; library-selected: root.library-selected; control(action,value) => { root.control(action,value); } preview: root.preview; tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); }
+                    }
                     if root.page == 6: OnlineSearchPage { compact: root.panel-open && root.width < 1280px; at-bottom <=> root.online-at-bottom; history-open <=> root.online-history-open; tracks: root.online-tracks; providers: root.online-providers; sources: root.online-sources; provider-index: root.online-provider; source-index: root.online-source; history: root.online-history; keep-history: root.online-keep-history; enabled: root.online-lyric-mode ? root.online-lyrics-enabled : root.online-music-enabled; busy: root.online-busy; lyric-mode: root.online-lyric-mode; message: root.online-message; selected: root.online-selected; qualities: root.online-qualities; quality-enabled: root.online-quality-enabled; download: root.online-download; download-play: root.online-download-play; visible-first <=> root.online-visible-first; visible-count <=> root.online-visible-count; control(action,value) => {root.control(action,value);} }
                     if root.page == 5: VideoLibraryPage {
                         tracks: root.video-library-tracks; folders: root.video-library-folders; folder-index: root.video-library-folder;
@@ -314,12 +339,12 @@ export component AppWindow inherits Window {
                 }
             }
             if root.panel-open: VideoOptions {
+                entrance: root.options-entrance;
                 video: root.page == 1; audio-form: root.audio-form; audio-status: root.audio-status; eq-origin: root.eq-origin; eq-binding: root.eq-binding; eq-headroom-text: root.eq-headroom-text;
                 width: 370px; devices: root.device-names; device-index: root.device-index;
                 audio-tracks: root.audio-tracks; audio-index: root.audio-index; subtitle-tracks: root.subtitle-tracks; subtitle-index: root.subtitle-index;
                 chapters: root.chapters; info: root.media-info; decode-mode: root.decode-mode; decode-threads: root.decode-threads;
                 decode-scope: root.decode-scope; decode-origin: root.decode-origin; deinterlace: root.deinterlace; deband: root.deband;
-                queue: root.queue; selected-id: root.selected-id;
                 control(action,value) => { root.control(action,value); }
             }
         }
@@ -382,6 +407,7 @@ export component AppWindow inherits Window {
     }
     if !root.fullscreen-mode && (root.page != 1 || root.header-visible): WindowChrome { x: 0px; y: 0px; width: root.width; title: root.title; left-controls: root.window-controls-left; maximized: root.window-maximized; action(a) => { root.window-action(a); } }
     playback-bar := PlayerBar {
+        queue-open: root.queue-open;
         artwork: root.music-cover; preview: root.preview;
         hide-artwork: root.page == 4 || root.cover-travelling;
         y: root.height - root.controls-height; width: root.width;
@@ -392,6 +418,20 @@ export component AppWindow inherits Window {
         speed-index: root.speed-index; speed-choices: root.speed-choices;
         play => { root.request-playback(); } previous => { root.previous(); } next => { root.next(); }
         volume-changed(value) => { root.volume-changed(value); } toggle-favorite => { root.toggle-favorite(); }
+        control(action,value) => { root.control(action,value); }
+    }
+    if root.queue-open: TouchArea {
+        x: 0px; y: root.chrome-height; width: root.width; height: root.height - root.chrome-height - root.controls-height;
+        Rectangle { background: #00000033; }
+        clicked => { root.control("queue-close", ""); }
+    }
+    queue-card := QueueDrawer {
+        x: root.width - (self.width + 12px) * root.drawer-progress;
+        y: root.chrome-height + 12px;
+        width: min(430px,root.width - 36px); height: max(180px,root.height - root.controls-height - root.chrome-height - 24px);
+        visible: root.drawer-progress > 0;
+        tracks: root.drawer-tracks; tab: root.drawer-tab; order: root.drawer-order; selected: root.drawer-selected;
+        music-count: root.music-queue-count; video-count: root.video-queue-count;
         control(action,value) => { root.control(action,value); }
     }
     // Retain one cover for the entire reversible journey, including its bounce.

@@ -14,6 +14,8 @@ pub mod shortcuts;
 
 pub mod appearance;
 pub mod library;
+pub mod playlists;
+pub mod queue;
 
 pub mod online;
 pub mod path_serde;

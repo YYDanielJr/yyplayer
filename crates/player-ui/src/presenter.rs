@@ -58,6 +58,12 @@ impl Renderer {
         let creation = || -> Result<Self, String> {
             // SAFETY: Slint guarantees current NativeOpenGL context throughout notifier.
             let gl = unsafe { glow::Context::from_loader_function_cstr(|name| get(name)) };
+            #[cfg(windows)]
+            if gl.version().is_embedded || (gl.version().major, gl.version().minor) < (3, 3) {
+                // Slint/glutin can fall back after a context request fails. Do
+                // not report video success on the rejected GLES shader path.
+                return Err("视频需要桌面 OpenGL 3.3 或更高版本，当前驱动未提供所需上下文".into());
+            }
             prepare_gl(&gl);
             let mut resolver = Resolver { get };
             let mut init = ffi::GlInit {

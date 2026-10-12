@@ -14,6 +14,7 @@ export component PlayerBar inherits Rectangle {
     in property <int> speed-index; in property <[string]> speed-choices;
     in property <image> artwork; in property <bool> preview;
     in property <bool> hide-artwork;
+    in property <bool> queue-open;
     callback play(); callback previous(); callback next(); callback volume-changed(float);
     callback toggle-favorite(); callback control(string, string);
     height: root.compact ? 70px : 104px; background: Theme.glass;
@@ -58,10 +59,11 @@ export component PlayerBar inherits Rectangle {
                 padding: 0px; spacing: 8px; alignment: end;
                 VerticalLayout { width: 88px; padding: 0px; alignment: center; speed-choice := ComboBox { above: true; model: root.speed-choices; current-index: root.speed-index; selected(value, choice) => { root.control("speed", value); } } }
                 VerticalLayout { width: 30px; padding: 0px; alignment: center; IconButton { width: 30px; height: 30px; icon: Icons.volume; label: "静音 / 取消静音"; active: root.muted; clicked => { root.control("mute", ""); } } }
-                VerticalLayout { width: 86px; padding: 0px; alignment: center; QuietSlider { value: root.volume; width: 86px; label: "音量"; edited(value) => { root.volume-changed(value); } } }
+                VerticalLayout { width: 64px; padding: 0px; alignment: center; QuietSlider { value: root.volume; width: 64px; label: "音量"; edited(value) => { root.volume-changed(value); } } }
                 Text { text: round(root.volume) + "%"; width: 32px; color: Theme.muted; font-size: 10px; vertical-alignment: center; }
                 VerticalLayout { width: 30px; padding: 0px; alignment: center; IconButton { width: 30px; height: 30px; icon: Icons.sliders; label: "输出设备 / 轨道 / 解码 / 信息"; clicked => { root.control("panel", ""); } } }
                 if root.compact: VerticalLayout { width: 30px; padding: 0px; alignment: center; IconButton { width: 30px; height: 30px; icon: Icons.grid; label: "全屏"; clicked => { root.control("fullscreen", ""); } } }
+                VerticalLayout { width: 30px; padding: 0px; alignment: center; IconButton { width: 30px; height: 30px; icon: Icons.queue; active: root.queue-open; label: "打开音乐 / 视频播放列表"; clicked => { root.control("queue-toggle", ""); } } }
             }
         }
     }

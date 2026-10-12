@@ -11,6 +11,8 @@ pub struct MediaPreview {
 
 #[derive(Clone, Debug, Default)]
 pub struct ShellViewModel {
+    pub drawer: QueueViewModel,
+    pub collection: CollectionViewModel,
     pub online: OnlineViewModel,
     pub audio: AudioViewModel,
     pub fonts: FontViewModel,
@@ -70,6 +72,29 @@ pub struct ShellViewModel {
     pub hold_ms: i32,
     pub hold_speed: String,
     pub settings_revision: u64,
+}
+#[derive(Clone, Debug, Default)]
+pub struct QueueViewModel {
+    pub open: bool,
+    pub tab: i32,
+    pub order: i32,
+    pub selected: i32,
+    pub rows: std::rc::Rc<Vec<MediaPreview>>,
+    pub revision: u64,
+    pub music_count: i32,
+    pub video_count: i32,
+}
+#[derive(Clone, Debug, Default)]
+pub struct CollectionViewModel {
+    pub revision: u64,
+    pub category: i32,
+    pub group_open: bool,
+    pub title: String,
+    pub groups: std::rc::Rc<Vec<MediaPreview>>,
+    pub playlists: Vec<String>,
+    pub playlist: i32,
+    pub checked: std::rc::Rc<Vec<bool>>,
+    pub selected_count: i32,
 }
 #[derive(Clone, Debug, Default)]
 pub struct OnlineViewModel {

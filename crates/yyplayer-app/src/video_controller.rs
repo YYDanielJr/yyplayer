@@ -193,14 +193,16 @@ impl AppController {
                     .iter()
                     .position(|r| Some(r.id as usize) == index)
                 {
-                    self.queue = self
+                    let sources = self
                         .video_rows
                         .iter()
                         .filter_map(|r| self.video_songs.get(r.id as usize))
                         .map(|s| MediaSource::Local(s.path.clone()))
                         .collect();
-                    self.queue_version += 1;
-                    self.load_index(row as i32);
+                    if self.replace_queue(QueueKind::Video, sources) {
+                        self.preview = false;
+                        self.load_index(row as i32);
+                    }
                 }
             }
             _ => return false,

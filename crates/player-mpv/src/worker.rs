@@ -493,6 +493,20 @@ fn run(
     }
     #[cfg(windows)]
     core.check(unsafe { (core.api.option)(handle, c"ao".as_ptr(), c"wasapi".as_ptr()) })?;
+    #[cfg(debug_assertions)]
+    if let Some(log_path) = std::env::var_os("YYPLAYER_MPV_LOG") {
+        #[cfg(unix)]
+        let log_path = {
+            use std::os::unix::ffi::OsStrExt;
+            CString::new(log_path.as_bytes())
+        };
+        #[cfg(not(unix))]
+        let log_path = CString::new(log_path.to_string_lossy().as_bytes());
+        let log_path = log_path.map_err(|e| format!("GPU 诊断日志路径无效：{e}"))?;
+        // SAFETY: developer opt-in only, on the owning Engine thread before init.
+        core.check(unsafe { (core.api.option)(handle, c"log-file".as_ptr(), log_path.as_ptr()) })?;
+        core.check(unsafe { (core.api.option)(handle, c"gpu-debug".as_ptr(), c"yes".as_ptr()) })?;
+    }
     // Linux keeps mpv's automatic AO selection. An explicit `ao` list overrides
     // the backend encoded in `audio-device` (e.g. alsa/hw:), and could route a
     // concrete request to the wrong backend. The qualified Ubuntu runtime

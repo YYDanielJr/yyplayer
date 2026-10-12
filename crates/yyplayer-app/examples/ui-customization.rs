@@ -57,10 +57,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("Set independent YYPLAYER_CONFIG inside target/ui-customization".into());
     }
     services::atomic_save(&path, &Default::default())?;
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     let c = Rc::new(RefCell::new(controller::AppController::live(
         player_mpv::MpvEngine::start(),
         player_platform::current(),
@@ -118,7 +115,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
    match step {
     0=>{if view.library.busy || view.fonts.busy || view.library.rows.len()!=80{return Ok(());}
       if view.library.rows[0].artwork.size().width==0{return Ok(());}ensure!(view.library.rows[0].artwork.size().width<=64,"Thumbnail size invalid");if cfg!(windows){ensure!(surface.state.result==Some(0) && surface.state.preference==Some(2),"Native rounding preference failed");}else{ensure!(surface.state.result.is_none() && surface.state.preference.is_none(),"Unsupported DWM state was fabricated");}font_count=view.fonts.names.len()-1;ensure!(font_count>10,"Font catalog empty");capture(&w,"library-default")?;
-      drag_width=size.width-202.-48.-24.-38.-88.-58.;let x=202.+24.+88.+drag_width*0.46;pointer(&w,x,243.,true);w.window().dispatch_event(slint::platform::WindowEvent::PointerMoved{position:slint::LogicalPosition::new(x+drag_width*0.1,243.)});pointer(&w,x+drag_width*0.1,243.,false);},
+      drag_width=size.width-202.-48.-24.-70.-88.-58.;let x=202.+24.+32.+88.+drag_width*0.46;pointer(&w,x,241.,true);w.window().dispatch_event(slint::platform::WindowEvent::PointerMoved{position:slint::LogicalPosition::new(x+drag_width*0.1,241.)});pointer(&w,x+drag_width*0.1,241.,false);},
     1=>{ensure!((w.get_column_song()-0.56).abs()<0.015,"Column drag failed");capture(&w,"library-resized")?;w.window().set_size(slint::LogicalSize::new(1000.,640.));},
     2=>{capture(&w,"library-minimum")?;w.window().set_size(slint::LogicalSize::new(1240.,900.));test.borrow_mut().dispatch(UiAction::Navigate(3));},
     3=>{click(&w,393.,176.);},
@@ -136,7 +133,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // the client. Do not fabricate a confirmation or hide the test's remaining
     // stages; physical minimize/dock restoration is separately qualified.
     14=>{if minimize_observable{ensure!(w.window().is_minimized(),"Native minimize click failed");w.window().set_minimized(false);}},
-    15=>{capture(&w,"buttons-scrollbar")?;click(&w,size.width-66.,299.);},
+    15=>{capture(&w,"buttons-scrollbar")?;click(&w,size.width-66.,297.);},
     16=>{ensure!(view.library.rows.len()==79,"Library removal failed");control(&test,"library-play",&view.library.rows[0].id.to_string());},
     17=>{if view.has_video || view.audio.lyrics.is_empty(){return Ok(());}ensure!(!w.get_toast_visible(),"Playing song showed settings toast");test.borrow_mut().engine_mut().submit(PlaybackCommand::Pause)?;control(&test,"music-detail","");},
     18=>{ensure!(view.page==4,"Music detail missing");ensure!(w.get_lyric_font().as_str()==selected_font,"Lyric font not projected");capture(&w,"lyric-font")?;click(&w,44.,size.height-40.);},
