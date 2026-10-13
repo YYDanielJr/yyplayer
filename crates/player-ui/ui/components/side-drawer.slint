@@ -1,0 +1,29 @@
+import { Theme } from "../theme.slint";
+
+// Both playback drawers retain their contents while the same reversible
+// translation runs. The overlay never participates in the page's layout.
+export component SideDrawer inherits Rectangle {
+    in property <bool> open;
+    in property <length> preferred-card-width: 430px;
+    out property <float> progress: root.open ? 1 : 0;
+    animate progress { duration: Theme.smooth; easing: ease-out; }
+    out property <length> card-width: min(root.preferred-card-width, root.width - 36px);
+    out property <length> card-height: max(180px, root.height - 24px);
+    out property <length> card-x: root.width - (root.card-width + 12px) * root.progress;
+    out property <length> card-y: 12px;
+    callback dismissed();
+    if root.open: TouchArea {
+        Rectangle { background: #00000033; }
+        clicked => { root.dismissed(); }
+    }
+    Rectangle {
+        x: root.card-x; y: root.card-y;
+        width: root.card-width; height: root.card-height;
+        visible: root.progress > 0;
+        background: Theme.surface; border-radius: 18px;
+        border-width: 1px; border-color: Theme.border;
+        drop-shadow-blur: 24px; drop-shadow-color: Theme.shadow;
+        TouchArea { }
+        @children
+    }
+}

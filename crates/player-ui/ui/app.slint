@@ -1,4 +1,5 @@
-import { ScrollView, Palette, Button, ComboBox, LineEdit } from "std-widgets.slint";
+import { ScrollView, Palette, LineEdit } from "std-widgets.slint";
+import { ThemeButton as Button, ThemeComboBox as ComboBox } from "components/theme-widgets.slint";
 import { GlassSurface } from "components/glass.slint";
 import { Theme, ThemeBinding, Icons, BackgroundArt } from "theme.slint";
 import { Icon, NavItem, ActionButton } from "components/controls.slint";
@@ -11,6 +12,7 @@ import { WindowChrome } from "components/window-chrome.slint";
 import { IconButton } from "components/controls.slint";
 import { VideoOptions } from "components/video-options.slint";
 import { QueueDrawer } from "components/queue-drawer.slint";
+import { SideDrawer } from "components/side-drawer.slint";
 import { MusicPage } from "pages/music.slint";
 import { NowPlaying } from "pages/now-playing.slint";
 import { VideoPlayer } from "components/video-player.slint";
@@ -36,7 +38,7 @@ export component AppWindow inherits Window {
     private property <bool> online-at-bottom;
     // Responsive header decisions use window constraints, avoiding a layout
     // cycle through the content's own preferred/minimum width.
-    private property <bool> online-compact: root.panel-open || root.width < 1120px;
+    private property <bool> online-compact: root.width < 1120px;
     no-frame: true;
     in-out property <bool> window-maximized; in property <bool> window-controls-left;
     callback window-action(string);
@@ -81,12 +83,14 @@ export component AppWindow inherits Window {
     in property <bool> queue-open; in property <int> drawer-tab; in property <int> drawer-order;
     in property <int> drawer-selected: -1; in property <[TrackRow]> drawer-tracks; in property <int> drawer-revision: -1;
     in property <int> music-queue-count; in property <int> video-queue-count;
-    private property <float> drawer-progress: root.queue-open ? 1 : 0;
-    animate drawer-progress { duration: Theme.smooth; easing: ease-out; }
-    out property <float> drawer-x: queue-card.x / 1px;
-    out property <float> drawer-y: queue-card.y / 1px;
-    out property <float> drawer-width: queue-card.width / 1px;
-    out property <float> drawer-height: queue-card.height / 1px;
+    out property <float> drawer-x: queue-overlay.card-x / 1px;
+    out property <float> drawer-y: (queue-overlay.y + queue-overlay.card-y) / 1px;
+    out property <float> drawer-width: queue-overlay.card-width / 1px;
+    out property <float> drawer-height: queue-overlay.card-height / 1px;
+    out property <float> options-x: options-overlay.card-x / 1px;
+    out property <float> options-y: (options-overlay.y + options-overlay.card-y) / 1px;
+    out property <float> options-width: options-overlay.card-width / 1px;
+    out property <float> options-height: options-overlay.card-height / 1px;
     in property <[TrackRow]> video-library-tracks; in property <[string]> video-library-folders;
     in property <int> video-library-folder; in property <int> video-library-selected;
     in property <int> video-library-revision: -1; in property <bool> video-library-busy;
@@ -137,7 +141,7 @@ export component AppWindow inherits Window {
     callback dismiss-lyric-options();
     dismiss-lyric-options => { root.lyric-options-open = false; }
     changed motion-reduced => { if root.motion-reduced { cover-settle.stop(); root.cover-travelling = false; root.cover-progress = root.page == 4 ? 1 : 0; root.lyrics-presence = root.page == 4 ? 1 : 0; page-animation.stop(); root.page-arrival = 1; } }
-    private property <length> lyric-page-width: root.width - (root.panel-open ? 370px : 0px);
+    private property <length> lyric-page-width: root.width;
     private property <length> lyric-page-height: root.height - root.chrome-height - root.controls-height;
     private property <bool> lyric-has-text: root.lyrics.length > 0 || root.plain-lyric-lines.length > 0;
     private property <length> lyric-column-width: (root.lyric-page-width - 108px - (root.lyric-has-text ? 56px : 0px)) / (root.lyric-has-text ? 2 : 1);
@@ -166,10 +170,7 @@ export component AppWindow inherits Window {
     in property <[string]> audio-tracks; in property <int> audio-index;
     in property <[string]> subtitle-tracks; in property <int> subtitle-index; in property <[string]> chapters;
     in property <bool> panel-open; in property <bool> fullscreen-mode; in property <int> window-mode;
-    private property <float> options-entrance: 0;
-    out property <float> options-opacity: root.options-entrance;
-    animate options-entrance { duration: Theme.smooth; easing: ease-out; }
-    changed panel-open => { root.options-entrance = root.panel-open ? 1 : 0; }
+    out property <float> options-opacity: options-overlay.progress;
     in property <int> decode-mode; in property <int> decode-threads; in property <bool> deinterlace;
     in property <bool> deband; in property <int> decode-scope; in property <string> decode-origin;
     in property <[ShortcutRow]> shortcut-rows; in property <int> seek-step; in property <int> volume-step;
@@ -177,14 +178,16 @@ export component AppWindow inherits Window {
     in-out property <image> video-frame; in-out property <bool> render-ready; in-out property <string> render-error;
     in-out property <int> render-frames;
     in-out property <int> render-initializations;
-    out property <float> video-width: root.width / 1px - (root.panel-open ? 370 : 0);
+    out property <float> video-width: root.width / 1px;
     out property <float> video-height: root.height / 1px - (root.immersive ? 0 : root.controls-height / 1px);
     out property <float> content-opacity: root.page == 1 ? 1 : (root.page == 4 ? root.lyrics-presence : root.page-arrival);
     out property <float> content-left: content.x / 1px;
     out property <float> content-width: content.width / 1px;
     out property <float> content-bottom: (root.chrome-height + content.y + content.height) / 1px;
     private property <bool> search-focused;
-    out property <bool> shortcuts-blocked: root.page == 3 || root.page == 6 || root.panel-open || root.queue-open || root.collection-dialog > 0 || root.lyric-options-open || playback-bar.input-focused || ((root.page == 0 || root.page == 5) && root.search-focused);
+    private property <bool> browse-choice-focused;
+    private property <bool> window-choice-focused;
+    out property <bool> shortcuts-blocked: root.page == 3 || root.page == 6 || (root.page == 1 && root.header-visible && root.window-choice-focused) || root.panel-open || root.queue-open || root.collection-dialog > 0 || root.lyric-options-open || playback-bar.input-focused || ((root.page == 0 || root.page == 5) && (root.search-focused || root.browse-choice-focused));
     private property <bool> immersive: root.page == 1 && root.fullscreen-mode;
     private property <bool> controls-awake: true;
     in-out property <bool> pointer-in-controls;
@@ -203,7 +206,7 @@ export component AppWindow inherits Window {
     private property <float> page-arrival: 1;
     animate page-arrival { duration: Theme.smooth; easing: ease-out; }
     page-animation := Timer { interval: 16ms; running: false; triggered => { self.running = false; root.page-arrival = 1; } }
-    changed page => { root.cover-travelling = !root.motion-reduced && (root.page == 4 || root.cover-progress != 0); if root.cover-travelling { if cover-settle.running { cover-settle.restart(); } else { cover-settle.start(); } } else { cover-settle.stop(); } root.cover-progress = root.page == 4 ? 1 : 0; root.lyrics-presence = root.page == 4 ? 1 : 0; root.lyric-options-open = false; root.online-at-bottom = false; root.online-history-open = false; root.search-focused = false; root.pointer-activity(); if root.page != 1 && root.page != 4 && !root.motion-reduced { root.page-arrival = 0; page-animation.start(); } else { page-animation.stop(); root.page-arrival = 1; } }
+    changed page => { root.cover-travelling = !root.motion-reduced && (root.page == 4 || root.cover-progress != 0); if root.cover-travelling { if cover-settle.running { cover-settle.restart(); } else { cover-settle.start(); } } else { cover-settle.stop(); } root.cover-progress = root.page == 4 ? 1 : 0; root.lyrics-presence = root.page == 4 ? 1 : 0; root.lyric-options-open = false; root.online-at-bottom = false; root.online-history-open = false; root.search-focused = false; root.browse-choice-focused = false; root.window-choice-focused = false; root.pointer-activity(); if root.page != 1 && root.page != 4 && !root.motion-reduced { root.page-arrival = 0; page-animation.start(); } else { page-animation.stop(); root.page-arrival = 1; } }
     // Keep request scheduling on the window; the conditional page only reports
     // geometry. Dispatch after projection has released controller borrows.
     Timer { interval: 150ms; running: root.page == 6 && root.online-at-bottom && root.online-tracks.length > 0 && !root.online-history-open && (root.online-lyric-mode ? root.online-lyrics-enabled : root.online-music-enabled) && root.online-more && !root.online-busy && root.online-selected < 0;
@@ -278,8 +281,8 @@ export component AppWindow inherits Window {
                         height: root.fullscreen-mode ? 0px : 84px; padding-left: 24px; padding-right: 24px; spacing: 12px;
                         VerticalLayout {
                             horizontal-stretch: root.page == 6 ? 0 : 1; alignment: center; spacing: 4px;
-                            max-width: root.page == 6 ? (root.panel-open && root.width < 1120px ? 90px : 180px) : 10000px;
-                            Text { text: root.page == 1 ? root.selected-title : (root.page == 0 ? "音乐库" : (root.page == 2 ? "最近打开" : (root.page == 5 ? "视频库" : (root.page == 6 ? (root.panel-open && root.width < 1120px ? "联网搜索" : "音乐联网搜索") : "设置")))); color: Theme.text; font-size: root.page == 1 ? 14px : (root.page == 6 && root.panel-open && root.width < 1120px ? 18px : 22px); font-weight: 600; overflow: elide; }
+                            max-width: root.page == 6 ? (root.width < 1120px ? 90px : 180px) : 10000px;
+                            Text { text: root.page == 1 ? root.selected-title : (root.page == 0 ? "音乐库" : (root.page == 2 ? "最近打开" : (root.page == 5 ? "视频库" : (root.page == 6 ? (root.width < 1120px ? "联网搜索" : "音乐联网搜索") : "设置")))); color: Theme.text; font-size: root.page == 1 ? 14px : (root.page == 6 && root.width < 1120px ? 18px : 22px); font-weight: 600; overflow: elide; }
                         }
                         if root.page == 6: VerticalLayout {
                             horizontal-stretch: 1; alignment: center;
@@ -291,24 +294,26 @@ export component AppWindow inherits Window {
                                 Button { text: "搜索"; primary: true; enabled: root.online-lyric-mode ? root.online-lyrics-enabled : root.online-music-enabled; clicked => { root.online-history-open = false; root.control("online-search", ""); } }
                             }
                         }
-                        if root.page == 0 || root.page == 5: VerticalLayout { width: root.panel-open ? 110px : 180px; alignment: center; Rectangle { height: 34px; border-radius: 17px; background: Theme.surface.with-alpha(0.7); border-width: 1px; border-color: Theme.border;
+                        if root.page == 0 || root.page == 5: VerticalLayout { width: 180px; alignment: center; Rectangle { height: 34px; border-radius: 17px; background: Theme.surface.with-alpha(0.7); border-width: 1px; border-color: Theme.border;
                             Text { x: 12px; width: parent.width - 24px; height: parent.height; text: root.page == 5 ? "搜索视频" : "搜索音乐"; color: Theme.faint; visible: search-input.text == "" && !search-input.has-focus; vertical-alignment: center; }
                             search-input := TextInput { x: 12px; width: parent.width - 24px; height: parent.height; text: root.search-query; single-line: true; color: Theme.text; vertical-alignment: center; accessible-label: root.page == 5 ? "搜索视频" : "搜索曲目"; changed has-focus => { root.search-focused = self.has-focus; } edited => { root.search-changed(self.text); } }
                         } }
                         if root.page != 0 && root.page != 5 && (root.page != 6 || !root.online-compact): VerticalLayout { width: 110px; alignment: center; Button { text: "打开文件"; clicked => { root.open-file(); } } }
                         if root.page == 1: VerticalLayout { width: 85px; alignment: center; Button { text: "媒体库"; clicked => { root.navigate(0); } } }
-                        if root.page == 1: VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value) => { root.control("window-mode", "" + self.current-index); } } }
+                        if root.page == 1: VerticalLayout { width: 110px; alignment: center; ComboBox { model: ["窗口", "最大化", "全屏"]; current-index: root.window-mode; selected(value, choice) => { root.control("window-mode", "" + choice); } } }
                         VerticalLayout { width: root.page == 6 && root.online-compact ? 72px : 100px; alignment: center; Button { text: root.page == 6 && root.online-compact ? (root.panel-open ? "关闭" : "选项") : (root.panel-open ? "关闭选项" : "播放选项"); clicked => { root.control("panel", ""); } } }
                     }
                     if root.page == 0: MusicPage {
+                        focus-changed(focused) => { root.browse-choice-focused = focused; }
                         dialog <=> root.collection-dialog;
                         category: root.collection-category; groups: root.collection-groups; group-open: root.collection-group-open;
                         collection-title: root.collection-title; playlists: root.playlists; playlist-index: root.playlist-index;
                         checked: root.library-checked; checked-count: root.library-checked-count;
                         visible-first <=> root.library-visible-first; visible-count <=> root.library-visible-count; column-song <=> root.column-song; column-artist <=> root.column-artist; library-tracks: root.library-tracks; folders: root.library-folders; folder-index: root.library-folder; scanning: root.library-busy; library-selected: root.library-selected; control(action,value) => { root.control(action,value); } preview: root.preview; tracks: root.tracks; selected-id: root.selected-id; select-preview(id) => { root.select-preview(id); } select-demo-album(id) => { root.control("demo-album", "" + id); }
                     }
-                    if root.page == 6: OnlineSearchPage { compact: root.panel-open && root.width < 1280px; at-bottom <=> root.online-at-bottom; history-open <=> root.online-history-open; tracks: root.online-tracks; providers: root.online-providers; sources: root.online-sources; provider-index: root.online-provider; source-index: root.online-source; history: root.online-history; keep-history: root.online-keep-history; enabled: root.online-lyric-mode ? root.online-lyrics-enabled : root.online-music-enabled; busy: root.online-busy; lyric-mode: root.online-lyric-mode; message: root.online-message; selected: root.online-selected; qualities: root.online-qualities; quality-enabled: root.online-quality-enabled; download: root.online-download; download-play: root.online-download-play; visible-first <=> root.online-visible-first; visible-count <=> root.online-visible-count; control(action,value) => {root.control(action,value);} }
+                    if root.page == 6: OnlineSearchPage { compact: root.width < 1120px; at-bottom <=> root.online-at-bottom; history-open <=> root.online-history-open; tracks: root.online-tracks; providers: root.online-providers; sources: root.online-sources; provider-index: root.online-provider; source-index: root.online-source; history: root.online-history; keep-history: root.online-keep-history; enabled: root.online-lyric-mode ? root.online-lyrics-enabled : root.online-music-enabled; busy: root.online-busy; lyric-mode: root.online-lyric-mode; message: root.online-message; selected: root.online-selected; qualities: root.online-qualities; quality-enabled: root.online-quality-enabled; download: root.online-download; download-play: root.online-download-play; visible-first <=> root.online-visible-first; visible-count <=> root.online-visible-count; control(action,value) => {root.control(action,value);} }
                     if root.page == 5: VideoLibraryPage {
+                        focus-changed(focused) => { root.browse-choice-focused = focused; }
                         tracks: root.video-library-tracks; folders: root.video-library-folders; folder-index: root.video-library-folder;
                         scanning: root.video-library-busy; selected-id: root.video-library-selected;
                         can-resume: root.can-resume-video;
@@ -338,15 +343,7 @@ export component AppWindow inherits Window {
                     }
                 }
             }
-            if root.panel-open: VideoOptions {
-                entrance: root.options-entrance;
-                video: root.page == 1; audio-form: root.audio-form; audio-status: root.audio-status; eq-origin: root.eq-origin; eq-binding: root.eq-binding; eq-headroom-text: root.eq-headroom-text;
-                width: 370px; devices: root.device-names; device-index: root.device-index;
-                audio-tracks: root.audio-tracks; audio-index: root.audio-index; subtitle-tracks: root.subtitle-tracks; subtitle-index: root.subtitle-index;
-                chapters: root.chapters; info: root.media-info; decode-mode: root.decode-mode; decode-threads: root.decode-threads;
-                decode-scope: root.decode-scope; decode-origin: root.decode-origin; deinterlace: root.deinterlace; deband: root.deband;
-                control(action,value) => { root.control(action,value); }
-            }
+
         }
     }
     // Retain the laid-out lyric page during browsing, so re-entry starts at the
@@ -398,7 +395,7 @@ export component AppWindow inherits Window {
     }
     if root.header-visible: Rectangle {
         x: 0px; y: root.fullscreen-mode ? 0px : 36px; width: root.video-width * 1px; height: root.header-height; background: Theme.glass;
-        VideoPlayerToolbar { can-go-back: root.can-go-back;
+        VideoPlayerToolbar { focus-changed(focused) => { root.window-choice-focused = focused; } can-go-back: root.can-go-back;
             width: parent.width; height: parent.height;
             title: root.selected-title; panel-open: root.panel-open; window-mode: root.window-mode;
             open-file => { root.open-file(); } browse => { root.navigate(5); }
@@ -420,20 +417,6 @@ export component AppWindow inherits Window {
         volume-changed(value) => { root.volume-changed(value); } toggle-favorite => { root.toggle-favorite(); }
         control(action,value) => { root.control(action,value); }
     }
-    if root.queue-open: TouchArea {
-        x: 0px; y: root.chrome-height; width: root.width; height: root.height - root.chrome-height - root.controls-height;
-        Rectangle { background: #00000033; }
-        clicked => { root.control("queue-close", ""); }
-    }
-    queue-card := QueueDrawer {
-        x: root.width - (self.width + 12px) * root.drawer-progress;
-        y: root.chrome-height + 12px;
-        width: min(430px,root.width - 36px); height: max(180px,root.height - root.controls-height - root.chrome-height - 24px);
-        visible: root.drawer-progress > 0;
-        tracks: root.drawer-tracks; tab: root.drawer-tab; order: root.drawer-order; selected: root.drawer-selected;
-        music-count: root.music-queue-count; video-count: root.video-queue-count;
-        control(action,value) => { root.control(action,value); }
-    }
     // Retain one cover for the entire reversible journey, including its bounce.
     if root.page == 4 || root.cover-travelling: MusicArt {
         x: root.moving-cover-x * 1px; y: root.moving-cover-y * 1px;
@@ -443,6 +426,33 @@ export component AppWindow inherits Window {
         accessible-role: button; accessible-label: root.page == 4 ? "返回上一页" : "展开歌词页";
         focus := FocusScope { key-pressed(event) => { if root.page != 1 && (root.page != 4 || root.can-go-back) && (event.text == " " || event.text == "\n") { root.control("music-toggle", ""); return accept; } return reject; } }
         TouchArea { enabled: root.page != 1 && (root.page != 4 || root.can-go-back); mouse-cursor: pointer; clicked => { focus.focus(); root.control("music-toggle", ""); } }
+    }
+    options-overlay := SideDrawer {
+        x: 0px; y: root.chrome-height; width: root.width;
+        height: root.height - root.chrome-height - root.controls-height;
+        open: root.panel-open; preferred-card-width: 370px;
+        dismissed => { root.control("panel", ""); }
+        VideoOptions {
+            x: 0px; y: 0px; width: root.options-width * 1px; height: root.options-height * 1px;
+            video: root.page == 1; audio-form: root.audio-form; audio-status: root.audio-status; eq-origin: root.eq-origin; eq-binding: root.eq-binding; eq-headroom-text: root.eq-headroom-text;
+            devices: root.device-names; device-index: root.device-index;
+            audio-tracks: root.audio-tracks; audio-index: root.audio-index; subtitle-tracks: root.subtitle-tracks; subtitle-index: root.subtitle-index;
+            chapters: root.chapters; info: root.media-info; decode-mode: root.decode-mode; decode-threads: root.decode-threads;
+            decode-scope: root.decode-scope; decode-origin: root.decode-origin; deinterlace: root.deinterlace; deband: root.deband;
+            control(action,value) => { root.control(action,value); }
+        }
+    }
+    queue-overlay := SideDrawer {
+        x: 0px; y: root.chrome-height; width: root.width;
+        height: root.height - root.chrome-height - root.controls-height;
+        open: root.queue-open;
+        dismissed => { root.control("queue-close", ""); }
+        queue-card := QueueDrawer {
+            x: 0px; y: 0px; width: root.drawer-width * 1px; height: root.drawer-height * 1px;
+            tracks: root.drawer-tracks; tab: root.drawer-tab; order: root.drawer-order; selected: root.drawer-selected;
+            music-count: root.music-queue-count; video-count: root.video-queue-count;
+            control(action,value) => { root.control(action,value); }
+        }
     }
     if root.toast-visible && root.status-message != "": GlassSurface {
         private property <float> entrance: 0; init => { self.entrance = 1; }

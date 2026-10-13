@@ -1,0 +1,21 @@
+{
+  "result": "PASS",
+  "checks": [
+    {
+      "scene": "idle",
+      "schema": 1,
+      "application_id": "0x5959504c",
+      "integrity": "ok",
+      "foreign_key_errors": [],
+      "favorites_initialized": true
+    },
+    {
+      "scene": "audio",
+      "schema": 1,
+      "application_id": "0x5959504c",
+      "integrity": "ok",
+      "foreign_key_errors": [],
+      "favorites_initialized": true
+    }
+  ]
+}

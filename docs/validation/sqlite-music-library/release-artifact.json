@@ -1,0 +1,10 @@
+{
+  "sha256": "f095eb20048b008df88aea5290ba90867fc9a671354f3cd15fb499bcce1b2cca",
+  "path": "E:\\SourceFiles\\rust\\yyplayer\\target\\release\\yyplayer.exe",
+  "result": "PASS",
+  "independent_smoke_root": "E:\\SourceFiles\\rust\\yyplayer\\target\\sqlite-release-0f0c0b347f0a418d9908f7f5f27ce83c",
+  "bytes": 32204800,
+  "product_version": "0.5.2",
+  "version": "0.5.2",
+  "file_version": "0.5.2"
+}

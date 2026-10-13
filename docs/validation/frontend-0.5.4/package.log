@@ -1,0 +1,44 @@
+YYPlayer Windows packaging
+Project: E:\SourceFiles\rust\yyplayer
+Log: E:\SourceFiles\rust\yyplayer\target\windows-packaging-runs\20261013-100632-039a3f1b\packaging.log
+[1/3] Checking the pinned libmpv runtime...
+[2/3] Preparing the installer compiler...
+[3/3] Compiling Release and creating both packages...
+Building YYPlayer 0.5.4 for x86_64-pc-windows-msvc...
+   Compiling player-ui v0.5.4 (E:\SourceFiles\rust\yyplayer\crates\player-ui)
+   Compiling player-core v0.5.4 (E:\SourceFiles\rust\yyplayer\crates\player-core)
+   Compiling player-platform v0.5.4 (E:\SourceFiles\rust\yyplayer\crates\player-platform)
+   Compiling yyplayer-app v0.5.4 (E:\SourceFiles\rust\yyplayer\crates\yyplayer-app)
+   Compiling player-mpv v0.5.4 (E:\SourceFiles\rust\yyplayer\crates\player-mpv)
+    Finished `release` profile [optimized] target(s) in 3m 49s
+Packaging Cargo artifact: E:\SourceFiles\rust\yyplayer\target\x86_64-pc-windows-msvc\release\yyplayer.exe
+Command line defined: "APP_VERSION=0.5.4"
+Command line defined: "APP_COMMIT=5618134cf301"
+Command line defined: "APP_ICON=E:\SourceFiles\rust\yyplayer\assets\icons\yyplayer\liquid-orbit-disc\yyplayer.ico"
+Command line defined: "APP_FILE_RULES=C:\Users\YYDaniel\AppData\Local\Temp\yyplayer-windows-x64-4aaf329a36194af792d57d38f740b5b0\installed-files.nsh"
+Processing config: E:\SourceFiles\rust\yyplayer\target\windows-packaging-runs\20261013-100632-039a3f1b\nsis\nsis-3.12\nsisconf.nsh
+Processing script file: "E:\SourceFiles\rust\yyplayer\packaging\windows\yyplayer.nsi" (ACP)
+
+Processed 1 file, writing output (x86-unicode):
+
+Output: "C:\Users\YYDaniel\AppData\Local\Temp\yyplayer-windows-x64-4aaf329a36194af792d57d38f740b5b0\YYPlayer-0.5.4-5618134cf301-windows-x64-setup.exe"
+Install: 5 pages (320 bytes), 1 section (1 required) (2072 bytes), 670 instructions (18760 bytes), 343 strings (81224 bytes), 2 language tables (708 bytes).
+Uninstall: 2 pages (192 bytes), 1 section (2072 bytes), 72 instructions (2016 bytes), 163 strings (4278 bytes), 2 language tables (500 bytes).
+Datablock optimizer saved 1888 bytes (~0.0%).
+
+Using zlib compression.
+
+EXE header size:              146432 / 39936 bytes
+Install code:                  21021 / 103548 bytes
+Install data:               60576960 / 156833863 bytes
+Uninstall code+data:          106618 / 107133 bytes
+CRC (0x8834D730):                  4 / 4 bytes
+
+Total size:                 60851035 / 157084484 bytes (38.7%)
+Portable package: E:\SourceFiles\rust\yyplayer\dist\windows-20261013-100632-039a3f1b\YYPlayer-0.5.4-5618134cf301-windows-x64-portable.zip
+Setup installer: E:\SourceFiles\rust\yyplayer\dist\windows-20261013-100632-039a3f1b\YYPlayer-0.5.4-5618134cf301-windows-x64-setup.exe
+libmpv SHA256: 0d5b9dbecb73e179ef39dc94314ff8905fab926a80f8d60a2367d824b7254e2e
+
+SUCCESS: portable ZIP and Setup installer are ready.
+Output: E:\SourceFiles\rust\yyplayer\dist\windows-20261013-100632-039a3f1b
+Log: E:\SourceFiles\rust\yyplayer\target\windows-packaging-runs\20261013-100632-039a3f1b\packaging.log

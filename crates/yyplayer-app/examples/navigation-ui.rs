@@ -80,8 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if Instant::now() >= deadline {return Err(format!("Page {page} is still transparent: {opacity}").into());}
                 return Ok(());
             }
-            let gap=if page!=1 && model.borrow().appearance.design==1 {12.} else {0.};
-            let expected=size.width-left-if w.get_panel_open(){370.+gap}else{0.};
+            let expected=size.width-left;
             if (width-expected).abs()>1. {return Err(format!("Page shrank: {width}, expected {expected}").into());}
             if page!=1 && model.borrow().appearance.design==1 && (size.height-104.-w.get_content_bottom()-10.).abs()>1. {return Err("Floating bottom margin missing".into());}
             let p=w.window().take_snapshot()?;

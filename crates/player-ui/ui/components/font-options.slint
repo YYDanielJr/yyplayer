@@ -1,4 +1,5 @@
-import { ComboBox, CheckBox, Button } from "std-widgets.slint";
+import { CheckBox } from "std-widgets.slint";
+import { ThemeButton as Button, ThemeComboBox as ComboBox } from "theme-widgets.slint";
 import { Theme } from "../theme.slint";
 import { GlassSurface } from "glass.slint";
 export component FontOptions inherits GlassSurface {
@@ -12,16 +13,16 @@ export component FontOptions inherits GlassSurface {
         }
         HorizontalLayout { height: 36px; spacing: 16px;
             Text { text: "全局界面"; width: 128px; color: Theme.text; vertical-alignment: center; }
-            ComboBox { model: root.names; current-index: root.ui-index; horizontal-stretch: 1; selected(value) => { root.control("font-ui", "" + self.current-index); } }
+            ComboBox { model: root.names; current-index: root.ui-index; horizontal-stretch: 1; selected(value, choice) => { root.control("font-ui", "" + choice); } }
         }
         HorizontalLayout { height: 36px; spacing: 16px;
             Text { text: "歌曲大页面歌词"; width: 128px; color: Theme.text; vertical-alignment: center; }
-            ComboBox { model: root.lyric-names; current-index: root.lyric-index; horizontal-stretch: 1; selected(value) => { root.control("font-lyrics", "" + self.current-index); } }
+            ComboBox { model: root.lyric-names; current-index: root.lyric-index; horizontal-stretch: 1; selected(value, choice) => { root.control("font-lyrics", "" + choice); } }
         }
         Text { text: "让喜欢的声音，有自己的模样 · Aa 012345"; font-family: root.lyric-font; font-size: 18px; color: Theme.accent-text; height: 38px; overflow: elide; }
         HorizontalLayout { height: 36px; spacing: 16px;
             Text { text: "视频字幕"; width: 128px; color: Theme.text; vertical-alignment: center; }
-            ComboBox { model: root.subtitle-names; current-index: root.subtitle-index; horizontal-stretch: 1; selected(value) => { root.control("font-subtitles", "" + self.current-index); } }
+            ComboBox { model: root.subtitle-names; current-index: root.subtitle-index; horizontal-stretch: 1; selected(value, choice) => { root.control("font-subtitles", "" + choice); } }
         }
         CheckBox { text: "同时覆盖 ASS / SSA 字幕指定的字体"; checked: root.ass; toggled => { root.control("font-ass", self.checked ? "yes" : "no"); } }
         Text { text: "默认尊重 ASS / SSA 排版；图片字幕和画面内字幕无法更换字体。"; color: Theme.muted; wrap: word-wrap; height: 38px; }

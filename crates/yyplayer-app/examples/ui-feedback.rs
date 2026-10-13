@@ -161,6 +161,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 10 => {
                     if !window.get_controls_visible() { return Err("Options panel guard failed".into()); }
+                    if video_size != (window.get_video_width(), window.get_video_height()) { return Err("Options drawer resized video".into()); }
+                    capture(window, "fullscreen-options-overlay")?;
                     window.set_panel_open(false);
                     window.invoke_pointer_activity();
                 }

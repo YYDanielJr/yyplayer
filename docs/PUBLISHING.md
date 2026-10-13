@@ -1,6 +1,6 @@
 # 源码与 GitHub 构建发布
 
-更新：2026-10-12。当前 dev 开发版本为 **0.5.1**，源码许可为 **GPL-3.0-only**。唯一顶层开发分支与开发起点为 `dev`，`master` 仅合入 dev 的已验证改动，用于集成 / 发布。源码、版本、脚本与文档都在 dev 修改；合入冲突先回 dev 处理，再让 master 快进合入。按用户授权已先将 0.4.0 全部成果本地提交到 dev 的 `676a699`，随后修正文字收回动画并更新 0.4.1。本轮用户授权将歌单 / 分类、独立播放列表、紧凑工具栏与 OpenGL 去色带修复以 0.5.1 本地提交到 dev；提交结果以 Git 历史为准，未授权合入 master 或推送。Vulkan 探索已按用户要求结束。
+更新：2026-10-13。当前 dev 开发版本为 **0.5.4**，源码许可为 **GPL-3.0-only**。唯一顶层开发分支与开发起点为 `dev`，`master` 仅合入 dev 的已验证改动，用于集成 / 发布。源码、版本、脚本与文档都在 dev 修改；合入冲突先回 dev 处理，再让 master 快进合入。0.5.1 的前端 / OpenGL 成果已按授权本地提交为 `5618134`；既有 0.5.2 SQLite 改动保留；0.5.3 页面按钮、窗口查询与 Windows 升级 / DPI 修复保留；本轮统一选择框与抽屉、调整视频库和最近打开，更新为 0.5.4。用户已授权将上述全部工作区修改集中提交到 dev，当前授权范围为本地提交；合入 master、推送和发布按后续授权执行。Vulkan 探索已按用户要求结束。新数据库与迁移备份属于本地用户数据，不加入源码或应用发行包。
 
 ## 共用源码与仓库目录
 
@@ -54,9 +54,9 @@ git log -1 --oneline
 `.github/workflows/windows-release.yml` 使用 `windows-2022` x64 MSVC runner，校验固定 libmpv archive / DLL hash，生成：
 
 - `YYPlayer-<版本>-<提交号>-windows-x64-portable.zip`：解压后从 `yyplayer.exe` 启动，运行时 DLL 位于 `runtime/`，配置在 `%APPDATA%`。
-- `YYPlayer-<版本>-<提交号>-windows-x64-setup.exe`：NSIS 安装器，限 x64 Windows，需要管理员权限，安装到 64 位 Program Files，创建快捷方式和卸载入口；卸载不删除用户配置。
+- `YYPlayer-<版本>-<提交号>-windows-x64-setup.exe`：NSIS 安装器，限 x64 Windows，需要管理员权限，安装到 64 位 Program Files，创建快捷方式和卸载入口；检测已有版本时沿用原安装目录升级，保留设置 / SQLite / 歌单；同版重装，阻止降级。卸载只删除程序清单与快捷方式，保留用户配置和额外文件。Setup 使用 NSIS 3.12、启用系统 DPI 感知；隔离升级与限制见 [0.5.3 验收](validation/frontend-installer-0.5.3.md)。
 
-文件位于该次 Actions run 的 `YYPlayer-windows-x64-<commit>` artifact，保留 30 天。7-Zip / NSIS 缺失时工作流明确失败。
+文件位于该次 Actions run 的 `YYPlayer-windows-x64-<commit>` artifact，保留 30 天。7-Zip 缺失时工作流明确失败；NSIS 由固定 hash 的 3.12 便携归档准备。
 
 本地与 CI 共用 `scripts/Package-Windows.ps1`：脚本先执行 `cargo build --locked --release --target x86_64-pc-windows-msvc -p yyplayer-app --bin yyplayer`（另加 JSON 产物输出），成功后从本次 `compiler-artifact.executable` 取得实际 EXE，不再读取固定 target 路径。Cargo 的自定义产物目录继续生效，CI 已移除单独编译步骤，并运行隔离打包回归。
 

@@ -16,7 +16,7 @@ pub fn bind(window: &AppWindow, request_mode: Rc<dyn Fn(i32)>) {
                 let _ = slint::quit_event_loop();
             }
             "minimize" => window.window().set_minimized(true),
-            "maximize" => request_mode(if window.window().is_maximized() { 0 } else { 1 }),
+            "maximize" => request_mode(if window.get_window_maximized() { 0 } else { 1 }),
             "drag" => {
                 let _ = window.window().with_winit_window(|w| w.drag_window());
             }

@@ -16,6 +16,8 @@ packaging/windows/nsis.json. It verifies the archive SHA-256 and extracts a fres
 copy per run under target/windows-packaging-runs/. The cached archive is under
 target/windows-packaging-tools/; no system-wide NSIS installation is performed.
 An explicit -NsisCompiler option and the command-line/CI entry point may use a
-developer-provided compiler instead.
+developer-provided compiler version 3.12 or newer instead. Windows CI also
+extracts the pinned 3.12 archive. The installer and uninstaller explicitly use
+ManifestDPIAware true (system DPI awareness, not Per-Monitor V2).
 
 Pinned upstream archive: https://sourceforge.net/projects/nsis/files/NSIS%203/3.12/

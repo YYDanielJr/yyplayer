@@ -48,34 +48,47 @@ export component IconButton inherits Rectangle {
     touch := TouchArea { mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
 }
 
-export component ActionButton inherits Rectangle {
+// Shared page actions: all text buttons use the same theme, shape and states.
+export component PageButton inherits Rectangle {
     in property <string> text;
     in property <image> icon;
-    in property <bool> primary: true;
+    in property <bool> primary: false;
+    in property <bool> enabled: true;
+    in property <length> content-padding: 14px;
     callback clicked();
-    min-width: 122px;
-    height: 38px;
-    border-radius: Theme.fashion ? 19px : 8px;
-    background: root.primary ? (touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent) : (touch.has-hover ? Theme.raised : transparent);
-    border-width: root.primary ? 0px : 1px;
-    border-color: focus.has-focus ? Theme.accent : Theme.border;
+    min-width: 28px; preferred-width: label.preferred-width + root.content-padding * 2 + (root.icon.width > 0 ? 24px : 0px);
+    min-height: 32px; preferred-height: 38px;
+    horizontal-stretch: 0; vertical-stretch: 0;
+    border-radius: Theme.fashion ? self.height / 2 : 8px;
+    background: root.primary ? (touch.pressed ? Theme.accent.darker(0.12) : (touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent)) : (touch.pressed || touch.has-hover ? Theme.raised : transparent);
+    border-width: root.primary && !focus.has-focus ? 0px : 1px;
+    border-color: focus.has-focus ? Theme.accent-text : Theme.border;
+    opacity: root.enabled ? 1 : 0.45;
+    forward-focus: focus; accessible-enabled: root.enabled;
     accessible-role: button;
     accessible-label: root.text;
+    accessible-action-default => { if root.enabled { root.clicked(); } }
     HorizontalLayout {
         alignment: center;
         spacing: 8px;
-        padding-left: 14px;
-        padding-right: 14px;
-        Icon { icon: root.icon; tint: root.primary ? Theme.accent-ink : Theme.text; width: 16px; }
-        Text { text: root.text; color: root.primary ? Theme.accent-ink : Theme.text; font-size: 12px; font-weight: 600; vertical-alignment: center; }
+        padding-left: root.content-padding;
+        padding-right: root.content-padding;
+        if root.icon.width > 0: Icon { icon: root.icon; tint: root.primary ? Theme.accent-ink : Theme.text; width: 16px; }
+        label := Text { text: root.text; color: root.primary ? Theme.accent-ink : Theme.text; font-size: 12px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
     }
     focus := FocusScope {
+        enabled: root.enabled;
         key-pressed(event) => {
             if (event.text == " " || event.text == "\n") { root.clicked(); return accept; }
             return reject;
         }
     }
-    touch := TouchArea { mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
+    touch := TouchArea { enabled: root.enabled; mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
+}
+
+export component ActionButton inherits PageButton {
+    primary: true;
+    min-width: 122px;
 }
 
 export component NavItem inherits Rectangle {

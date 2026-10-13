@@ -103,7 +103,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let test = c.clone();
     let project = ui.projector();
     timer.start(TimerMode::Repeated,Duration::from_millis(60),move||{
-  let Some(w)=weak.upgrade()else{return;};surface.update(&w);test.borrow_mut().request_library_covers(w.get_library_visible_first(),w.get_library_visible_count());test.borrow_mut().tick();project(&test.borrow().view_model());w.set_window_maximized(w.window().is_maximized());
+  let Some(w)=weak.upgrade()else{return;};let maximized=w.window().is_maximized();surface.update(&w,w.window().is_fullscreen(),maximized);test.borrow_mut().request_library_covers(w.get_library_visible_first(),w.get_library_visible_count());test.borrow_mut().tick();project(&test.borrow().view_model());w.set_window_maximized(maximized);
   // Keep the simulated macOS layout visible for a complete rendered frame.
   if step==11 { w.set_window_controls_left(true); }
   if (8..=10).contains(&step) || step==18 { w.invoke_dismiss_toast(); }

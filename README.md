@@ -3,7 +3,13 @@
 
 使用 Rust、Slint 和 libmpv 构建的本地音视频播放器。Windows x64 / Ubuntu 26.04 amd64 共用同一份源码，通过条件编译选择平台实现；实际验收与限制见 [STATUS](docs/STATUS.md)。
 
-当前 dev 开发版本为 **0.5.1**。唯一顶层开发分支为 `dev`，`master` 只合入已验证的 dev 改动，用于集成 / 发布。Windows 自动编译打包已有本机证据；安装 / 卸载与正式二进制发行资格仍待补齐。
+当前 dev 开发版本为 **0.5.4**。唯一顶层开发分支为 `dev`，`master` 只合入已验证的 dev 改动，用于集成 / 发布。Windows 自动编译打包已有本机证据；安装 / 卸载与正式二进制发行资格仍待补齐。
+
+0.5.4 将视频库筛选并入导入工具栏、增大最近打开字号；播放选项与播放列表共用滑入抽屉，覆盖内容而不改变视频尺寸；全应用下拉框统一为主题样式。详见 [0.5.4 验收](docs/validation/frontend-0.5.4.md)。
+
+0.5.3 统一页面按钮的主题色与外观，窗口状态改为事件触发查询；Windows Setup 识别原目录中的旧版本并升级，支持同版本重装、阻止降级与文件替换失败恢复。安装器使用 NSIS 3.12 并显式启用系统 DPI 感知。详见 [0.5.3 验收](docs/validation/frontend-installer-0.5.3.md)。
+
+0.5.2 将音乐索引、库目录配置、歌单和我喜欢迁移到 SQLite，首次启动自动导入旧 JSON 并保留迁移备份。应用偏好仍用 JSON，播放队列仍为独立会话，视频库索引保持独立。数据库静态内置，无需安装 SQLite；存储与恢复见 [歌单指南](docs/MUSIC_PLAYLISTS.md)、[ADR 0012](docs/adr/0012-sqlite-music-library.md)和 [迁移验收](docs/validation/sqlite-music-library.md)。
 
 0.5.0 新增歌曲 / 歌手 / 专辑 / 歌单分类、多选与批量播放、持久化歌单和我喜欢；右下角可打开音乐 / 视频各自独立的播放列表，设置顺序、列表循环、单曲循环或随机播放。联网搜索历史改为小型胶囊按钮。操作及边界见 [歌单与队列指南](docs/MUSIC_PLAYLISTS.md)，验证见 [0.5.0 验收](docs/validation/frontend-0.5.0.md)。
 
@@ -82,7 +88,7 @@ cargo build --locked --release -p yyplayer-app --bin yyplayer
 
 首次获取依赖需要联网。运行时脚本优先使用 7-Zip，未安装时尝试能解压 7z 的 Windows `tar.exe`；解压失败时见 [运行时说明](third_party/mpv/README.md)。
 
-### Windows 打包（0.5.1）
+### Windows 打包（0.5.4）
 
 **双击仓库根目录的 `Package-Windows.cmd` 即可打包。** 它自动定位项目，优先用 PATH 中的 pwsh，缺失时用 Windows 自带 PowerShell 5.1；无需输入命令或安装 Python。仍需提前准备 Rust x64 MSVC、Visual Studio C++ Build Tools / Windows SDK 和 Git。
 

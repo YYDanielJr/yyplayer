@@ -57,7 +57,7 @@ impl AppController {
                         self.refresh_video();
                     }
                 }
-                library_service::Reply::Error(e) => {
+                library_service::Reply::Error(e) | library_service::Reply::StorageError(e) => {
                     self.video_message = e;
                 }
             }

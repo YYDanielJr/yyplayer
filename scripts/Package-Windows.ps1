@@ -39,6 +39,9 @@ if (-not $compiler) { throw 'NSIS is required. Put makensis.exe on PATH or pass 
 $nsisVersion = & $compiler /VERSION
 if ($LASTEXITCODE -ne 0) { throw 'Could not query the NSIS compiler version.' }
 $nsisVersion = ($nsisVersion -join '').Trim()
+if ($nsisVersion -notmatch '^v?(\d+\.\d+)(?:\.\d+)?$' -or [version]$Matches[1] -lt [version]'3.12') {
+    throw "NSIS 3.12 or newer is required; found '$nsisVersion'. Use scripts/Get-Nsis.ps1 or the double-click launcher."
+}
 $cargo = (Get-Command cargo.exe -CommandType Application -ErrorAction Stop).Source
 
 # Cargo metadata is the source of the inherited application version and package ID.
@@ -179,8 +182,32 @@ NSIS build-tool attribution and upstream license link are in NSIS-BUILD-TOOL.md.
 
     $env:YYPLAYER_PACKAGE_STAGE = $portableStage
     $env:YYPLAYER_PACKAGE_OUTPUT = $workRoot
+    # Compile the owned-file list into the installer. Neither upgrade nor uninstall
+    # executes a mutable installed manifest or recursively deletes the install root.
+    $fileRules = Join-Path $workRoot 'installed-files.nsh'
+    $files = @(Get-ChildItem -LiteralPath $portableStage -File -Recurse | ForEach-Object {
+        $_.FullName.Substring($portableStage.Length + 1).Replace('$', '$$').Replace('"', '$\"')
+    }) + @('uninstall.exe')
+    $directories = @(Get-ChildItem -LiteralPath $portableStage -Directory -Recurse |
+        Sort-Object { $_.FullName.Length } -Descending | ForEach-Object {
+            $_.FullName.Substring($portableStage.Length + 1).Replace('$', '$$').Replace('"', '$\"')
+        })
+    $rules = [Collections.Generic.List[string]]::new()
+    foreach ($operation in @('Install', 'Rollback')) {
+        $rules.Add("!macro YYPlayer${operation}Files")
+        foreach ($relative in $files) {
+            $rules.Add('  Push "' + $relative + '"')
+            $rules.Add("  Call ${operation}File")
+        }
+        $rules.Add('!macroend')
+    }
+    $rules.Add('!macro YYPlayerUninstallFiles')
+    foreach ($relative in $files) { $rules.Add('  Delete "$INSTDIR\' + $relative + '"') }
+    foreach ($relative in $directories) { $rules.Add('  RMDir "$INSTDIR\' + $relative + '"') }
+    $rules.Add('!macroend')
+    [IO.File]::WriteAllLines($fileRules, $rules, [Text.UTF8Encoding]::new($false))
     $ErrorActionPreference = 'Continue'
-    & $compiler "/DAPP_VERSION=$version" "/DAPP_COMMIT=$shortCommit" "/DAPP_ICON=$appIconPath" (Join-Path $projectRoot 'packaging/windows/yyplayer.nsi')
+    & $compiler "/DAPP_VERSION=$version" "/DAPP_COMMIT=$shortCommit" "/DAPP_ICON=$appIconPath" "/DAPP_FILE_RULES=$fileRules" (Join-Path $projectRoot 'packaging/windows/yyplayer.nsi')
     $nsisExitCode = $LASTEXITCODE
     $ErrorActionPreference = 'Stop'
     if ($nsisExitCode -ne 0) { throw "NSIS failed with exit code $nsisExitCode." }

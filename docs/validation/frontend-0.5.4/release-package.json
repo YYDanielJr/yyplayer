@@ -1,0 +1,14 @@
+{
+  "zip": "E:\\SourceFiles\\rust\\yyplayer\\dist\\windows-20261013-100632-039a3f1b\\YYPlayer-0.5.4-5618134cf301-windows-x64-portable.zip",
+  "extraction": "E:\\SourceFiles\\rust\\yyplayer\\target\\frontend-0.5.4-package-smoke-4b6574d40a924cbe80361907b07de386",
+  "setup_sha256": "1b83b20441ce4479366eb469c5d33183fa93c70ae93af951907fa882993a769b",
+  "exe_bytes": 35876864,
+  "zip_sha256": "a874bbd466654450907bdd9bd82eeaf3c78182bb366238f244cf14652c2d6ed4",
+  "exe_sha256": "0e9a0d2b128d7a1688f6f0cf61e311c2b63a0ab21f81ac979213a938bb15f637",
+  "zip_bytes": 62465931,
+  "setup_bytes": 60851035,
+  "dpi_manifest": true,
+  "setup": "E:\\SourceFiles\\rust\\yyplayer\\dist\\windows-20261013-100632-039a3f1b\\YYPlayer-0.5.4-5618134cf301-windows-x64-setup.exe",
+  "version": "0.5.4",
+  "nsis": "3.12"
+}

@@ -1,3 +1,5 @@
+#[path = "window_state.rs"]
+mod window_state;
 #[path = "window_surface.rs"]
 mod window_surface;
 use crate::controller::AppController;
@@ -33,6 +35,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     ui.project(&controller.borrow().view_model());
     let weak = ui.component().as_weak();
+    let native_state = Rc::new(window_state::WindowState::default());
+    let dispatch_state = native_state.clone();
     let dispatch_controller = controller.clone();
     let project = ui.projector();
     let dispatch_weak = weak.clone();
@@ -42,13 +46,16 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             controller.dispatch(action);
             controller.take_window_request()
         };
-        if let Some(window) = dispatch_weak.upgrade() {
-            apply_window_mode(&window, request);
+        if let Some(window) = dispatch_weak.upgrade()
+            && apply_window_mode(&window, request)
+        {
+            dispatch_state.invalidate();
         }
         project(&dispatch_controller.borrow().view_model());
     });
     ui.bind(dispatch.clone());
     ui.bind_controls(dispatch);
+    let chrome_state = native_state.clone();
     let chrome_window = weak.clone();
     let chrome_controller = controller.clone();
     player_ui::window_controls::bind(
@@ -58,14 +65,17 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .borrow_mut()
                 .dispatch(UiAction::Control("window-mode".into(), mode.to_string()));
             let request = chrome_controller.borrow_mut().take_window_request();
-            if let Some(window) = chrome_window.upgrade() {
-                apply_window_mode(&window, request);
+            if let Some(window) = chrome_window.upgrade()
+                && apply_window_mode(&window, request)
+            {
+                chrome_state.invalidate();
             }
         }),
     );
 
     let dropped = Rc::new(RefCell::new(Vec::new()));
     let event_dropped = dropped.clone();
+    let event_state = native_state.clone();
     let keyboard_controller = controller.clone();
     let keyboard_weak = weak.clone();
     let mut modifiers = winit::keyboard::ModifiersState::empty();
@@ -75,6 +85,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .window()
         .on_winit_window_event(move |_, event| {
             use winit::event::{ElementState, MouseButton, TouchPhase, WindowEvent};
+            match event {
+                WindowEvent::Resized(size) => event_state.resized(size.width, size.height),
+                WindowEvent::Moved(position) => event_state.moved(position.x, position.y),
+                WindowEvent::ScaleFactorChanged { .. } | WindowEvent::Focused(true) => {
+                    event_state.invalidate()
+                }
+                _ => {}
+            }
             match event {
                 WindowEvent::ModifiersChanged(changed) => modifiers = changed.state(),
                 WindowEvent::Focused(false) => {
@@ -222,7 +240,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         {
             window_icon_applied = true;
         }
-        surface.update(&window);
+
         let mut controller = tick_controller.borrow_mut();
         controller.render_failed(window.get_render_error().as_str());
         if window.get_shortcuts_blocked() { controller.cancel_hold(); }
@@ -230,7 +248,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         controller.request_library_covers(window.get_library_visible_first(),window.get_library_visible_count());
         controller.request_online_covers(window.get_online_visible_first(), window.get_online_visible_count());
         controller.tick();
-        window.set_window_maximized(window.window().is_maximized());
+
         if smoke_script {
             let seconds = started.elapsed().as_secs_f64();
             if actions == 0 && seconds > 1.5 { controller.dispatch(UiAction::Control("speed".into(),"1.5x".into())); actions = 1; }
@@ -267,21 +285,34 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         let request = controller.take_window_request();
-        apply_window_mode(&window,request);
-        window.window().with_winit_window(|native| controller.native_window_mode(native.fullscreen().is_some(),native.is_maximized()));
-        project(&controller.view_model());
-        if checkpoints.len() < 60 && checkpoints.len() <= started.elapsed().as_secs() as usize {
-            let snapshot = controller.engine_mut().snapshot();
-            checkpoints.push(serde_json::json!({ "seconds": started.elapsed().as_secs_f64(), "phase": format!("{:?}",snapshot.phase), "speed": snapshot.speed, "position": snapshot.position.map(|value| value.as_secs_f64()), "volume": snapshot.volume, "muted": snapshot.muted, "hwdec": snapshot.hwdec, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "frames": window.get_render_frames(), "error": snapshot.error, "audio_status": snapshot.audio_status, "exclusive": snapshot.exclusive_confirmed, "eq_filter": snapshot.eq_filter }));
+        // Native window operations may synchronously deliver platform events.
+        // Release the controller borrow before calling into Winit / AppKit.
+        drop(controller);
+        if apply_window_mode(&window,request) { native_state.invalidate(); }
+        if let Some(mode) = native_state.refresh(|| window.window().with_winit_window(|native| window_state::Mode {
+            fullscreen: native.fullscreen().is_some(), maximized: native.is_maximized(),
+        })) {
+            window.set_window_maximized(mode.maximized);
+            tick_controller.borrow_mut().native_window_mode(mode.fullscreen, mode.maximized);
+            surface.update(&window, mode.fullscreen, mode.maximized);
         }
-        if !window.get_render_ready() && window.get_render_error().is_empty() { window.window().request_redraw(); }
+        let mut controller = tick_controller.borrow_mut();
+        project(&controller.view_model());
+        if diagnostics.is_some() && checkpoints.len() < 60 && checkpoints.len() <= started.elapsed().as_secs() as usize {
+            let snapshot = controller.engine_mut().snapshot();
+            checkpoints.push(serde_json::json!({ "seconds": started.elapsed().as_secs_f64(), "phase": format!("{:?}",snapshot.phase), "speed": snapshot.speed, "position": snapshot.position.map(|value| value.as_secs_f64()), "volume": snapshot.volume, "muted": snapshot.muted, "hwdec": snapshot.hwdec, "fullscreen": window.window().is_fullscreen(), "maximized": native_state.mode().maximized, "frames": window.get_render_frames(), "error": snapshot.error, "audio_status": snapshot.audio_status, "exclusive": snapshot.exclusive_confirmed, "eq_filter": snapshot.eq_filter }));
+        }
+        if window.get_video_renderer_requested() && !window.get_render_ready() && window.get_render_error().is_empty() { window.window().request_redraw(); }
         if quit_after.is_some_and(|seconds| started.elapsed().as_secs_f64() >= seconds) {
             if let Some(path) = diagnostics.as_ref() {
                 let view = controller.view_model();
+                let music_database_ready = controller.music_library_ready();
                 let snapshot = controller.engine_mut().snapshot();
-                let mut data = serde_json::json!({ "phase": format!("{:?}",snapshot.phase), "position": snapshot.position.map(|position| position.as_secs_f64()), "duration": snapshot.duration.map(|duration| duration.as_secs_f64()), "speed": snapshot.speed, "volume": snapshot.volume, "muted": snapshot.muted, "runtime": snapshot.runtime, "hwdec": snapshot.hwdec, "video": snapshot.video, "devices": snapshot.devices.iter().map(|device| &device.name).collect::<Vec<_>>(), "tracks": snapshot.tracks.len(), "render_frames": window.get_render_frames(), "render_error": window.get_render_error().as_str(), "error": snapshot.error, "media_info": snapshot.info, "file_tag_info":view.info, "device_ids":snapshot.devices.iter().map(|d|&d.id).collect::<Vec<_>>(), "audio_info": snapshot.audio_info, "audio_log": snapshot.audio_log, "audio_source_rate":snapshot.audio_source_rate, "audio_output_rate":snapshot.audio_output_rate, "audio_fallback":snapshot.audio_fallback, "audio_status": snapshot.audio_status, "exclusive": snapshot.exclusive_confirmed, "eq_filter": snapshot.eq_filter, "music_title": view.selected_title, "artist": view.selected_artist, "album": view.audio.album, "fonts": {"ui": view.fonts.ui, "lyrics": view.fonts.lyrics, "families": view.fonts.names.len().saturating_sub(1), "subtitle_actual": snapshot.subtitle_font, "ass_actual": snapshot.subtitle_font_overrides}, "library_columns": {"song": view.column_song, "artist": view.column_artist}, "window_surface": {"preference":surface.state.preference,"result":surface.state.result}, "decorated": window.window().with_winit_window(|w| w.is_decorated()), "lyric_count": view.audio.lyrics.len(), "active_lyric": view.audio.active_lyric, "page": view.page, "cover_width": view.audio.cover.size().width, "script_steps": actions, "fullscreen": window.window().is_fullscreen(), "maximized": window.window().is_maximized(), "checkpoints": checkpoints });
+                let mut data = serde_json::json!({ "phase": format!("{:?}",snapshot.phase), "position": snapshot.position.map(|position| position.as_secs_f64()), "duration": snapshot.duration.map(|duration| duration.as_secs_f64()), "speed": snapshot.speed, "volume": snapshot.volume, "muted": snapshot.muted, "runtime": snapshot.runtime, "hwdec": snapshot.hwdec, "video": snapshot.video, "devices": snapshot.devices.iter().map(|device| &device.name).collect::<Vec<_>>(), "tracks": snapshot.tracks.len(), "render_frames": window.get_render_frames(), "render_error": window.get_render_error().as_str(), "error": snapshot.error, "media_info": snapshot.info, "file_tag_info":view.info, "device_ids":snapshot.devices.iter().map(|d|&d.id).collect::<Vec<_>>(), "audio_info": snapshot.audio_info, "audio_log": snapshot.audio_log, "audio_source_rate":snapshot.audio_source_rate, "audio_output_rate":snapshot.audio_output_rate, "audio_fallback":snapshot.audio_fallback, "audio_status": snapshot.audio_status, "exclusive": snapshot.exclusive_confirmed, "eq_filter": snapshot.eq_filter, "music_title": view.selected_title, "artist": view.selected_artist, "album": view.audio.album, "fonts": {"ui": view.fonts.ui, "lyrics": view.fonts.lyrics, "families": view.fonts.names.len().saturating_sub(1), "subtitle_actual": snapshot.subtitle_font, "ass_actual": snapshot.subtitle_font_overrides}, "library_columns": {"song": view.column_song, "artist": view.column_artist}, "window_surface": {"preference":surface.state.preference,"result":surface.state.result}, "decorated": window.window().with_winit_window(|w| w.is_decorated()), "lyric_count": view.audio.lyrics.len(), "active_lyric": view.audio.active_lyric, "page": view.page, "cover_width": view.audio.cover.size().width, "script_steps": actions, "fullscreen": window.window().is_fullscreen(), "maximized": native_state.mode().maximized, "checkpoints": checkpoints });
+                data["native_window_queries"] = serde_json::json!(native_state.queries());
                 data["render_lifecycle"] = serde_json::json!({"initializations":window.get_render_initializations(),"ready":window.get_render_ready(),"video_output_enabled":snapshot.video_output_enabled});
                 data["ready"] = serde_json::json!(snapshot.ready);
+                data["music_database_ready"] = serde_json::json!(music_database_ready);
                 data["audio_blocked"] = serde_json::json!(snapshot.audio_blocked);
                 data["status"] = serde_json::json!(view.status);
                 data["window_system"] = serde_json::json!(window.window().with_winit_window(|native| {
@@ -315,13 +346,15 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     shutdown?;
     Ok(())
 }
-fn apply_window_mode(window: &player_ui::AppWindow, mode: Option<i32>) {
+fn apply_window_mode(window: &player_ui::AppWindow, mode: Option<i32>) -> bool {
     if let Some(mode) = mode {
         window.window().set_fullscreen(mode == 2);
         if mode != 2 {
             window.window().set_maximized(mode == 1);
         }
+        return true;
     }
+    false
 }
 fn key_chord(
     key: &winit::keyboard::Key,

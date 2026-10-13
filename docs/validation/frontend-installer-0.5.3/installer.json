@@ -1,0 +1,14 @@
+{
+  "result": "PASS",
+  "fixture": "E:\\SourceFiles\\rust\\yyplayer\\target\\windows-installer-qa-df087faf8568409b896d1b1bffe22f3b",
+  "registry_id": "YYPlayer-QA-df19dbe9efb545e2ab82b37b8cd10757",
+  "cases": [
+    "generated-setup-dpi-manifest",
+    "fresh-install",
+    "locked-dll-failure-rolls-back-exe-and-version",
+    "0.5.1-to-0.5.3-upgrade-keeps-location-and-user-files",
+    "same-version-reinstall",
+    "downgrade-blocked",
+    "uninstall-keeps-unowned-files-and-settings"
+  ]
+}

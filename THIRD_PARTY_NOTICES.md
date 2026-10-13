@@ -9,6 +9,7 @@ YYPlayer 自身源码及原创 UI 资源采用 **GPL-3.0-only**，见 [LICENSE](
 | Ubuntu libmpv 0.41.0 / ELF 依赖 | Linux deb 使用系统包；AppImage 携带非驱动依赖 | [Linux 策略](third_party/mpv/linux.json)；打包时记录实际发行版本、原始 / 打包 hash、精确对应源码页面，并保存完整发行包 copyright 与 common-licenses。 |
 | type2-runtime / appimagetool 1.9.1 | Linux AppImage 封装 | 工具归档 SHA-256 固定；内嵌 runtime 为 caf24f9，完整原文及静态闭包限制见 [runtime notices](packaging/linux/runtime-notices/README.md)。 |
 | 其他 Rust 依赖 | Cargo.lock 锁定版本 | 保留各上游许可证；本轮 Windows normal / build 依赖的元数据清单见 [依赖许可元数据](docs/dependency-licenses.md)。Cargo manifest 的表达式不能代替每个组件的完整 notices。 |
+| rusqlite 0.40.2 / libsqlite3-sys 0.38.2 | 音乐库与歌单 SQLite 存储，bundled 静态链接 | Rust 绑定为 MIT；内置 SQLite 3.53.2 为 public domain，原始声明随锁定 crate 的 sqlite3 源码保留，见 [SQLite 授权](https://www.sqlite.org/copyright.html)。不新增外部 SQLite DLL / 系统包依赖。 |
 | GD 云端 API 示例 | 与 Android 共用的声明式 JSON | 原文件的 attribution / usage 保留：GD音乐台、CC BY-NC 4.0、学习参考用途；该说明不改变播放器源码许可，见 [配置](config/cloud_api/example-gd.json)。 |
 | 图标 / 演示封面 | 编译进 Slint 的本地 SVG | ADR 0000 记录为原创 SVG，随本项目源码授权；验收截图使用自有素材。用户附件、专辑图片、音视频与 APPDATA 配置不入仓库。 |
 

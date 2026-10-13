@@ -164,6 +164,10 @@ impl AppController {
             .collect()
     }
     pub(super) fn toggle_favorite(&mut self) {
+        if !self.music_ready {
+            self.status = "音乐数据库尚未就绪，收藏保留；请稍后重试".into();
+            return;
+        }
         let snapshot = self.engine.snapshot();
         let Some(MediaSource::Local(path)) = snapshot
             .source
@@ -190,6 +194,10 @@ impl AppController {
         self.refresh_library();
     }
     pub(super) fn collection_control(&mut self, action: &str, value: &str) -> bool {
+        if !self.music_ready && action.starts_with("playlist-") {
+            self.status = "音乐数据库尚未就绪，歌单保留；请稍后重试".into();
+            return true;
+        }
         let index = value.parse::<usize>().ok();
         match action {
             "library-category" => {

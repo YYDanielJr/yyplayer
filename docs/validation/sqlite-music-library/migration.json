@@ -1,0 +1,12 @@
+{
+  "config": "E:\\SourceFiles\\rust\\yyplayer\\target\\collections\\settings-sqlite-c764d6a5516c45fa9705f586fcc7db97.json",
+  "database": "E:\\SourceFiles\\rust\\yyplayer\\target\\collections\\settings-sqlite-c764d6a5516c45fa9705f586fcc7db97.library.sqlite3",
+  "legacy_backup_preserved": true,
+  "legacy_index_unchanged": true,
+  "members": 1,
+  "real_ui_stages": 28,
+  "restart_playlist": "夜航收藏",
+  "result": "PASS",
+  "session_queues_empty": true,
+  "version": "0.5.2"
+}

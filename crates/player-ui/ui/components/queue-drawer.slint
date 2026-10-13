@@ -9,10 +9,6 @@ export component QueueDrawer inherits Rectangle {
     in property <int> music-count; in property <int> video-count;
     out property <bool> input-focused: order-choice.input-focused;
     callback control(string,string);
-    background: Theme.surface; border-radius: 18px;
-    border-width: 1px; border-color: Theme.border;
-    drop-shadow-blur: 24px; drop-shadow-color: Theme.shadow;
-    TouchArea { }
     VerticalLayout { padding: 18px; spacing: 12px;
         HorizontalLayout { height: 32px;
             Text { text: "播放列表"; color: Theme.text; font-size: 21px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; }

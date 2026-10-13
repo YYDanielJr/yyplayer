@@ -1,4 +1,5 @@
-import { ComboBox, CheckBox, LineEdit, Button } from "std-widgets.slint";
+import { CheckBox, LineEdit } from "std-widgets.slint";
+import { ThemeButton as Button, ThemeComboBox as ComboBox } from "theme-widgets.slint";
 import { Theme } from "../theme.slint";
 import { GlassSurface } from "glass.slint";
 import { BackgroundChoice } from "background-choice.slint";
@@ -13,10 +14,10 @@ export component AppearanceOptions inherits GlassSurface {
         Text { text: "外观与动效"; color: Theme.text; font-size: 20px; font-weight: 600; height: 32px; }
         Text { text: "让你的音乐空间，有自己的气质。"; color: Theme.muted; height: 24px; }
         HorizontalLayout { height: 60px; spacing: 16px;
-            VerticalLayout { spacing: 4px; Text { text: "设计风格"; color: Theme.muted; height: 22px; } ComboBox { height: 34px; model: ["简洁模式", "时尚模式 · 玻璃层次"]; current-index: root.design; selected(value) => { root.control("appearance-design", "" + self.current-index); } } }
-            VerticalLayout { spacing: 4px; Text { text: "明暗"; color: Theme.muted; height: 22px; } ComboBox { height: 34px; model: ["跟随系统", "浅色", "深色"]; current-index: root.scheme; selected(value) => { root.control("appearance-scheme", "" + self.current-index); } } }
+            VerticalLayout { spacing: 4px; Text { text: "设计风格"; color: Theme.muted; height: 22px; } ComboBox { height: 34px; model: ["简洁模式", "时尚模式 · 玻璃层次"]; current-index: root.design; selected(value, choice) => { root.control("appearance-design", "" + choice); } } }
+            VerticalLayout { spacing: 4px; Text { text: "明暗"; color: Theme.muted; height: 22px; } ComboBox { height: 34px; model: ["跟随系统", "浅色", "深色"]; current-index: root.scheme; selected(value, choice) => { root.control("appearance-scheme", "" + choice); } } }
         }
-        ComboBox { height: 34px; model: ["主题色跟随系统", "手动主题色"]; current-index: root.system-accent ? 0 : 1; selected(value) => { root.control("appearance-accent-source", "" + self.current-index); } }
+        ComboBox { height: 34px; model: ["主题色跟随系统", "手动主题色"]; current-index: root.system-accent ? 0 : 1; selected(value, choice) => { root.control("appearance-accent-source", "" + choice); } }
         HorizontalLayout { height: 34px; spacing: 12px;
             color-input := LineEdit { height: 34px; text: root.custom-accent; placeholder-text: "#RRGGBB"; }
             Button { height: 34px; text: "应用颜色"; clicked => { root.control("appearance-accent", color-input.text); } }

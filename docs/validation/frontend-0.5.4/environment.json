@@ -1,0 +1,29 @@
+{
+  "slint": "1.17.1",
+  "branch": "dev",
+  "cpu": {
+    "Name": "AMD Ryzen AI 7 H 350 w/ Radeon 860M ",
+    "NumberOfLogicalProcessors": 16
+  },
+  "gpu": [
+    {
+      "Name": "MuMu Virtual Display Adapter",
+      "DriverVersion": "20.36.41.498"
+    },
+    {
+      "Name": "NVIDIA GeForce RTX 5060 Laptop GPU",
+      "DriverVersion": "32.0.16.1088"
+    },
+    {
+      "Name": "AMD Radeon(TM) 860M Graphics",
+      "DriverVersion": "32.0.31041.1004"
+    }
+  ],
+  "os": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26300",
+    "BuildNumber": "26300"
+  },
+  "rust": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "date": "2026-10-13"
+}

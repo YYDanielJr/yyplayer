@@ -1,4 +1,5 @@
-import { ListView, ScrollView, ComboBox, Button, CheckBox, Spinner } from "std-widgets.slint";
+import { ListView, ScrollView, CheckBox, Spinner } from "std-widgets.slint";
+import { ThemeButton as Button, ThemeComboBox as ComboBox } from "../components/theme-widgets.slint";
 import { Theme, Icons } from "../theme.slint";
 import { IconButton, Icon } from "../components/controls.slint";
 import { TrackRow } from "../models.slint";
@@ -16,8 +17,8 @@ export component OnlineSearchPage inherits Rectangle {
     callback control(string,string);
     VerticalLayout { padding-left: 24px; padding-right: 24px; padding-bottom: 20px; spacing: 12px;
         HorizontalLayout { height: 34px; spacing: 8px;
-            ComboBox { model: root.providers; current-index: root.provider-index; horizontal-stretch: 1; min-width: 0px; selected(value) => { root.control("online-provider", "" + self.current-index); } }
-            ComboBox { model: root.sources; current-index: root.source-index; horizontal-stretch: 1; min-width: 0px; selected(value) => { root.control("online-source", "" + self.current-index); } }
+            ComboBox { model: root.providers; current-index: root.provider-index; horizontal-stretch: 1; min-width: 0px; selected(value, choice) => { root.control("online-provider", "" + choice); } }
+            ComboBox { model: root.sources; current-index: root.source-index; horizontal-stretch: 1; min-width: 0px; selected(value, choice) => { root.control("online-source", "" + choice); } }
             if !root.compact && !root.lyric-mode: Button { text: root.history-open ? "搜索结果" : "搜索历史"; clicked => {root.history-open=!root.history-open;} }
             if !root.compact: Button { text: "重读配置"; clicked => { root.control("online-reload", ""); } }
             if !root.compact && root.lyric-mode: Button { text: "返回歌曲搜索"; clicked => { root.control("online-music-mode", ""); } }

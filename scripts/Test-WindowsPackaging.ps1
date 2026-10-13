@@ -1,4 +1,4 @@
-param([Parameter(Mandatory = $true)][string]$NsisCompiler)
+﻿param([Parameter(Mandatory = $true)][string]$NsisCompiler)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -29,7 +29,7 @@ Write-Fixture 'Cargo.toml' @'
 members = ["crates/yyplayer-app"]
 resolver = "3"
 [workspace.package]
-version = "0.5.1"
+version = "0.5.4"
 '@
 Write-Fixture 'crates/yyplayer-app/Cargo.toml' @'
 [package]
@@ -56,12 +56,12 @@ foreach ($name in @('CARGO_TARGET_DIR', 'RUNNER_TEMP', 'GITHUB_SHA', 'YYPLAYER_P
     $previousEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
 }
 
-function Invoke-FixturePackage([string]$Case, [string]$ExpectedError = '') {
+function Invoke-FixturePackage([string]$Case, [string]$ExpectedError = '', [string]$Compiler = $NsisCompiler) {
     $env:GITHUB_SHA = [Guid]::NewGuid().ToString('N')
     $before = @(Get-ChildItem -LiteralPath (Join-Path $workspace 'dist') -File -ErrorAction SilentlyContinue).Count
     $failure = $null
     try {
-        & $packager -Offline -NsisCompiler $NsisCompiler *> (Join-Path $testRoot "$Case.log")
+        & $packager -Offline -NsisCompiler $Compiler *> (Join-Path $testRoot "$Case.log")
     } catch {
         $failure = $_.Exception.Message
     }
@@ -95,6 +95,9 @@ try {
     Invoke-FixturePackage 'runtime-hash-failure' 'pinned manifest hash'
     Write-Fixture 'third_party/mpv/windows-x64/libmpv-2.dll' 'YYPlayer packaging fixture; not a runtime DLL.'
 
+    Write-Fixture 'tools/old-makensis.cmd' "@echo off`r`necho v3.11`r`nexit /b 0`r`n"
+    Invoke-FixturePackage 'old-nsis-rejected-before-build' 'NSIS 3.12 or newer is required' (Join-Path $workspace 'tools/old-makensis.cmd')
+
     Write-Fixture 'crates/yyplayer-app/src/main.rs' 'this is intentionally invalid Rust'
     Invoke-FixturePackage 'build-failure-with-stale-exe' 'Cargo Release build failed'
     Write-Fixture 'crates/yyplayer-app/src/main.rs' 'fn main() {}'
@@ -106,7 +109,7 @@ try {
     $builtExe = Join-Path $env:CARGO_TARGET_DIR 'x86_64-pc-windows-msvc/release/yyplayer.exe'
     $builtHash = (Get-FileHash -LiteralPath $builtExe).Hash
     if ((Get-FileHash -LiteralPath (Join-Path $extracted 'yyplayer.exe')).Hash -ne $builtHash) { throw 'ZIP contains the wrong executable.' }
-    if ((Get-Item -LiteralPath (Join-Path $extracted 'yyplayer.exe')).VersionInfo.ProductVersion -ne '0.5.1') { throw 'ZIP has the wrong application version.' }
+    if ((Get-Item -LiteralPath (Join-Path $extracted 'yyplayer.exe')).VersionInfo.ProductVersion -ne '0.5.4') { throw 'ZIP has the wrong application version.' }
     $buildInfo = Get-Content -LiteralPath (Join-Path $extracted 'BUILD-INFO.txt') -Raw
     if ($buildInfo -notmatch $builtHash.ToLowerInvariant()) { throw 'BUILD-INFO does not identify the packaged executable.' }
     $results.Add('zip-artifact-hash-and-version')

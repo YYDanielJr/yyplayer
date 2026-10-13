@@ -15,7 +15,7 @@ for ($i = 0; $i -lt 2; $i++) {
 }
 $previous = $env:YYPLAYER_CONFIG
 try {
-    $env:YYPLAYER_CONFIG = Join-Path $base 'settings.json'
+    $env:YYPLAYER_CONFIG = Join-Path $base ('settings-sqlite-' + [Guid]::NewGuid().ToString('N') + '.json')
     $profile = if ($Release) { 'release' } else { 'debug' }
     if ($SkipBuild) { & (Join-Path $root "target/$profile/examples/collections.exe") }
     elseif ($Release) { cargo run --locked --offline --release -p yyplayer-app --example collections }

@@ -124,7 +124,7 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 
 - 库、播放队列分开；移除目录 / 曲目不删除磁盘文件，不停止已开始播放。目录 / 原始路径身份留在 core，后台规范化路径、读标签和保存缓存；禁止 Slint 回调读整目录。
 - 扫描 revision / 取消 generation 与媒体 generation 分开；过期扫描不能覆盖新配置，待提交请求合并最新项；ListView 虚拟化，库模型只按 revision 更新。失联目录缓存保留，手动重扫可恢复。
-- 当前上限：20000 首 / 200000 项 / 64 层，配置 2MB、索引 32MB。没有实时目录监听 / 大库 DB；更改上限先验证内存、响应和退出。OS 对话框 / 正在进行的标签读取返回后才能结束相应服务。
+- 当前上限：20000 首 / 200000 项 / 64 层，应用 JSON 配置 2MB、视频 / 旧音乐 JSON 索引 32MB；0.5.2 音乐索引已迁移 SQLite，未扩容。没有实时目录监听 / 大库分页；更改上限先验证内存、响应和退出。OS 对话框 / 正在进行的标签读取返回后才能结束相应服务。
 - 主题遵循 Appearance → platform Observer → view model → Theme 语义令牌，设计 / 明暗 / 主题色 / 减少动态效果独立。不要向每个页面加入 OS 查询或固定绿色，新增设计集中扩展 profile / 选择项并保留旧配置默认。
 - 时尚模式为轻量玻璃印象；不能为折射 / 模糊截图每帧视频，不删除 prepare_gl。动态效果立即响应操作，减少动画同时停掉持续 Timer；隐藏视频控件不改 FBO 尺寸。
 - Windows 外观观察只读注册表 / DWM / 动画偏好；测试不得改系统主题来证明同步。Linux 使用只读 Settings portal，缺失接口时保持回退；macOS 系统外观尚未验证。
@@ -167,13 +167,13 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - UiShell 在 event loop 返回后、hide 前清除 Slint 借用视频图片。RenderingTeardown 只释放 render / GL，不修改 UI 属性，否则 Wayland suspend 的 backend 可变 borrow 会重入；继续保持同上下文 / prepare_gl / 先 render_free 后 core。生命周期修改回归真实视频 10 循环、EOF 暂停、正常退出与 4K GPU 图片。
 - 外观 portal 只读后台查询、字体后台枚举不变。Linux 圆角 / 阴影由 compositor 决定；Wayland 不提供客户端最小化状态 / 还原，例子不能写假确认。UI 截图可能延迟同次 timer 回调，验收等待真实状态并保留明确超时，不能删透明度断言。
 - scripts/check-linux-deps.py 先只读汇总 apt；scripts/test-linux.py / test-linux-packages.py 用独立配置、自有素材，不停止系统音频服务或修改系统主题。硬件 / 竞争测试串行，防自己的不同验收互相占设备。库、字幕、背景、快捷键和音频仍复用同一 controller / Engine。
-- scripts/package-linux.py 固定 appimagetool 归档和 runtime 源码 hash，每次从核验归档重新提取工具；两种包使用同一 Release 快照。源码包必须包含完整锁定图（含 Cargo 解析所需其他平台条件依赖），614 crate 原始归档 / notices 与空 Cargo home 的离线解析证据，不把解析称为再次完整编译。
+- scripts/package-linux.py 固定 appimagetool 归档和 runtime 源码 hash，每次从核验归档重新提取工具；两种包使用同一 Release 快照。源码包必须包含当前完整锁定图（含 Cargo 解析所需其他平台条件依赖）的原始归档 / notices 与空 Cargo home 的离线解析证据，614 crate 是此前 Linux 资格记录的数量，不把解析称为再次完整编译。
 - 当前 Ubuntu 26.04 packages 仅在 dev-linux push 自动运行，并支持手动选择 master 或其他包含工作流的分支。Linux compatibility compile matrix 仍仅手动运行。文档不得把未修改的 Linux push 触发器写成 master 自动运行。
 - 新 Linux workflow 只生成短期 CI artifact，不代替用户推送 / 发布，也不代替安装 / 升级 / 卸载真机验收。包是开发预览：上游 AppImage runtime 的完整 Alpine 静态闭包 / 可重链接安排仍待补证，见 packaging/linux/runtime-notices/README.md；Windows DLL 闭包保留既有未完成状态。
 
 ## 13. Windows 自动编译打包接续（2026-10-12）
 
-- 当前 dev 应用版本为 0.5.1，五个 workspace crate 继承根版本，保留更新后的 Cargo.lock；EXE 版本资源、NSIS 与包名从同一 Cargo 版本生成，不添加独立硬编码默认。master 仅在授权合入 dev 后接收版本更新。
+- 当前 dev 应用版本为 0.5.4，五个 workspace crate 继承根版本，保留更新后的 Cargo.lock；EXE 版本资源、NSIS 与包名从同一 Cargo 版本生成，不添加独立硬编码默认。master 仅在授权合入 dev 后接收版本更新。
 - Package-Windows 在预检后自动执行 locked x64 MSVC Release build；使用本次 Cargo compiler-artifact.executable，检查实际退出码 / build-finished / 版本与 hash。不要恢复为读取固定旧 EXE，CI 不再另做重复编译。
 - 自定义 Cargo 产物目录放 target 子目录或仓库外；.gitignore 不替代暂存 diff 检查，不强制加入运行时二进制、包、缓存或用户配置。临时 NSIS 工具仅在 target 内使用，无需修改全局设置。
 - 修改打包执行 Test-WindowsPackaging，覆盖旧 EXE / 编译失败 / 自定义目录 / NSIS 失败 / 重试 / 已有包保护；兼容 PowerShell 5.1 / 7 原生 stderr。当前本机 ZIP / Setup 与独立启动证据见 docs/validation/windows-packaging.md，安装 / 卸载及正式发行资格仍待验。
@@ -181,7 +181,7 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 ## 14. 0.5.0 歌单与独立播放列表接续
 
 - 音乐 / 视频各自保留 SessionQueue 和 PlayOrder，抽屉切标签只浏览，点击项才切实际队列。自动 EOF 仅由 controller 推进，保留源身份 / pending load / Ended 边界，不另开 mpv 文件循环；load_index 在匹配 FILE_LOADED 后恢复明确播放意图，仍服从 Engine 的输出确认 / blocked 规则。
-- 本地歌单与我喜欢使用版本化 Playlists、稳定 ID 和原始 PathBuf，复用 settings 后台原子保存；队列仅为会话状态。移除目录 / 歌单 / 成员不删磁盘文件或改当前队列；失联 / 未索引成员保留。限 128 个歌单、合计 20000 成员、单队列 20000 项，配置 2MB；扩容先测响应 / 内存 / 退出。
+- 本地歌单与我喜欢使用版本化 Playlists、稳定 ID 和原始 PathBuf；0.5.2 起音乐索引 / 目录 / 歌单改由 SQLite 后台事务持久化，成员引用稳定曲目 ID。队列仅为会话状态。移除目录 / 歌单 / 成员不删磁盘文件或改当前队列；失联 / 未索引成员保留。限 128 个歌单、合计 20000 成员、单队列 20000 项，应用 JSON 设置 2MB，歌单不占该配额；扩容先验证响应 / 内存 / 退出。
 - 音乐库可见 row ID 对应 Browser.paths，不再直接索引 library_songs；缩略图、点击、多选、移除均用当前路径投影。歌手 / 专辑分组不读文件，专辑键包含歌手；模型按库 / 分类 / 选择 revision 更新，不覆盖正在编辑的歌单名称。
 - 抽屉覆盖内容 / 视频，不挤压 FBO；小窗口音乐页显式可伸展，空库边距避免最小高度撑大窗口。修改相关功能回归 Test-Collections、Test-UiCustomization、navigation-ui、ui-feedback、audio-ui、Test-VideoLibrary / Test-Video / Test-Render；GUI / 硬件测试串行，自有 fixture / 独立配置。详情见 docs/MUSIC_PLAYLISTS.md、ADR 0010 与 docs/validation/frontend-0.5.0.md。
 
@@ -191,3 +191,24 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 生产与真实 GPU 例子共用 player_ui::select_gpu_backend。Windows 请求桌面 OpenGL 3.3，presenter 检查实际上下文，不能静默使用 GLES 或低版本并显示视频成功；Linux / macOS 本轮保持原选择。保留 prepare_gl、同上下文与资源释放边界，不关闭去色带或强制软件解码掩盖异常。
 - Radeon 860M / 驱动 32.0.31041.1004 的 GLES 3.2 拒绝固定 mpv shader 的 average 函数名；桌面 GL 修复通过实际像素对照。不能泛化为 AMD 独显已验收。固定 Render API 的 Vulkan 请求实测返回 -19；原生 vo=gpu / gpu-next 的 Vulkan 样机不代表当前 Slint 可直接导入 Vulkan 图像。
 - Test-Render 校验实际 GL 版本与 shader 编译日志，再比较自有 4K HEVC 像素；deband 例子覆盖暂停去色带 / 软硬解重载、位置及释放 / 继续观看。Test-GpuBackends.py 仅 Windows 验收，固定 DLL hash、自有 fixture、原生样机输出与像素均写 target，不增加生产 Python 依赖。当前事实见 ADR 0011 与 docs/validation/compact-toolbar-amd-deband.md。
+
+## 16. 0.5.2 SQLite 音乐库接续
+
+- MusicStore 位于应用磁盘服务，player-core 不依赖 SQLite。rusqlite 0.40.2 仅 bundled，内置 SQLite 3.53.2 静态链接；更新依赖时核对 API / SQLite 源码版本和 notices，保留完整 Cargo.lock。不得把连接或同步查询移入 Slint / Engine / GL notifier。
+- 数据库随设置路径使用 *.library.sqlite3，schema 的 application_id / user_version 与设置版本分开。首次事务导入旧 JSON，保留旧索引与 *.pre-sqlite.json 原始备份；新 settings.json 格式 2 不再写 library / playlists。重启以 SQLite 为准，未知 / 损坏库不自动覆盖；版本 2 设置缺库时显式报错，可恢复后重扫。
+- 只有首次未加载的会话使用数据库快照初始化音乐配置；扫描写库失败不丢弃本次会话编辑，原位重试保留编辑并重新保存。要替换为其他数据库备份，退出后恢复再重启。启动导入、初始化保存、队列满退出和重试快照覆盖均有回归，证据见 docs/validation/sqlite-music-library.md。
+- 曲目 BLOB 使用 Windows 原始 UTF-16LE / Unix 字节与平台标识，显示文本不能当身份。歌单成员外键引用稳定曲目 ID，索引移除不删除引用；取消 / 错误批次必须回滚。初始化前保存和退出有界队列满时不得清空歌单或丢最后修改。
+- UI 仍按 revision 缓存索引并内存筛选，未实现数据库分页 / FTS / 实时监听，不擅自扩容。视频索引仍独立 JSON。用户明确不做性能对比，本轮按迁移 / 事务 / 恢复与实际 Collections / 重启验收，见 ADR 0012 与 STATUS；不继续 Vulkan 探索。
+
+## 17. 0.5.3 按钮、窗口事件与升级接续
+
+- 页面文字按钮共用 controls::PageButton，ThemeButton / ActionButton 只是复用入口；不重新混入 std-widgets::Button 的系统主色。时尚 / 简洁形状响应 Theme，保留键盘焦点、禁用与无障碍动作。图标播放键、导航和窗口控制按对应语义保留。
+- bootstrap 的原生最大化 / 全屏只经 WindowState 事件合并查询。Winit 0.30.13 的无边框 AppKit 查询临时改变 styleMask，禁止恢复 60ms 轮询；查询前释放 controller 借用，并抑制查询自身通知 / 相同几何。DWM、标题与 controller 共用结果。只有 video_renderer_requested 且未 ready 时重试 redraw，空闲音频不反复 request_redraw。
+- Windows 本地 / CI 使用固定 hash 的 NSIS 3.12，外部编译器最低 3.12。ManifestDPIAware true 是系统 DPI 感知，不能写成 Per-Monitor V2 或物理跨屏验收。已有机器卸载键识别旧版本和原目录，升级保留数据，同版重装、拒绝降级。替换文件有备份 / 失败恢复，不执行旧卸载器；卸载使用编译文件清单，不递归删除根目录。
+- 修改相关逻辑回归 Test-WindowsPackaging / Test-WindowsPackagingLauncher / Test-WindowsInstaller，GUI / GPU 继续串行；Test-WindowIdle 使用独立配置和 Release，查询计数不代替 MacBook Air CPU 实测。隔离安装测试的随机 HKCU / 私有快捷方式是编译期 QA，不修改真实安装。证据与未验证条件见 docs/validation/frontend-installer-0.5.3.md。
+
+## 18. 0.5.4 下拉与侧边抽屉接续
+
+- 全应用下拉使用 ThemeComboBox。受控值通过 selected(value, choice) 的 choice 提交，不能读取尚未由 controller 投影更新的 current-index；临时本地选择明确使用 controlled=false。浏览页 / 视频窗口模式选择的焦点纳入快捷键阻挡，换页清除旧焦点标记。
+- 播放选项 / 播放列表共用 SideDrawer，持久保留内容、同一可逆平移动画和遮罩；覆盖页面，不参与 HorizontalLayout，不改变视频 / 歌词尺寸。背景点击只关闭抽屉，不能穿透到库 / recent 行；减少动画直接响应。
+- 视频库目录筛选 / 重扫 / 移除 / 数量与两个导入按钮同一行；继续观看放批量操作行。Recent 标题 15px / 路径 12px。修改后回归 ui-consistency、navigation-ui、ui-feedback、UiCustomization、Collections、VideoLibrary / Video / Render，GUI / GPU 串行；各平台真机仍需分别验收。

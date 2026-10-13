@@ -33,7 +33,7 @@ export component AudioOptions inherits VerticalLayout {
             HorizontalLayout { spacing: 5px;
                 LineEdit { text: band.frequency; placeholder-text: "Hz"; edited(value) => { root.control("eq-band", index + ":f:" + value); } }
                 ComboBox { model: ["峰值", "低架", "高架"]; current-index: band.kind; selected(value, choice) => { root.control("eq-band", index + ":k:" + choice); } }
-                Button { text: "×"; width: 28px; clicked => { root.control("eq-remove", "" + index); } }
+                Button { text: "×"; width: 28px; content-padding: 4px; clicked => { root.control("eq-remove", "" + index); } }
             }
             HorizontalLayout { spacing: 5px; Text { text: "dB"; color: Theme.muted; vertical-alignment: center; width: 20px; }
                 LineEdit { text: "" + band.gain; edited(value) => { root.control("eq-band", index + ":g:" + value); } }

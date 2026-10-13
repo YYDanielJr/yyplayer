@@ -1,4 +1,5 @@
-import { ListView, ComboBox, Button, CheckBox, LineEdit } from "std-widgets.slint";
+import { ListView, CheckBox, LineEdit } from "std-widgets.slint";
+import { ThemeButton as Button, ThemeComboBox as ComboBox } from "../components/theme-widgets.slint";
 import { Theme, Icons } from "../theme.slint";
 import { Icon, IconButton, ActionButton } from "../components/controls.slint";
 import { GlassSurface } from "../components/glass.slint";
@@ -19,7 +20,11 @@ export component MusicPage inherits Rectangle {
     private property <bool> queue-view: root.preview;
     private property <bool> show-tools: true;
     in-out property <int> dialog; private property <string> name-draft; private property <int> target-playlist;
-    out property <bool> input-focused: root.dialog > 0;
+    private property <bool> folder-choice-focused; private property <bool> playlist-choice-focused;
+    out property <bool> input-focused: root.dialog > 0 || (root.category == 3 ? root.playlist-choice-focused : root.folder-choice-focused);
+    changed category => { root.folder-choice-focused = false; root.playlist-choice-focused = false; }
+    callback focus-changed(bool);
+    changed input-focused => { root.focus-changed(root.input-focused); }
     private property <float> entered: 0;
     init => { root.entered = 1; }
     opacity: root.entered; animate entered { duration: Theme.smooth; easing: ease-out; }
@@ -41,13 +46,13 @@ export component MusicPage inherits Rectangle {
                 y: toolbar.rows == 1 ? 0px : (toolbar.rows == 2 ? 46px : 92px);
                 width: toolbar.width - self.x - (toolbar.rows == 1 ? 92px : 0px); height: 38px;
                 if !root.queue-view && root.show-tools && root.category != 3: HorizontalLayout { spacing: 6px;
-                    ComboBox { model: root.folders; current-index: root.folder-index; horizontal-stretch: 1; min-width: 0px; selected(value) => { root.control("library-folder", "" + self.current-index); } }
+                    ComboBox { focus-changed(focused) => { root.folder-choice-focused = focused; } model: root.folders; current-index: root.folder-index; horizontal-stretch: 1; min-width: 0px; selected(value, choice) => { root.control("library-folder", "" + choice); } }
                     Button { width: 52px; text: root.scanning ? "取消" : "重扫"; clicked => { root.control(root.scanning ? "library-cancel" : "library-rescan", ""); } }
                     Button { width: 52px; text: "移除"; enabled: root.folder-index > 0 && root.folder-index < root.folders.length - 1; clicked => { root.control("library-folder-remove", ""); } }
                     Text { width: 68px; text: "" + root.library-tracks.length + " 首"; color: Theme.faint; font-size: 12px; vertical-alignment: center; horizontal-alignment: right; }
                 }
                 if root.category == 3: HorizontalLayout { spacing: 6px;
-                    ComboBox { horizontal-stretch: 1; min-width: 0px; model: root.playlists; current-index: root.playlist-index; selected(value) => { root.control("playlist-select", "" + self.current-index); } }
+                    ComboBox { focus-changed(focused) => { root.playlist-choice-focused = focused; } horizontal-stretch: 1; min-width: 0px; model: root.playlists; current-index: root.playlist-index; selected(value, choice) => { root.control("playlist-select", "" + choice); } }
                     Button { text: "重命名"; enabled: root.playlist-index > 0; clicked => { root.name-draft=root.collection-title; root.dialog=2; } }
                     Button { text: "删除歌单"; enabled: root.playlist-index > 0; clicked => { root.dialog=4; } }
                 }
@@ -139,7 +144,7 @@ export component MusicPage inherits Rectangle {
             VerticalLayout { padding: 24px; spacing: 16px;
                 Text { text: root.dialog == 1 ? "新建歌单" : (root.dialog == 2 ? "重命名歌单" : (root.dialog == 3 ? "加入歌单" : "删除歌单")); color: Theme.text; font-size: 20px; font-weight: 600; height: 28px; }
                 if root.dialog == 1 || root.dialog == 2: LineEdit { text <=> root.name-draft; placeholder-text: "输入歌单名称"; }
-                if root.dialog == 3: ComboBox { model: root.playlists; current-index <=> root.target-playlist; }
+                if root.dialog == 3: ComboBox { model: root.playlists; current-index: root.target-playlist; selected(value, choice) => { root.target-playlist = choice; } }
                 Text { text: root.dialog == 4 ? "删除「" + root.collection-title + "」？歌曲文件和当前播放列表会保留。" : (root.dialog == 3 ? (root.checked-count > 0 ? "将所选 " + root.checked-count + " 首歌曲添加到歌单" : "将当前列表全部歌曲添加到歌单") : "给喜欢的音乐留一个位置。最多 80 个字符。" ); color: Theme.muted; font-size: 12px; wrap: word-wrap; vertical-stretch: 1; }
                 HorizontalLayout { height: 36px; spacing: 12px; alignment: end;
                     Button { text: "取消"; clicked => { root.dialog=0; } }

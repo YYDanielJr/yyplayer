@@ -65,7 +65,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             online: Default::default(),
-            version: 1,
+            version: 2,
             global: DecodeOptions::default(),
             folders: BTreeMap::new(),
             files: BTreeMap::new(),
@@ -89,7 +89,7 @@ impl Default for Settings {
 impl Settings {
     pub fn validate(&self) -> Result<(), String> {
         self.online.validate()?;
-        if self.version != 1 {
+        if !matches!(self.version, 1 | 2) {
             return Err(format!("不支持设置版本 {}", self.version));
         }
         if !self.volume.is_finite() || !(0.0..=100.0).contains(&self.volume) {

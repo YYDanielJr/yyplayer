@@ -115,6 +115,9 @@ pub struct AppController {
     plain_lyrics: std::rc::Rc<String>,
     pending_asset: Option<music_assets::Request>,
     library_service: Option<library_service::Service>,
+    music_ready: bool,
+    music_retry: bool,
+    pending_music_import: player_core::library::LibrarySettings,
     thumbnails: Option<thumbnails::Thumbnails>,
     library_pending: Option<library_service::Request>,
     library_songs: Vec<player_core::library::Song>,
@@ -202,6 +205,9 @@ impl AppController {
             plain_lyrics: Default::default(),
             pending_asset: None,
             library_service: None,
+            music_ready: true,
+            music_retry: false,
+            pending_music_import: Default::default(),
             thumbnails: None,
             library_pending: None,
             library_songs: vec![],
@@ -249,10 +255,9 @@ impl AppController {
         for kind in 0..2 {
             controller.request_background(kind);
         }
-        controller.library_service = Some(library_service::Service::start(
-            path.with_extension("library.json"),
-            controller.settings.library.clone(),
-        ));
+        controller.music_ready = false;
+        controller.library_busy = true;
+        controller.library_message = "正在打开音乐数据库…".into();
         controller.video_service = Some(library_service::Service::start_video(
             path.with_extension("videos.json"),
             controller.settings.video_library.clone(),
@@ -263,16 +268,14 @@ impl AppController {
             controller.scan_video();
         }
         controller.appearance_observer = Some(player_platform::appearance::Observer::start());
-        if !controller.settings.library.roots.is_empty()
-            || !controller.settings.library.files.is_empty()
-        {
-            controller.scan_library();
-        }
         controller.persistence = Some(Persistence::start(path));
         controller.dialogs = Some(Dialogs::start());
         controller.assets_service = Some(music_assets::Service::start());
         controller.eq_draft = controller.settings.audio.global_eq.clone();
         controller
+    }
+    pub fn music_library_ready(&self) -> bool {
+        self.music_ready
     }
     pub fn dispatch(&mut self, action: UiAction) {
         match action {
@@ -585,10 +588,12 @@ impl AppController {
         self.history_dirty = None;
         self.save_revision += 1;
         if let Some(persistence) = &self.persistence
-            && let Err(error) =
-                persistence
-                    .commands
-                    .try_send((self.save_revision, self.settings.clone(), notify))
+            && let Err(error) = persistence.commands.try_send(services::SaveRequest {
+                revision: self.save_revision,
+                settings: self.settings.clone(),
+                notify,
+                music_ready: self.music_ready,
+            })
         {
             self.status = format!("设置保存未提交：{error}");
             self.notice_revision += 1;
@@ -1642,7 +1647,12 @@ impl AppController {
             self.save_with_notice(self.settings_dirty.is_some());
         }
         if let Some(persistence) = self.persistence.take() {
-            persistence.finish();
+            persistence.finish_with_latest(services::SaveRequest {
+                revision: self.save_revision + 1,
+                settings: self.settings.clone(),
+                notify: false,
+                music_ready: self.music_ready,
+            });
         }
         if let Some(service) = self.library_service.take() {
             service.finish();

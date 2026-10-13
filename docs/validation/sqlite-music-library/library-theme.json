@@ -1,0 +1,9 @@
+{
+  "library_count": 3,
+  "os_theme_available": true,
+  "playing": true,
+  "result": "PASS",
+  "source": "production controller, own fixtures",
+  "sqlite_collections_persisted": true,
+  "steps": 13
+}
