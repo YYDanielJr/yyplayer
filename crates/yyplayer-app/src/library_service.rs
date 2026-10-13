@@ -27,6 +27,7 @@ pub enum Reply {
     Paths(bool, Vec<PathBuf>),
     Indexed(u64, LibrarySettings, Vec<Song>, String),
     Error(String),
+    StorageError(String),
 }
 pub struct Service {
     pub commands: SyncSender<Request>,
@@ -47,17 +48,43 @@ impl Service {
         let generation = Arc::new(AtomicU64::new(0));
         let cancel = generation.clone();
         let worker = std::thread::spawn(move || {
-            let loaded = std::fs::metadata(&cache)
-                .ok()
-                .filter(|m| m.len() <= 32_000_000)
-                .and_then(|_| std::fs::read(&cache).ok())
-                .and_then(|b| serde_json::from_slice::<Cache>(&b).ok())
-                .filter(|c| {
-                    c.version == 1
-                        && c.video == video
-                        && c.config == config
-                        && c.songs.len() <= 20000
-                });
+            let mut database = if video {
+                None
+            } else {
+                match crate::services::music_store::MusicStore::open_index(&cache, config.clone()) {
+                    Ok(store) => Some(store),
+                    Err(error) => {
+                        let _ = out.send(Reply::StorageError(error));
+                        return;
+                    }
+                }
+            };
+            let loaded = if let Some(store) = &database {
+                match store.songs() {
+                    Ok(songs) => Some(Cache {
+                        version: 1,
+                        video: false,
+                        config: config.clone(),
+                        songs,
+                    }),
+                    Err(error) => {
+                        let _ = out.send(Reply::StorageError(error));
+                        return;
+                    }
+                }
+            } else {
+                std::fs::metadata(&cache)
+                    .ok()
+                    .filter(|m| m.len() <= 32_000_000)
+                    .and_then(|_| std::fs::read(&cache).ok())
+                    .and_then(|b| serde_json::from_slice::<Cache>(&b).ok())
+                    .filter(|c| {
+                        c.version == 1
+                            && c.video == video
+                            && c.config == config
+                            && c.songs.len() <= 20000
+                    })
+            };
             let mut prior = loaded.as_ref().map(|c| c.songs.clone()).unwrap_or_default();
             if let Some(c) = loaded
                 && out
@@ -138,25 +165,41 @@ impl Service {
                         if retained > 0 {
                             message.push_str(&format!("；离线 / 不可读目录保留 {retained} 项缓存"));
                         }
-                        prior = songs.clone();
-                        let cache_value = Cache {
-                            version: 1,
-                            video,
-                            config: config.clone(),
-                            songs: songs.clone(),
+                        let saved = if let Some(store) = &mut database {
+                            store.replace_index(&songs, &cancel, id)
+                        } else {
+                            let cache_value = Cache {
+                                version: 1,
+                                video,
+                                config: config.clone(),
+                                songs: songs.clone(),
+                            };
+                            serde_json::to_vec(&cache_value)
+                                .map_err(|e| e.to_string())
+                                .and_then(|bytes| {
+                                    if bytes.len() > 32_000_000 {
+                                        Err("媒体索引超过 32MB".into())
+                                    } else {
+                                        crate::services::atomic_bytes(&cache, &bytes)
+                                    }
+                                })
                         };
-                        match serde_json::to_vec(&cache_value)
-                            .map_err(|e| e.to_string())
-                            .and_then(|bytes| {
-                                if bytes.len() > 32_000_000 {
-                                    Err("媒体索引超过 32MB".into())
-                                } else {
-                                    crate::services::atomic_bytes(&cache, &bytes)
-                                }
-                            }) {
-                            Ok(()) => {}
-                            Err(e) => message.push_str(&format!("；索引保存失败：{e}")),
+                        if cancel.load(Ordering::Relaxed) != id {
+                            continue;
                         }
+                        match saved {
+                            Ok(()) => {}
+                            Err(e) => {
+                                let error = format!("索引保存失败：{e}");
+                                let _ = out.send(if video {
+                                    Reply::Error(error)
+                                } else {
+                                    Reply::StorageError(error)
+                                });
+                                continue;
+                            }
+                        }
+                        prior = songs.clone();
                         Some(Reply::Indexed(id, config, songs, message))
                     }
                 };

@@ -43,6 +43,7 @@ fn capture(w: &player_ui::AppWindow, name: &str) -> Result<(), Box<dyn std::erro
 }
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = services::settings_path();
+    let verification_path = path.clone();
     let base = std::env::current_dir()?.join("target/video-library");
     if !path.starts_with(&base) {
         return Err("Use an independent target/video-library config".into());
@@ -54,10 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::write(&bad, b"deliberately invalid own video fixture")?;
     let bad = bad.canonicalize()?;
     services::atomic_save(&path, &Default::default())?;
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     let c = Rc::new(RefCell::new(controller::AppController::live(
         player_mpv::MpvEngine::start(),
         player_platform::current(),
@@ -201,11 +199,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 15 => {
                     if v.video_library.busy { return Ok(false); }
-                    ensure!(w.get_content_opacity() > 0.99 && w.get_content_width() > 350., "minimum library / options layout failed");
+                    ensure!(w.get_content_opacity() > 0.99 && (w.get_content_width() - (size.width - w.get_content_left())).abs() < 1., "minimum library / options layout failed");
                     capture(&w, "minimum-options")?;
                     let (saved, warning) = services::load(&path);
                     if saved.video_library.roots.len()!=1 || saved.video_library.excluded.len()!=1 { return Ok(false); }
-                    ensure!(warning.is_empty() && saved.library.roots.is_empty(), "video settings did not persist independently");
+                    ensure!(warning.is_empty(), "video preferences did not persist");
+                    let preferences:serde_json::Value=serde_json::from_slice(&std::fs::read(&path)?)?;
+                    ensure!(preferences.get("library").is_none(), "music collections remained in preferences JSON");
                     c.dispatch(UiAction::Navigate(5)); control(&mut c, "video-rescan", ""); control(&mut c, "video-cancel", "");
                     ensure!(!c.view_model().video_library.busy, "scan cancellation stuck");
                 }
@@ -328,5 +328,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !ok {
         return Err("fresh controller did not restore video library without renderer".into());
     }
+    let (saved, warning) = services::load(&verification_path);
+    if !warning.is_empty() {
+        return Err(warning.into());
+    }
+    let store = services::music_store::MusicStore::open(&verification_path, &saved)?;
+    let collections = store.collections()?;
+    if collections.library != Default::default()
+        || collections.playlists != Default::default()
+        || !store.songs()?.is_empty()
+    {
+        return Err("video operations polluted the SQLite music library".into());
+    }
+    std::fs::write(
+        "target/video-library/sqlite-isolation.json",
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "result":"PASS", "version":env!("CARGO_PKG_VERSION"),
+            "music_database_empty":true, "video_restart_restored":true
+        }))?,
+    )?;
     Ok(())
 }

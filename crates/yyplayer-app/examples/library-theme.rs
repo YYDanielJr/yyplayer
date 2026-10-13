@@ -38,15 +38,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
     }
     let path = services::settings_path();
+    let verification_path = path.clone();
     if !path.starts_with(std::env::current_dir()?.join("target")) {
         return Err("Set YYPLAYER_CONFIG to a target/ path for independent verification".into());
     }
     let root = PathBuf::from("target/theme-validation/library").canonicalize()?;
     services::atomic_save(&path, &Default::default())?;
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     let c = Rc::new(RefCell::new(controller::AppController::live(
         player_mpv::MpvEngine::start(),
         player_platform::current(),
@@ -92,7 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     9=>{ensure!(view.has_media,format!("media failed: {}",view.status));ensure!(view.playing,format!("audio not playing: {}",view.status));control(&mut c,"music-browse","");let id=view.library.rows[0].id.to_string();control(&mut c,"library-song-remove",&id);},
     10=>{ensure!(view.library.rows.len()==1,"library count / settings mismatch");ensure!(view.has_media,format!("media failed: {}",view.status));control(&mut c,"library-folder-remove","");},
     11=>{ensure!(view.library.rows.len()==3,"library count / settings mismatch");control(&mut c,"library-rescan","");control(&mut c,"library-rescan","");control(&mut c,"library-cancel","");control(&mut c,"appearance-motion","yes");},
-    12=>{ensure!(view.appearance.reduce_motion,"reduce motion not applied");let (saved,msg)=services::load(&path);ensure!(msg.is_empty(),msg);ensure!(saved.library.roots.len()==1,"library count / settings mismatch");ensure!(saved.library.excluded.len()==1,"library count / settings mismatch");ensure!(!saved.appearance.system_accent,"manual accent not saved");std::fs::write(path.with_extension("verification.json"),serde_json::to_vec_pretty(&serde_json::json!({"result":"PASS","steps":13,"library_count":view.library.rows.len(),"os_theme_available":view.appearance.system_available,"source":"production controller, own fixtures","playing":view.playing}))?)?;println!("PASS: recursive folder import/dedup, filter, actual audio play, remove without stop, rescan/cancel, saved settings, four themes");slint::quit_event_loop()?;},
+    12=>{ensure!(view.appearance.reduce_motion,"reduce motion not applied");let (saved,msg)=services::load(&path);ensure!(msg.is_empty(),msg);ensure!(!saved.appearance.system_accent,"manual accent not saved");std::fs::write(path.with_extension("verification.json"),serde_json::to_vec_pretty(&serde_json::json!({"result":"PASS","steps":13,"library_count":view.library.rows.len(),"os_theme_available":view.appearance.system_available,"source":"production controller, own fixtures","playing":view.playing}))?)?;slint::quit_event_loop()?;},
     _=>{}
    }
    step+=1;last=Instant::now();Ok(())
@@ -108,5 +106,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(e) = error.borrow_mut().take() {
         return Err(e.into());
     }
+    // Verify persistence after the UI and its background services have finished.
+    let (saved, message) = services::load(&verification_path);
+    ensure!(message.is_empty(), message);
+    let collections =
+        services::music_store::MusicStore::open(&verification_path, &saved)?.collections()?;
+    ensure!(
+        collections.library.roots.len() == 1,
+        "SQLite roots mismatch"
+    );
+    ensure!(
+        collections.library.excluded.len() == 1,
+        "SQLite exclusions mismatch"
+    );
+    let preferences: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&verification_path)?)?;
+    ensure!(
+        preferences["version"] == 2 && preferences.get("library").is_none(),
+        "Music collections were duplicated in preferences JSON"
+    );
+    let report_path = verification_path.with_extension("verification.json");
+    let mut report: serde_json::Value = serde_json::from_slice(&std::fs::read(&report_path)?)?;
+    report["sqlite_collections_persisted"] = true.into();
+    std::fs::write(report_path, serde_json::to_vec_pretty(&report)?)?;
+    println!(
+        "PASS: recursive folder import/dedup, filter, actual audio play, remove without stop, rescan/cancel, SQLite collections, saved preferences, four themes"
+    );
     Ok(())
 }

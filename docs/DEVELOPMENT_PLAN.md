@@ -1,14 +1,16 @@
 # YYPlayer 开发规划
 
-本文保留原 README 的完整选型、架构、任务顺序和验收规格，供开发者接续实现。规划中的目标、候选版本和待办不代表已经交付；当前实现与锁定版本以 [实际状态](STATUS.md)、[架构决策](adr/) 和仓库文件为准。
+本文保留产品目标、选型背景和完整验收规格，供开发者接续实现。阶段编号和版本目标是最初规划，不是当前发布清单；用户后来指定的 UI、歌词、媒体库和跨平台任务已改变实际交付顺序。当前实现与锁定版本以 [STATUS](STATUS.md)、[架构决策](adr/) 和仓库文件为准。
 
-项目概览与启动方法见 [README](../README.md)，产品更新见 [CHANGELOG](../CHANGELOG.md)，执行规则见 [AGENTS](../AGENTS.md)。当前源码许可为 GPL-3.0-only，唯一顶层开发分支为 dev，master 只合入 dev，用于集成 / 发布；Windows / Ubuntu Linux 共用代码已合入 master，当前 dev 开发版本为 0.4.1。Windows 自动编译打包与 Linux 本机证据见 STATUS；下文保留规划时的选型背景与未完成的完整资格目标。
+使用方法见 [README](../README.md)，环境和检查入口见 [CONTRIBUTING](../CONTRIBUTING.md)，产品更新见 [CHANGELOG](../CHANGELOG.md)，执行规则见 [AGENTS](../AGENTS.md)。源码采用 GPL-3.0-only，唯一顶层开发分支为 dev，master 只合入已验证的 dev 改动。
+
+当前 dev 为 **0.5.4**：真实音视频播放、GL 呈现、输出策略 / EQ、歌词、音乐 / 视频库、歌单与独立队列、联网搜索已接入；音乐存储使用 SQLite，文字按钮、下拉框和侧边抽屉统一，Windows 安装器支持升级。Windows 有本轮回归和包证据；Ubuntu 26.04 有此前本机运行记录，最新 SQLite 与 UI 改动还需 Linux 复测；macOS 尚未验收。用户已确认继续使用 OpenGL 并停止 Vulkan 探索。
 
 ## 1. 选型结论
 
 **采用 Rust + Slint + libmpv，音视频共用一个播放内核。** Rust 管理业务、状态、持久化与系统集成；Slint 实现界面；libmpv 负责解封装、解码、音视频同步、字幕、音频输出和 DSP。第一版不另起一套音频解码与 WASAPI 播放链。
 
-mpv 能覆盖本项目的主要播放需求：Windows 设备选择、WASAPI 独占，以及通过 FFmpeg 滤镜实现 EQ；视频具备常用格式解码、字幕与硬件解码基础。设备枚举使用 `audio-device-list`，选择使用 `audio-device`，独占请求使用 `audio-exclusive`。这些是内核能力，产品仍需实现设备故障处理、设置界面和状态验证。[mpv 音频配置](https://mpv.io/manual/stable/#audio)
+mpv 能覆盖本项目的主要播放需求：Windows 设备选择、WASAPI 独占，以及通过 FFmpeg 滤镜实现 EQ；视频具备常用格式解码、字幕与硬件解码基础。设备枚举使用 `audio-device-list`，选择使用 `audio-device`，独占请求使用 `audio-exclusive`。设备选择、故障处理与设置界面已接入，但完整设备 / 格式矩阵仍需验收。[mpv 音频配置](https://mpv.io/manual/stable/#audio)
 
 **它不能仅靠几个配置项就保证全部目标。** 以下边界必须进入架构和验收：
 
@@ -18,12 +20,12 @@ mpv 能覆盖本项目的主要播放需求：Windows 设备选择、WASAPI 独�
 | 尽量保留文件质量 | 中性输出、不默认升采样、不默认增强。独占绕过共享混音器，但不等于已经证明 bit-perfect；EQ、音量、混音、变速或重采样都可能改变 PCM。 |
 | EQ | 同一个 mpv 音频管线内实现；开启 EQ 后明确显示 DSP 已启用。 |
 | 看齐 PotPlayer 的开箱体验 | 以第 2 节的实际场景验收；不将 PotPlayer 的全部历史功能视为首版承诺。 |
-| 高效视频呈现 | Windows 首选验证原生 HWND + D3D11 路径；跨平台合成验证 OpenGL Render API。两种呈现方式共用 libmpv 控制层。 |
+| 高效视频呈现 | 当前采用 OpenGL Render API + Slint 借用纹理，Windows 请求桌面 OpenGL 3.3。原生 HWND / D3D11 是尚未接入的规划路径；不继续 Vulkan 探索。 |
 | HDR | SDR 映射与 HDR 显示输出分别验收。Slint 里的普通 RGBA 图像不能直接代表 HDR 显示输出。 |
 | macOS / Linux | 业务层跨平台；显示、系统媒体控制和音频独占按平台适配。Wayland 不套用 HWND / X11 的 `wid` 方案。 |
 | ASIO、原生 DSD / DoP | 本方案不承诺。若后续明确需要，再专项验证构建能力，并评估独立音频引擎。能播放 DSD 文件不等于把原生 DSD 送到 DAC。 |
 
-Slint 的 Winit 后端支持 Windows、macOS、X11、Wayland，并提供渲染通知和借用 OpenGL 纹理的接口；因此 Rust + Slint 可以保留，但必须先完成真实视频集成实验。[Slint 后端](https://docs.slint.dev/latest/docs/rust/slint/docs/cargo_features/)，[Window 渲染通知](https://docs.slint.dev/latest/docs/rust/slint/struct.Window)
+Slint 的 Winit 后端提供渲染通知和借用 OpenGL 纹理的接口，当前已完成 Windows / Ubuntu 的真实视频集成；其他平台和设备仍需分别验证。[Slint 后端](https://docs.slint.dev/latest/docs/rust/slint/docs/cargo_features/)，[Window 渲染通知](https://docs.slint.dev/latest/docs/rust/slint/struct.Window)
 
 ### 1.1 为什么不从其他栈开始
 
@@ -42,12 +44,14 @@ Slint 的 Winit 后端支持 Windows、macOS、X11、Wayland，并提供渲染�
 ### 2.1 核心体验
 
 1. 双击媒体文件、拖入文件或选择文件即可播放，无需用户安装 codec pack、配置 mpv 或打开终端。
-2. 音乐与视频使用相同队列、播放控制和设备设置；根据真实流信息切换界面，不仅看扩展名。
+2. 音乐与视频共用内核、播放控制和设备设置，各自保留独立会话队列；根据真实流信息切换界面，不仅看扩展名。
 3. 主要操作容易发现：播放 / 暂停、进度、音量、队列、全屏、字幕、音轨、输出设备。
 4. 日常默认设置中性、稳定、节能；用户可选择独占音乐输出、EQ 和更高视频画质。
 5. 设置明确区分“用户请求”和“当前实际状态”；失败给出可执行的恢复操作。
 
 ### 2.2 版本目标
+
+下表保留最初的阶段目标。当前 0.5.4 并不表示这里的全部 v0.5 场景已经完成；已交付功能看 CHANGELOG，未完成资格看 STATUS。
 
 | 版本 | 必须完成 |
 | --- | --- |
@@ -75,26 +79,27 @@ Slint 的 Winit 后端支持 Windows、macOS、X11、Wayland，并提供渲染�
 
 ## 3. 工程基线与依赖
 
-### 3.1 起始候选版本
+### 3.1 当前依赖基线
 
-截至规划日期，mpv 官网稳定版手册指向 **0.41.0**，Slint 在线 Rust API 文档显示 **1.18.1**。以这些版本作为技术样机候选，之后按实测锁定；此处不是已完成的兼容性认证。[mpv 稳定版入口](https://mpv.io/manual/index.html)，[Slint Rust API](https://docs.slint.dev/latest/docs/rust/slint/)
+当前 `slint` 与 `slint-build` 精确锁定 **1.17.1**，不能混用其他版本 API；Windows libmpv 来源与 hash 见 `third_party/mpv/manifest.json`，Linux 策略见 `third_party/mpv/linux.json`。依赖解析以提交的 Cargo.lock 为准，不能按在线文档的 latest 标签升级。
 
-实际选用 Slint **1.17.1**，与编译器同版本精确锁定并提交 Cargo.lock；1.18.1 仍是后续升级候选，不能将两版 API 混用。本轮已引入固定 git runtime、libloading、crossbeam-channel、glow、serde / serde_json、rfd 和最小 Windows 文件 API；表中日志 / TOML / DB 等仍属后续候选，当前配置采用版本化 JSON。
+应用偏好使用版本 2 JSON；音乐索引、目录配置、歌单和收藏已在 0.5.2 迁移到 SQLite，视频索引仍为独立 JSON。`rusqlite` 0.40.2 仅启用 bundled，内置 SQLite 3.53.2；数据库留在应用后台服务，不进入 core 或 UI 线程。迁移与恢复见 [ADR 0012](adr/0012-sqlite-music-library.md)。
 
 | 层 | 选择 |
 | --- | --- |
-| Rust | stable、edition 2024；S00 时确认 Slint 的 MSRV，锁定满足要求的具体 Rust 版本至 `rust-toolchain.toml`。 |
+| Rust | edition 2024；`rust-toolchain.toml` 当前选择 stable。已有 1.99.0 构建记录，声明的最低版本 1.92 与固定发行工具链仍需 S00 专项验证。 |
 | Windows 首发 | `x86_64-pc-windows-msvc`，Windows 11 x64 为主验证环境；Windows 10 22H2 作为可访问设备上的兼容性目标。 |
 | UI | `slint` 与 `slint-build` 同版本，`.slint` 文件通过 `build.rs` 编译。 |
-| GL 样机 | 显式选择 Winit + `renderer-femtovg`，运行时要求 `GraphicsAPI::NativeOpenGL`；不把 FemtoVG-WGPU 当 OpenGL。 |
+| 生产 GL 呈现 | Winit + `renderer-femtovg`，运行时要求 `GraphicsAPI::NativeOpenGL`；Windows 明确要求桌面 GL 3.3，不把 FemtoVG-WGPU 当 OpenGL。 |
 | mpv 接口 | `player-mpv` 内封装稳定 C API；优先采用少量、经过核对的绑定与动态加载，隔离第三方 Rust wrapper 的更新风险。 |
 | 动态加载 | `libloading`；Windows 依赖搜索限制在受控的运行时目录，用 Win32 受控加载策略处理依赖 DLL。 |
 | 通信 | 有界 `crossbeam-channel` + 最新快照槽；不为一个播放器默认引入全局 Tokio 运行时。 |
-| 配置 / 错误 / 日志 | `serde`、`toml`、`thiserror`、`tracing`、`tracing-subscriber`、滚动日志。 |
-| 系统路径 / 对话框 | `directories`、`rfd`，Linux 支持 portal；只在后台执行扫描和解码封面。 |
-| Windows 适配 | `windows` crate，按模块启用 Win32 / COM / WinRT 所需 features。 |
-| 音乐库 | v0.5 引入 `rusqlite`、版本化 migration 与 `lofty` 标签读取；不让标签读取成为播放前置条件。 |
-| GPU 工具 | GL 路径使用 `glow` 或等效薄封装，版本与上下文约束一并锁定。 |
+| 配置 / 错误 / 日志 | 当前使用 `serde` / `serde_json` 与分类错误；TOML、tracing 和滚动日志是规划候选，不是现有依赖。 |
+| 系统路径 / 对话框 | 平台路径适配与 `rfd`，Linux 使用 portal；扫描和封面读取在后台执行。 |
+| Windows 适配 | `windows-sys`，按模块启用必要 Win32 features；不代表 SMTC / 全部 COM 集成已经实现。 |
+| 音乐库 | bundled `rusqlite`、schema / 事务迁移和 `lofty` 标签读取；标签读取不作为播放前置条件，尚无数据库分页 / FTS / 实时监听。 |
+| 联网 / 图片 / 字体 | `ureq` / `url`、`image`、平台字体枚举；功能和依赖在 app / platform 内隔离。 |
+| GPU 工具 | GL 路径使用 `glow`，保留 prepare_gl、同上下文与借用纹理生命周期约束。 |
 | 辅助媒体工具 | FFmpeg / ffprobe 只用于测试素材、可选缩略图或信息探测；常规播放不逐文件启动子进程。 |
 
 所有 Rust crate 在首次引入时核对当前官方 API、license 和平台要求，提交应用的 `Cargo.lock`。最小必要 features 优先，禁用不使用的 Qt 后端；可访问性保持启用。
@@ -113,13 +118,15 @@ Windows 可以调用 MinGW 构建的 libmpv C ABI，但必须验证架构、ABI 
 
 ### 3.3 发布许可策略
 
-项目尚未选择发布许可证。默认实施候选是应用整体采用 **GPL-3.0-or-later** 并配套开放对应源码，以匹配常见 GPL libmpv 构建；最终选择必须在发行前写入 `LICENSE` 和 ADR。动态链接本身不能推导出可以忽略 GPL。
+项目源码与原创 UI 资源已选择 **GPL-3.0-only**，根 LICENSE 与五个 crate 的许可字段保持一致。第三方组件保留各自许可；动态链接不能推导出可以忽略 GPL。当前源码许可已确定，完整二进制发行许可 / 对应源码安排仍需补齐。
 
 mpv 默认是 GPLv2+；仅 `-Dgpl=false` 不足以证明整个发布包为 LGPL，必须检查实际源码与全部依赖。Slint 提供 GPLv3、Royalty-free 与商业许可选择。若未来要求闭源，先单独审核 libmpv / FFmpeg 构建和 Slint 的具体许可条款，再决定发行组合，不能直接沿用 GPL 二进制。[mpv Copyright](https://raw.githubusercontent.com/mpv-player/mpv/v0.41.0/Copyright)，[Slint 许可说明](https://raw.githubusercontent.com/slint-ui/slint/v1.18.1/LICENSE.md)
 
-发行包包含 `THIRD_PARTY_NOTICES`、依赖许可文本、可取得的对应源码及构建说明；这属于发布任务，不在本次规划中冒充已经完成。
+正式发行包应包含 `THIRD_PARTY_NOTICES`、依赖许可文本、可取得的对应源码及构建说明。Windows runtime 与 AppImage runtime 的剩余事项见[发布说明](PUBLISHING.md)，不能因包已构建就标记发行审计完成。
 
 ## 4. 架构与目录
+
+下面展示当前模块关系。原生 HWND / D3D11、系统媒体控制与睡眠抑制仍是后文的规划内容，没有列入当前实现图。
 
 ```mermaid
 flowchart TD
@@ -132,36 +139,37 @@ flowchart TD
     Engine --> AV[解封装 / 解码 / 时钟 / 字幕 / DSP / 音频设备]
     Engine -. 初始化握手 .-> Presenter[VideoPresenter]
     Presenter --> GL[OpenGL FBO / Slint 合成]
-    Presenter --> Native[Windows 原生 HWND / D3D11]
-    Controller --> Services[配置 / 音乐库 / 系统媒体控制]
+    Controller --> Services[后台配置 / SQLite 音乐库 / 标签图片 / 联网服务]
 ```
 
 ```text
 yyplayer/
-  README.md                       产品规格、架构、执行计划、验收
-  AGENTS.md                       后续开发者约束
-  Cargo.toml                      workspace 已建立
-  Cargo.lock / rust-toolchain.toml 依赖已锁定；工具链暂用 stable
+  README.md                       使用者的功能、操作与启动说明
+  CONTRIBUTING.md                 开发环境、模块与检查入口
+  AGENTS.md                       分支、线程、数据与交付约束
+  CHANGELOG.md                    已交付版本变化
+  Cargo.toml / Cargo.lock          workspace、共用版本与锁定依赖
+  rust-toolchain.toml              当前选择 stable，未固定发行版本
   crates/
     player-core/src/               纯 Rust 类型、状态机、队列、策略；无 Slint / mpv / OS API
-    player-mpv/src/                sys、loader、engine、events、properties、filters、capabilities
-    player-platform/src/           windows/、macos/、linux/；窗口、媒体控制、路径、睡眠抑制
+    player-mpv/src/                ffi、loader、worker；音频确认、命令与 render 租约
+    player-platform/src/           windows.rs / linux.rs / macos.rs、设备、外观、字体、路径
     player-ui/ui/                  app.slint、components/、pages/、theme.slint
-    player-ui/src/                 ViewModel、gl_presenter、native_presenter、UI 适配
-    yyplayer-app/src/              main、bootstrap、controller、services、diagnostics
-  probes/                         技术关卡小程序；合格逻辑提取到 crates，避免复制生产实现
-  assets/                         SVG 图标、字体许可、应用图标；不捆绑无许可媒体
-  config/default.toml             配置示例，S04 创建
+    player-ui/src/                 shell、view_model、presenter、window_controls
+    yyplayer-app/src/              bootstrap、controller、后台 services、music_store、online
+    yyplayer-app/examples/         UI / controller / GPU 验收例子，复用生产实现
+  assets/                         原创应用图标等资源；不捆绑无许可媒体
+  config/cloud_api/               联网 API 示例；不提交凭据
   third_party/mpv/                manifest、获取 / 构建说明；二进制不提交
-  scripts/                       PowerShell 获取、测试素材、打包；按阶段创建
-  tests/                         跨模块场景测试；各 crate 单元测试靠近实现
+  scripts/                        Windows / Linux 获取、测试和打包脚本
+  packaging/                      平台打包模板、工具 manifest 与许可记录
   docs/
     STATUS.md                     完成证据、下一任务、阻塞
     adr/                          S00 起记录选型变化和呈现决策
     validation/                   环境、日志摘要、测试结果、性能报告
 ```
 
-依赖方向：`player-core` 最底层；`player-mpv`、`player-platform` 只依赖 core 与各自底层库；`player-ui` 可依赖 core / platform 以及受限的渲染桥接口；app 组装所有模块。UI 不持有可随意调用的 mpv handle。GL 桥是特许的 render API 调用者，不是第二个命令控制器。
+依赖方向：`player-core` 最底层；platform 封装 OS 边界，mpv 依赖 core / platform，UI 依赖 core 与受限的 mpv 渲染桥，app 组装所有模块。UI 不持有可随意调用的 mpv handle。GL 桥只被允许调用 render API，不是第二个命令控制器。单元测试靠近各模块，跨模块验收复用 app 的开发例子与脚本。
 
 不要先造插件系统、网络服务或任意引擎切换框架。定义小型 `PlaybackEngine` / `VideoPresenter` 边界即可；音频扩展在真实需求出现后实现。
 
@@ -169,7 +177,7 @@ yyplayer/
 
 ### 5.1 核心数据
 
-下列为完整目标接口语义；视频预览已实现其中播放、规则、快捷键和 render 桥部分，其他能力以实际代码和 STATUS 为准：
+下列为完整目标接口语义，不是逐字对应现有 Rust 类型的 API 文档。播放、规则、队列、输出策略与 render 桥已有实现，字段和命令名以当前源码为准；未完成能力见 STATUS：
 
 | 类型 | 必需内容 |
 | --- | --- |
@@ -426,7 +434,7 @@ CUE 时间以 `mm:ss:ff` 的 75 frames/s 转换；轨道末尾取下一轨 INDEX
 
 `schema_version` 必须存在。缺省字段补默认，未知字段保留或在迁移中明确处理；坏配置备份后恢复可用配置。通过同目录临时文件 + flush + 平台合适的原子替换保存，不能先删除唯一配置文件。视频每个文件级偏好不无意污染音乐全局策略。
 
-候选配置结构（S04 实现序列化时以真实 schema 为准）：
+下面是最初规划的 TOML 示意，包含尚未实现的字段，不能直接作为当前应用配置。实际应用读取版本 2 的 settings.json，音乐库使用 SQLite，视频缓存使用独立 JSON；迁移规则见 ADR 0012，默认值以 core settings 与 bootstrap 为准：
 
 ```toml
 schema_version = 1
@@ -478,6 +486,8 @@ preferred_languages = ["zh", "en"]
 
 ### 11.3 Windows
 
+本节包含待完成的系统集成目标。当前已有自绘窗口控制、原生外观适配、EXE 版本资源、NSIS 3.12 升级与系统 DPI 感知；真实管理员安装 / 多屏 DPI、SMTC、单实例与睡眠恢复仍需分别实现或验收。应用窗口 DPI 与 NSIS 安装器 DPI 是不同边界。
+
 应用 manifest：Per-Monitor DPI Awareness V2、应用图标、版本资源。先使用原生窗口装饰保留正常 resize / Snap / 系统菜单；自绘标题栏只在拖动、双击、最大化、窗口阴影等全部通过后引入。
 
 路径以 `PathBuf` / UTF-16 Win32 为内部基础；传给 Windows libmpv 时显式 UTF-8；测试中文、emoji、空格、UNC、长路径，不用 ANSI。Linux 非 UTF-8 路径保留原始 bytes，显示字符串允许替换而播放身份不替换。[mpv 文件名编码](https://raw.githubusercontent.com/mpv-player/mpv/v0.41.0/include/mpv/client.h#L165)
@@ -519,7 +529,7 @@ diagnostics 至少包含：应用 / 内核 / 构建版本、OS / GPU、presenter
 
 ## 13. 实施计划：任务顺序、文件、动作与完成条件
 
-执行方式：每次只领取一个明确任务；先核对前置，再实现、检查、记录证据。通常每个任务控制在可审查的小改动内；大任务拆成下表步骤的独立提交。不得跳过样机直接做完整音乐库。
+执行方式：每次领取一个明确任务，先核对前置，再实现、检查、记录证据。以下保留原始任务设计和候选文件名，不是要求重建已经完成的模块；当前对应文件看第 4 节，完成程度看 STATUS。用户指定的交付顺序优先，未做的设备 / 平台资格仍要补证。
 
 ### S00：工程与内核基线（前置：无）
 
@@ -648,6 +658,8 @@ diagnostics 至少包含：应用 / 内核 / 构建版本、OS / GPU、presenter
 **验收：** 合格同格式本地专辑无可检测的额外空隙 / 样本断裂（记录输出测量方式）；不保证跨格式 / 网络绝对无缝。ReplayGain 与未处理候选 / passthrough 的互斥正确。
 
 ### S10：音乐库、CUE 与历史（前置：S09）
+
+当前已按用户要求交付目录扫描、标签 / 封面、SQLite 音乐库、歌单和最近打开；视频续播只保留本次会话位置。下列数据库分页、CUE、M3U8 与持久化观看进度等目标仍未完成，不能因版本已到 0.5.4 将本阶段整体标 Done。
 
 **产物：** SQLite schema / migration、scanner、tag / cover cache、library Slint 页。
 
@@ -797,4 +809,4 @@ Windows CI 首先检查完整 workspace；Linux / macOS 原生 runner 至少完�
 
 每个任务 Done 必须有：真实实现、适当自动检查、相关运行证据、STATUS 更新、限制说明、无新增阻塞性回归。界面上有按钮、API 返回成功、程序能编译、文件读过、文档写过，都不能单独替代播放与硬件验收。
 
-**下一步明确任务：补齐 S00。** 复用已经建立的 workspace / UI，固定工具链与可复现 libmpv 运行时，实现受控 loader，随后完成 S01 / S02 样机。当前界面预览不代替这些技术关卡。
+**接续任务以 STATUS 最新条目和用户请求为准。** 不重建已完成的 workspace、受控 loader、真实播放器或 SQLite 音乐库。用户没有新功能要求时，补齐发行工具链 / 许可、最新代码的 Linux 回归、Windows 真实升级 / 多 DPI，以及 USB DAC / 位准确和长时生命周期证据；未完成项继续保持预览状态。

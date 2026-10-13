@@ -1,0 +1,20 @@
+﻿{
+    "output_directories":  [
+                               "E:\\SourceFiles\\rust\\yyplayer\\target\\windows-launcher-qa-dc7c5f22e6694346b23c3db832abb90e\\workspace with spaces 文件 (test)\\dist\\windows-20261012-231925-98fab901",
+                               "E:\\SourceFiles\\rust\\yyplayer\\target\\windows-launcher-qa-dc7c5f22e6694346b23c3db832abb90e\\workspace with spaces 文件 (test)\\dist\\windows-20261012-231935-4fe7bc80"
+                           ],
+    "result":  "PASS",
+    "fixture":  "E:\\SourceFiles\\rust\\yyplayer\\target\\windows-launcher-qa-dc7c5f22e6694346b23c3db832abb90e",
+    "cases":  [
+                  "verified-runtime-download-and-real-extraction",
+                  "runtime-archive-checksum-before-extraction",
+                  "missing-tool-offline",
+                  "corrupt-tool-offline",
+                  "powershell51-success-outside-cwd",
+                  "cmd-repeat-same-version-and-commit",
+                  "actual-artifact-version-and-hash",
+                  "compile-failure-does-not-package-old-exe",
+                  "runtime-hash-failure",
+                  "missing-runtime-offline"
+              ]
+}

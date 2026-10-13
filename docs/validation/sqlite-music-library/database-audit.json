@@ -1,0 +1,36 @@
+{
+  "result": "PASS",
+  "application_id": "0x5959504c",
+  "schema": 1,
+  "integrity": "ok",
+  "foreign_key_errors": [],
+  "tables": [
+    "library_sources",
+    "metadata",
+    "playlist_tracks",
+    "playlists",
+    "tracks"
+  ],
+  "record_counts": {
+    "library_sources": 1,
+    "metadata": 2,
+    "playlist_tracks": 1,
+    "playlists": 2,
+    "tracks": 4
+  },
+  "native_path_prefix": "W (UTF-16LE)",
+  "artist_album_groups": [
+    [
+      "yyplayer a",
+      "live",
+      2
+    ],
+    [
+      "yyplayer b",
+      "live",
+      2
+    ]
+  ],
+  "preferences_format": 2,
+  "music_fields_absent_from_json": true
+}

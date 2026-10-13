@@ -1,4 +1,5 @@
-import { ComboBox, SpinBox, Button } from "std-widgets.slint";
+import { SpinBox } from "std-widgets.slint";
+import { ThemeButton as Button, ThemeComboBox as ComboBox } from "theme-widgets.slint";
 import { Theme, BackgroundArt } from "../theme.slint";
 import { MusicAmbient } from "music-ambient.slint";
 export component BackgroundChoice inherits Rectangle {
@@ -17,7 +18,7 @@ export component BackgroundChoice inherits Rectangle {
                 if !root.lyrics-page && root.style == 5: Image { width: parent.width; height: parent.height; image-fit: cover; source: root.custom-image; opacity: root.opacity-value / 100; }
             }
             VerticalLayout { spacing: 6px; horizontal-stretch: 1;
-                ComboBox { height: 34px; model: root.lyrics-page ? ["专辑柔光", "柔光圆环", "音符丝带", "轻纱曲线", "星轨连线", "自定义图片"] : ["原有背景", "轨道唱片", "流动丝带", "落日地平线", "几何网格", "自定义图片"]; current-index: root.style; selected(value) => { root.control(root.lyrics-page ? "background-lyrics-style" : "background-library-style", "" + self.current-index); } }
+                ComboBox { height: 34px; model: root.lyrics-page ? ["专辑柔光", "柔光圆环", "音符丝带", "轻纱曲线", "星轨连线", "自定义图片"] : ["原有背景", "轨道唱片", "流动丝带", "落日地平线", "几何网格", "自定义图片"]; current-index: root.style; selected(value, choice) => { root.control(root.lyrics-page ? "background-lyrics-style" : "background-library-style", "" + choice); } }
                 Text { text: root.style == 5 ? (root.file-name == "" ? "尚未选择图片" : root.file-name) : (root.lyrics-page ? "随歌词页的封面 / 应用主题色变化" : "随系统或手动主题色变化"); color: Theme.muted; font-size: 11px; height: 28px; overflow: elide; vertical-alignment: center; }
             }
         }

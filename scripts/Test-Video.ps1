@@ -1,7 +1,7 @@
-param([string]$Player = '', [string]$Ffmpeg = 'ffmpeg', [switch]$SkipBuild)
+param([string]$Player = '', [string]$Ffmpeg = 'ffmpeg', [switch]$SkipBuild, [string]$EvidenceDirectory = '')
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$evidence = Join-Path $projectRoot 'docs/validation'
+$evidence = if ($EvidenceDirectory) { [IO.Path]::GetFullPath($EvidenceDirectory) } else { Join-Path $projectRoot 'docs/validation' }
 New-Item -ItemType Directory -Path $evidence -Force | Out-Null
 if (-not $Player) { $Player = Join-Path $projectRoot 'target/debug/yyplayer.exe' }
 if (-not $SkipBuild) {
@@ -54,7 +54,8 @@ try {
     if ($software.hwdec -ne 'no' -or $software.position -lt 2) { throw 'Software decoding scenario failed' }
     $capture = Join-Path $evidence 'video-ui.ppm'
     if (-not (Test-Path -LiteralPath $capture) -or (Get-Item -LiteralPath $capture).LastWriteTimeUtc -lt $controlsStarted) { throw 'No fresh debug UI capture; use a debug Player' }
-    & $Ffmpeg -hide_banner -loglevel error -y -i $capture -frames:v 1 (Join-Path $projectRoot 'docs/video-ui.png')
+    $capturePng = if ($EvidenceDirectory) { Join-Path $evidence 'video-ui.png' } else { Join-Path $projectRoot 'docs/video-ui.png' }
+    & $Ffmpeg -hide_banner -loglevel error -y -i $capture -frames:v 1 $capturePng
     if ($LASTEXITCODE -ne 0) { throw 'UI evidence conversion failed' }
     Write-Output "PASS: controls, paused decoder reload, persistence, software decoding, safe exit"
     Write-Output "Fixture SHA256: $((Get-FileHash -LiteralPath $fixture -Algorithm SHA256).Hash.ToLowerInvariant())"

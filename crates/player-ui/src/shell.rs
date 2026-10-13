@@ -131,6 +131,35 @@ fn rows(
 }
 
 fn project(window: &AppWindow, state: &ShellViewModel) {
+    let drawer = &state.drawer;
+    if window.get_drawer_revision() != drawer.revision as i32
+        || window.get_drawer_tab() != drawer.tab
+    {
+        window.set_drawer_tracks(rows(window.get_drawer_tracks(), &drawer.rows));
+        window.set_drawer_revision(drawer.revision as i32);
+    }
+    window.set_queue_open(drawer.open);
+    window.set_drawer_tab(drawer.tab);
+    window.set_drawer_order(drawer.order);
+    window.set_drawer_selected(drawer.selected);
+    window.set_music_queue_count(drawer.music_count);
+    window.set_video_queue_count(drawer.video_count);
+    let collection = &state.collection;
+    if window.get_collection_revision() != collection.revision as i32 {
+        window.set_collection_groups(rows(window.get_collection_groups(), &collection.groups));
+        window.set_library_checked(
+            Rc::new(VecModel::from(collection.checked.as_ref().clone())).into(),
+        );
+        if !same_strings(&window.get_playlists(), &collection.playlists) {
+            window.set_playlists(strings(&collection.playlists));
+        }
+        window.set_collection_revision(collection.revision as i32);
+    }
+    window.set_collection_category(collection.category);
+    window.set_collection_group_open(collection.group_open);
+    window.set_collection_title(collection.title.as_str().into());
+    window.set_playlist_index(collection.playlist);
+    window.set_library_checked_count(collection.selected_count);
     let online = &state.online;
     if window.get_online_revision() != online.revision as i32 {
         window.set_online_tracks(rows(window.get_online_tracks(), &online.rows));
@@ -372,7 +401,11 @@ fn project(window: &AppWindow, state: &ShellViewModel) {
     if !same_strings(&window.get_chapters(), &state.chapters) {
         window.set_chapters(strings(&state.chapters));
     }
-    window.set_panel_open(state.panel_open);
+    // A direct conditional component model can be invalidated by repeated
+    // projection, restarting the panel's entrance and its local widget state.
+    if window.get_panel_open() != state.panel_open {
+        window.set_panel_open(state.panel_open);
+    }
     window.set_fullscreen_mode(state.fullscreen);
     window.set_window_mode(state.window_mode);
     if window.get_settings_revision() != state.settings_revision as i32 {

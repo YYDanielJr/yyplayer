@@ -32,10 +32,7 @@ fn click(w: &player_ui::AppWindow, x: f32, y: f32) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     std::fs::create_dir_all("target/navigation-history")?;
     let c = Rc::new(RefCell::new(controller::AppController::new(
         player_mpv::MpvEngine::default(),

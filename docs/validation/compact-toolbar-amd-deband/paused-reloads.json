@@ -1,0 +1,82 @@
+[
+  {
+    "deband": false,
+    "frames": 47,
+    "generation": 1,
+    "hwdec": "d3d11va-copy",
+    "initializations": 1,
+    "phase": "Playing",
+    "position": 1.5,
+    "stage": 0
+  },
+  {
+    "deband": false,
+    "frames": 50,
+    "generation": 1,
+    "hwdec": "d3d11va-copy",
+    "initializations": 1,
+    "phase": "Paused",
+    "position": 1.5,
+    "stage": 1
+  },
+  {
+    "deband": true,
+    "frames": 56,
+    "generation": 2,
+    "hwdec": "d3d11va-copy",
+    "initializations": 1,
+    "phase": "Paused",
+    "position": 1.5,
+    "stage": 2
+  },
+  {
+    "deband": true,
+    "frames": 61,
+    "generation": 3,
+    "hwdec": "no",
+    "initializations": 1,
+    "phase": "Paused",
+    "position": 1.5,
+    "stage": 3
+  },
+  {
+    "deband": false,
+    "frames": 67,
+    "generation": 4,
+    "hwdec": "no",
+    "initializations": 1,
+    "phase": "Paused",
+    "position": 1.5,
+    "stage": 4
+  },
+  {
+    "deband": false,
+    "frames": 68,
+    "generation": 4,
+    "hwdec": "",
+    "initializations": 1,
+    "phase": "Idle",
+    "position": null,
+    "stage": 5
+  },
+  {
+    "deband": false,
+    "frames": 88,
+    "generation": 5,
+    "hwdec": "no",
+    "initializations": 2,
+    "phase": "Playing",
+    "position": 2.033333,
+    "stage": 6
+  },
+  {
+    "deband": false,
+    "frames": 91,
+    "generation": 5,
+    "hwdec": "no",
+    "initializations": 2,
+    "phase": "Paused",
+    "position": 2.033333,
+    "stage": 7
+  }
+]

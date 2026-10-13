@@ -32,7 +32,11 @@ jobs:
       - name: Check packaging tools
         run: |
           if (-not (Get-Command 7z.exe -ErrorAction SilentlyContinue)) { throw '7-Zip is required to extract the verified mpv runtime archive.' }
-          if (-not (Get-Command makensis.exe -ErrorAction SilentlyContinue)) { throw 'NSIS is required to create the setup installer.' }
+
+      - name: Prepare pinned NSIS 3.12
+        run: |
+          $compiler = ./scripts/Get-Nsis.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'yyplayer-nsis')
+          "YYPLAYER_NSIS_COMPILER=$compiler" >> $env:GITHUB_ENV
 
       - name: Download and verify pinned libmpv runtime
         run: ./scripts/Get-Mpv.ps1
@@ -41,10 +45,13 @@ jobs:
         run: ./scripts/Build-AppIcon.ps1
 
       - name: Test automatic build and packaging failure boundaries
-        run: ./scripts/Test-WindowsPackaging.ps1 -NsisCompiler (Get-Command makensis.exe).Source
+        run: ./scripts/Test-WindowsPackaging.ps1 -NsisCompiler $env:YYPLAYER_NSIS_COMPILER
+
+      - name: Test isolated installer upgrade and rollback
+        run: ./scripts/Test-WindowsInstaller.ps1 -NsisCompiler $env:YYPLAYER_NSIS_COMPILER
 
       - name: Build Windows x64 Release and package portable ZIP and NSIS setup
-        run: ./scripts/Package-Windows.ps1
+        run: ./scripts/Package-Windows.ps1 -NsisCompiler $env:YYPLAYER_NSIS_COMPILER
 
       - name: Upload both Windows x64 release packages
         uses: actions/upload-artifact@v7

@@ -1,0 +1,49 @@
+import { ListView } from "std-widgets.slint";
+import { ThemeButton as Button, ThemeComboBox as ComboBox } from "theme-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Icon, IconButton } from "controls.slint";
+import { TrackRow } from "../models.slint";
+export component QueueDrawer inherits Rectangle {
+    in property <[TrackRow]> tracks;
+    in property <int> selected: -1; in property <int> tab; in property <int> order;
+    in property <int> music-count; in property <int> video-count;
+    out property <bool> input-focused: order-choice.input-focused;
+    callback control(string,string);
+    VerticalLayout { padding: 18px; spacing: 12px;
+        HorizontalLayout { height: 32px;
+            Text { text: "播放列表"; color: Theme.text; font-size: 21px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; }
+            IconButton { width: 30px; height: 30px; icon: Icons.close; label: "关闭播放列表"; clicked => { root.control("queue-close", ""); } }
+        }
+        HorizontalLayout { height: 36px; spacing: 8px;
+            Button { text: "音乐 · " + root.music-count; primary: root.tab == 0; clicked => { root.control("queue-tab", "0"); } }
+            Button { text: "视频 · " + root.video-count; primary: root.tab == 1; clicked => { root.control("queue-tab", "1"); } }
+        }
+        HorizontalLayout { height: 34px; spacing: 8px;
+            Icon { width: 18px; icon: root.order == 3 ? Icons.shuffle : (root.order > 0 ? Icons.repeat : Icons.next); tint: Theme.accent-text; }
+            order-choice := ComboBox { horizontal-stretch: 1; model: ["顺序播放", "列表循环", "单曲循环", "随机播放"]; current-index: root.order; selected(value,choice) => { root.control("queue-order", "" + choice); } }
+            Button { text: "清空"; enabled: root.tracks.length > 0; clicked => { root.control("queue-clear", ""); } }
+        }
+        Rectangle { height: 1px; background: Theme.border; }
+        if root.tracks.length == 0: VerticalLayout { vertical-stretch: 1; alignment: center; spacing: 16px;
+            HorizontalLayout { alignment: center; Icon { width: 40px; height: 40px; icon: root.tab == 0 ? Icons.music : Icons.video; tint: Theme.faint; } }
+            Text { text: "列表还是空的"; color: Theme.text; font-size: 17px; horizontal-alignment: center; }
+            Text { text: root.tab == 0 ? "在音乐库选择歌曲、歌手、专辑或歌单，\n点击「加入队列」。" : "在视频库点击「加入队列」。"; color: Theme.muted; font-size: 12px; wrap: word-wrap; horizontal-alignment: center; }
+        }
+        if root.tracks.length > 0: ListView { vertical-stretch: 1; viewport-width: self.width;
+            for track[index] in root.tracks: Rectangle { height: 78px;
+                Rectangle { x: 0px; y: 2px; width: parent.width - 14px; height: 74px; border-radius: 10px;
+                    background: root.selected == track.item-id ? Theme.selected : (touch.has-hover ? Theme.raised : transparent);
+                    focus := FocusScope { key-pressed(event) => { if event.text == " " || event.text == "\n" { root.control("queue-play", "" + track.item-id); return accept; } return reject; } }
+                    touch := TouchArea { width: parent.width - 70px; mouse-cursor: pointer; clicked => { focus.focus(); root.control("queue-play", "" + track.item-id); } }
+                    Icon { x: 9px; y: 25px; width: 19px; height: 19px; icon: root.selected == track.item-id ? Icons.volume : (root.tab == 0 ? Icons.music : Icons.video); tint: root.selected == track.item-id ? Theme.accent-text : Theme.faint; }
+                    Text { x: 38px; y: 12px; width: parent.width - 112px; height: 24px; text: track.title; color: Theme.text; font-size: 14px; font-weight: 600; overflow: elide; vertical-alignment: center; }
+                    Text { x: 38px; y: 39px; width: parent.width - 112px; height: 20px; text: root.tab == 0 ? track.artist + (track.collection == "" ? "" : " · " + track.collection) : track.collection; color: Theme.muted; font-size: 11px; overflow: elide; }
+                    IconButton { x: parent.width - 66px; y: 6px; width: 24px; height: 24px; icon: Icons.chevron-up; label: "向前移动 " + track.title; clicked => { root.control("queue-up", "" + track.item-id); } }
+                    IconButton { x: parent.width - 66px; y: 40px; width: 24px; height: 24px; icon: Icons.chevron-down; label: "向后移动 " + track.title; clicked => { root.control("queue-down", "" + track.item-id); } }
+                    IconButton { x: parent.width - 34px; y: 23px; width: 26px; height: 26px; icon: Icons.close; label: "移出播放列表 " + track.title; clicked => { root.control("queue-remove", "" + track.item-id); } }
+                }
+            }
+        }
+        Text { text: root.tab == 0 ? "音乐和视频各自保留列表与播放顺序" : "点击视频开始观看，音乐列表会保留"; color: Theme.faint; font-size: 11px; height: 20px; }
+    }
+}

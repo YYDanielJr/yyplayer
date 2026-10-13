@@ -1,0 +1,15 @@
+﻿{
+    "application_sha256":  "c1479efa7cdfdea838afdaa91d23ca5fb5fb8501e50bc90921fad3b76fa82ccf",
+    "result":  "PASS",
+    "fixture":  "E:\\SourceFiles\\rust\\yyplayer\\target\\windows-packaging-qa-4e2ceb54e2d74b42bd49ca7000d9115d",
+    "cases":  [
+                  "runtime-hash-failure",
+                  "old-nsis-rejected-before-build",
+                  "build-failure-with-stale-exe",
+                  "custom-target-from-another-directory",
+                  "zip-artifact-hash-and-version",
+                  "nsis-failure-without-partial-package",
+                  "retry-after-failure-with-cached-artifact",
+                  "existing-packages-preserved"
+              ]
+}

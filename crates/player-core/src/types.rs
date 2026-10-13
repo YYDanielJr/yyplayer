@@ -2,7 +2,7 @@ use crate::settings::DecodeOptions;
 use std::path::PathBuf;
 use std::time::Duration;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum MediaSource {
     Local(PathBuf),
     Url(String),

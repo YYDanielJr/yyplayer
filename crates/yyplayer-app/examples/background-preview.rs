@@ -9,10 +9,7 @@ use std::{
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     std::fs::create_dir_all("target/background-preview")?;
     let ui = UiShell::new()?;
     let window = ui.component();

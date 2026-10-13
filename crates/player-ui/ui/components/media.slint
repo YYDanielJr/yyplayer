@@ -69,7 +69,7 @@ export component QueueRow inherits Rectangle {
     in property <TrackRow> track;
     in property <bool> selected;
     callback clicked();
-    height: 68px;
+    height: 76px;
     border-radius: 8px;
     background: root.selected ? Theme.selected : (touch.has-hover ? Theme.raised : transparent);
     accessible-role: button;
@@ -77,15 +77,15 @@ export component QueueRow inherits Rectangle {
     HorizontalLayout {
         padding: 10px;
         spacing: 10px;
-        Cover { artwork-id: root.track.cover; width: 42px; height: 42px; }
+        Cover { artwork-id: root.track.cover; width: 48px; height: 48px; }
         VerticalLayout {
             alignment: center;
             spacing: 5px;
             horizontal-stretch: 1;
-            Text { text: root.track.title; color: root.selected ? Theme.accent-text : Theme.text; font-size: 11px; overflow: elide; }
-            Text { text: root.track.artist; color: Theme.muted; font-size: 9px; overflow: elide; }
+            Text { text: root.track.title; color: root.selected ? Theme.accent-text : Theme.text; font-size: 15px; overflow: elide; }
+            Text { text: root.track.artist; color: Theme.muted; font-size: 12px; overflow: elide; }
         }
-        Text { text: root.track.duration; color: Theme.faint; font-size: 9px; vertical-alignment: center; }
+        Text { text: root.track.duration; color: Theme.faint; font-size: 12px; vertical-alignment: center; }
     }
     focus := FocusScope {
         key-pressed(event) => {

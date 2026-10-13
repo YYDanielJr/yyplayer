@@ -40,6 +40,11 @@ SHA256SUMS-linux
 /*.library.json
 /*.videos.json
 *.corrupt-*.json
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.pre-sqlite.json
 /.vscode/*
 !/.vscode/extensions.json
 !/.vscode/tasks.json
@@ -49,6 +54,9 @@ desktop.ini
 third_party/mpv/*/
 !third_party/mpv/README.md
 # Keep existing curated evidence; temporary validation data remains ignored.
+!docs/validation/frontend-0.5.4/clippy.log
+!docs/validation/frontend-0.5.4/tests.log
+!docs/validation/frontend-0.5.4/package.log
 docs/validation/*.mp4
 docs/validation/*.mkv
 docs/validation/*.wav

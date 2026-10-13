@@ -1,79 +1,84 @@
-# 源码与 GitHub 构建发布
+# 打包与发布
 
-更新：2026-10-12。当前 dev 开发版本为 **0.4.1**，源码许可为 **GPL-3.0-only**。唯一顶层开发分支与开发起点为 `dev`，`master` 仅合入 dev 的已验证改动，用于集成 / 发布。源码、版本、脚本与文档都在 dev 修改；合入冲突先回 dev 处理，再让 master 快进合入。按用户授权已先将0.4.0全部成果本地提交到dev的 `676a699`，随后修正文字收回动画并更新0.4.1；新修改保留在工作区，不合入 master 或推送。
+更新：2026-10-13。当前 dev 为 **0.5.4**，功能改动已提交为 `a95dd38`，包括 SQLite 音乐库、统一控件和侧边抽屉、窗口状态查询及 Windows 升级安装。版本从根 Cargo.toml 生成，五个 crate、EXE 资源、安装器和包名使用同一版本。
 
-## 共用源码与仓库目录
+所有开发和文档修改从 dev 开始，master 只合入已验证的 dev 改动。提交、合入、推送和发布分别按授权执行；当前分支进度以 Git 为准。打包不会自动提交或发布，也不按分支名选择操作系统。
 
-Windows x64 MSVC 与 Linux amd64 GNU 使用同一个 Cargo workspace、Cargo.lock、core、controller 和 Slint 界面；平台 API 与依赖通过 target cfg 选择。在各自系统安装构建依赖后，都可以执行：
+## Windows 本地打包
 
-```bash
-cargo build --locked --release -p yyplayer-app --bin yyplayer
+准备 Rust x64 MSVC、Visual Studio C++ Build Tools / Windows SDK 和 Git，双击仓库根目录的 **Package-Windows.cmd**。
+
+入口会准备缺失的固定 libmpv 与便携 NSIS，编译当前源码，生成 portable ZIP 和 Setup。首次准备依赖需要联网，libmpv 解压需要 7-Zip 或支持 7z 的 Windows tar。使用 pwsh，找不到时使用 Windows PowerShell 5.1，无需 Python 或修改全局执行策略。
+
+每次输出到独立的 `dist/windows-<时间>-<随机标识>/`，成功后打开目录，按键关闭窗口。日志保存在 `target/windows-packaging-runs/<本次标识>/packaging.log`。
+
+需要离线或不打开目录时：
+
+```powershell
+.\scripts\Package-Windows-Interactive.ps1 -Offline -NoOpen
 ```
 
-默认本机目标的 Windows 产物为 `target/release/yyplayer.exe`，Linux 产物为 `target/release/yyplayer`。分支名不决定编译平台，运行时和安装包仍按系统分别准备，见 [README](../README.md) 与 [Linux 指南](LINUX.md)。
+命令行 / CI 入口：
 
-VS Code 打开完整仓库根目录，即包含 `.git`、Cargo.toml、Cargo.lock 和 crates 的目录。Windows 历史工作区为 `E:\SourceFiles\rust\yyplayer`，当前 Linux 工作区为 `/home/yydaniel/sourcefiles/yyplayer`；这些是开发者本机路径，不是编译时必须使用的路径。
-
-## 当前主分支与提交内容
-
-Git 历史确认：Windows/Linux 共用代码在 `5390a3d`（2026-10-03，PR #4）合入 master；`e99d67c`（2026-10-11）包含联网搜索、前端与页面历史栈；`c089cf7` 保留了两端 master 的 0.3.0 打包更新与歌词主题，并已同步两端 master / dev。这些为历史操作；后续修改仅从 dev 开始，master 只接收合入，不直接开发或提交修改。
-
-- 用户已确认：使用 **Windows x64 packages** 工作流，可以编译打包 `dev-linux` 内的共用代码。该证据限 Windows 编译与打包，没有提供 run URL / 提交号，也没有新增 Windows 播放、设备或安装回归记录。
-- Ubuntu 26.04 amd64 已有本机编译、Wayland 实际播放 / GPU、独立 X11 UI、deb / AppImage 提取启动与 hash 校验记录；干净系统安装、其他发行版和硬件资格仍按 STATUS 保留。
-- README、AGENTS 和开发 / 发布指南已按 dev 开发、master 仅合入与自动编译打包更新。历史 STATUS / ADR 的分支与验收表述保留当时事实；最新状态见 [STATUS](STATUS.md)，2026-10-03 的准备过程见 [合并准备记录](validation/shared-source-merge-preparation.md)。
-- Cargo.lock、LICENSE 和第三方记录保留；不提交 DLL / so、编译产物、下载缓存、用户媒体、用户配置或凭据。
-
-在仓库根目录检查当前分支、工作区与暂存 diff；所有源码、脚本、Cargo.lock 和文档修改先在 dev 完成，授权提交时也提交到 dev，master 只合入。`.gitignore` 排除编译缓存、runtime 二进制、下载 archive、发行包与用户配置；不要强制加入这些文件。自定义 `CARGO_TARGET_DIR` 使用 target 子目录或仓库外目录，避免 Cargo 缓存进入版本控制。不要求按 Windows / Linux 分别维护两份应用源码。
-
-只读复查命令：
-
-```bash
-git status --short
-git diff --cached --stat
-git branch -vv
-git remote -v
-git log -1 --oneline
+```powershell
+.\scripts\Package-Windows.ps1
+# 缓存完整时离线打包；也可指定外部 NSIS 编译器
+.\scripts\Package-Windows.ps1 -Offline -NsisCompiler 'C:\Tools\NSIS\makensis.exe'
 ```
 
-合并状态按 Git 历史确认；编译成功不代表未测试的播放或安装场景已通过。验收包在提交前生成时，BUILD-INFO 中的基准提交号和 working tree modified 状态应保留；需要提交后包时重新运行打包脚本，不只改文件名。
+命令行入口需提前准备固定 libmpv 和 NSIS。NSIS 本地 / CI 默认使用 [manifest](../packaging/windows/nsis.json) 锁定的 3.12 便携归档；外部编译器最低 3.12。便携工具放在本地项目缓存或 CI 临时目录，不修改全局安装，详见 [NSIS 工具说明](../packaging/windows/NSIS-BUILD-TOOL.md)。
 
-## GitHub 构建与报告
+脚本预检后自动执行 `cargo build --locked --release --target x86_64-pc-windows-msvc -p yyplayer-app --bin yyplayer`，从本次 Cargo 的 `compiler-artifact.executable` 获取 EXE，检查构建结果、版本和 hash。无需提前手动编译，也不会拿旧 EXE 打包。支持 Cargo 自定义产物目录、`-OutputDirectory` 和从其他目录调用。
 
-以下为当前仓库工作流的实际触发方式；Windows 编译打包入口于 2026-10-12 更新，触发分支保持不变。
+ZIP 与 Setup 全部生成成功后才发布到输出目录；失败可重试，已有同版本 / 提交号的包不会覆盖。包内 BUILD-INFO 记录生成时的提交号、工作区修改状态和 EXE SHA-256。提交前生成的包应保留真实信息；需要提交后包时重新打包，不能只改文件名或 BUILD-INFO。
 
-| 工作流 | 自动触发 | 手动用途 |
+### 安装和升级
+
+- **Portable ZIP**：完整解压后运行 `yyplayer.exe`，播放内核在 `runtime/`。设置仍保存在 `%APPDATA%\YYPlayer`。
+- **Setup**：限 x64 Windows，需要管理员权限，默认安装到 64 位 Program Files，创建快捷方式和卸载入口。
+- **升级**：通过固定卸载登记识别旧版，沿用原安装目录，保留设置、SQLite 音乐库和歌单；同版本可重装，低版本不能覆盖高版本。
+- **失败和卸载**：替换程序文件失败时恢复备份；不调用旧卸载器先删除安装。卸载只删除安装清单中的文件和快捷方式，保留用户数据及额外文件。
+- **缩放**：NSIS 3.12 安装器启用系统 DPI 感知；不承诺 Per-Monitor V2 或跨显示器自动适配。
+
+0.5.1 → 0.5.4、0.5.3 → 0.5.4 的升级及失败恢复已有隔离测试，完整包也有独立启动证据。真实管理员安装 / 升级 / 卸载和多 DPI 显示器仍待验证，见 [0.5.4 验收](validation/frontend-0.5.4.md)与 [0.5.3 安装器验收](validation/frontend-installer-0.5.3.md)。
+
+修改打包或安装器后运行 Test-WindowsPackaging、Test-WindowsPackagingLauncher 和 Test-WindowsInstaller，覆盖编译失败、旧 EXE、自定义目录、NSIS 失败、重试、旧包保护、升级和恢复。入口与历史证据见 [打包验收](validation/windows-packaging.md)及[双击入口验收](validation/windows-packaging-launcher.md)。
+
+## Linux 打包
+
+Ubuntu 26.04 amd64 的环境和音频策略见 [Linux 指南](LINUX.md)。Windows 与 Linux 使用同一源码和锁定依赖，运行时与安装包分别准备。Linux 打包入口：
+
+```bash
+python3 scripts/package-linux.py --check-tools
+python3 scripts/package-linux.py
+# 已构建 Release 且缓存完整时
+python3 scripts/package-linux.py --offline --skip-build
+```
+
+输出包含 deb、AppImage、对应源码归档、Rust 源码清单、runtime manifest、构建信息和校验和。deb 使用系统 libmpv；AppImage 校验包内内核和非驱动依赖，仍需宿主 glibc、显卡驱动和桌面服务。
+
+已有 Ubuntu 本机播放、GPU 与包提取启动记录，不能替代 0.5.2–0.5.4 的 Linux 复测，也不代表其他发行版兼容。源码包需保留完整 Cargo.lock 依赖图的原始源码与许可，不能只收集当前平台的依赖。完整规则与证据见 Linux 指南。
+
+## GitHub Actions
+
+以下是当前工作流的实际触发方式：
+
+| 工作流 | 自动触发 | 手动运行 |
 | --- | --- | --- |
-| Windows x64 packages | `master` push | Run workflow 选择 master 或含工作流的功能分支；本地 0.3.0 编译打包证据见 STATUS |
-| Ubuntu 26.04 packages | `dev-linux` push | 可选择 `master` 构建 deb / AppImage；当前没有 `master` push 自动触发 |
-| Linux compatibility compile matrix | 无 | 选择 `master` 或含工作流的功能分支，测试 Ubuntu / Debian 各版本源码编译下限 |
+| Windows x64 packages | master push | 选择 dev、master 或其他包含该工作流的分支 |
+| Ubuntu 26.04 packages | dev-linux push | 可选择 dev、master 等分支；master push 不会自动触发 |
+| Linux compatibility compile matrix | 无 | 检查各 Ubuntu / Debian 版本能否编译源码 |
 
-最低版本矩阵需要工作流在 GitHub 默认分支注册；真实报告尚未提供，当前不能填写实测最低源码编译版本。操作与报告边界见 [矩阵指南](LINUX_COMPATIBILITY_CI.md)。
+Windows 工作流在 windows-2022 上准备 Rust stable、固定 libmpv 和 NSIS 3.12，检查图标及打包 / 安装器回归，再调用同一本地打包脚本。产物为 `YYPlayer-<版本>-<提交号>-windows-x64-portable.zip` 与 `YYPlayer-<版本>-<提交号>-windows-x64-setup.exe`。
 
-### Windows x64 产物
+Linux 工作流在 Ubuntu 26.04 容器中运行格式、lint、测试和独立 X11 UI 检查，再生成完整包与源码记录。最低版本矩阵只报告源码编译结果，操作见[矩阵指南](LINUX_COMPATIBILITY_CI.md)；当前没有已保存的远端报告，不能填写实测最低版本。
 
-`.github/workflows/windows-release.yml` 使用 `windows-2022` x64 MSVC runner，校验固定 libmpv archive / DLL hash，生成：
+在对应 Actions run 下载 `YYPlayer-windows-x64-<commit>` 或 `YYPlayer-ubuntu-26.04-amd64-<commit>` artifact，保留 30 天。工作流不会自动创建 GitHub Release；手动入口需要工作流已在 GitHub 默认分支注册。
 
-- `YYPlayer-<版本>-<提交号>-windows-x64-portable.zip`：解压后从 `yyplayer.exe` 启动，运行时 DLL 位于 `runtime/`，配置在 `%APPDATA%`。
-- `YYPlayer-<版本>-<提交号>-windows-x64-setup.exe`：NSIS 安装器，限 x64 Windows，需要管理员权限，安装到 64 位 Program Files，创建快捷方式和卸载入口；卸载不删除用户配置。
+## 发布前还需完成的事项
 
-文件位于该次 Actions run 的 `YYPlayer-windows-x64-<commit>` artifact，保留 30 天。7-Zip / NSIS 缺失时工作流明确失败。
+项目源码与原创 UI 资源采用 GPL-3.0-only，第三方组件保留各自许可。发布前检查当前分支、工作区、暂存 diff、Cargo.lock、LICENSE 和第三方记录；不提交 runtime 二进制、编译缓存、发行包、用户设置 / 数据库、媒体或凭据。
 
-本地与 CI 共用 `scripts/Package-Windows.ps1`：脚本先执行 `cargo build --locked --release --target x86_64-pc-windows-msvc -p yyplayer-app --bin yyplayer`（另加 JSON 产物输出），成功后从本次 `compiler-artifact.executable` 取得实际 EXE，不再读取固定 target 路径。Cargo 的自定义产物目录继续生效，CI 已移除单独编译步骤，并运行隔离打包回归。
+目前的包是开发预览。Windows libmpv 完整组件许可 / 对应源码和 DLL 依赖清单、AppImage runtime 的完整静态依赖 / 可重链接安排仍待补齐。CI 编译和隔离安装测试不能替代正式二进制发行审计、干净系统安装或 USB / HDR 实测。
 
-本地用 `./scripts/Package-Windows.ps1`，依赖缓存完整时可加 `-Offline`；NSIS 不在 PATH / 标准安装目录时，用 `-NsisCompiler 'C:\Tools\NSIS\makensis.exe'`。提前准备固定 libmpv，脚本在编译前核验 DLL hash 与打包工具。ZIP 与 Setup 全部生成成功后移入 `dist/`，临时目录在成功 / 失败时清理，保留已有同版本 / 提交号的包。0.3.0 的 workspace、EXE 版本资源和安装器版本一致，`BUILD-INFO.txt` 记录 EXE hash 与工作区修改状态。命令、失败边界及安装验收限制见 [Windows 打包记录](validation/windows-packaging.md)。
-
-本地简便入口为根目录 `Package-Windows.cmd`：双击后用 pwsh / Windows PowerShell 5.1 启动，缺少固定 libmpv 时调用获取脚本，便携 NSIS 根据 `packaging/windows/nsis.json` 的归档 hash 准备，随后复用同一个编译打包入口。Rust / MSVC / Windows SDK / Git 仍由开发者准备。每次产物放入独立 `dist/windows-<时间>-<随机标识>/`，成功打开目录，按键关闭窗口；日志位于 `target/windows-packaging-runs/`。原有 CI 仍使用默认 `dist/` 路径与既有上传规则；新参数 `-OutputDirectory` 只用于自选输出。具体证据见 [双击打包验收](validation/windows-packaging-launcher.md)。
-
-0.3.1 在 dev 本地重新编译打包，EXE / Setup / 包名使用同一 Cargo 版本，记录见 [0.3.1 验收](validation/windows-packaging-0.3.1.md)。本地包不表示已合入 master；包内提交号和 working tree modified 状态保留真实生成时信息。
-
-### Linux 产物
-
-`.github/workflows/linux-packages.yml` 在 Ubuntu 26.04 容器中检查格式、lint、测试和独立 X11 UI，随后生成 deb / AppImage、对应源码归档、Rust 源码清单、runtime manifest、构建信息和校验和。产物位于 `YYPlayer-ubuntu-26.04-amd64-<commit>` artifact，保留 30 天。完整目录与运行方式见 [Linux 指南](LINUX.md)。
-
-手动运行这个工作流即可验证 `master` 的 Linux 包；若希望 `master` push 同时自动构建 Linux，需要另行修改它的 branches 触发条件。
-
-## 正式二进制发行边界
-
-工作流生成逐提交 CI artifact，不会自动创建 GitHub Release。Windows 的完整 libmpv 内部组件 notices / 对应源码安排与 DLL 闭包、Linux 上游 AppImage runtime 的完整静态闭包 / 可重链接安排仍待补证。构建通过不代表正式二进制发行审计、干净系统安装 / 升级 / 卸载、USB 位准确或 HDR 资格完成。
-
-Windows 运行时见 [libmpv 说明](../third_party/mpv/README.md)，Linux 发行剩余事项见 [runtime 记录](../packaging/linux/runtime-notices/README.md)。
+Windows 剩余事项见 [libmpv 说明](../third_party/mpv/README.md)，Linux 见 [runtime 记录](../packaging/linux/runtime-notices/README.md)，实际检查结果与下一步见 [STATUS](STATUS.md)。

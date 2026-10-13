@@ -1,6 +1,6 @@
 # Windows 源码依赖许可元数据
 
-2026-10-10：来自当前 Cargo.lock + cargo metadata --filter-platform x86_64-pc-windows-msvc，筛选 workspace normal / build 可达依赖。仅记录锁定源码元数据，feature 可能包含开发依赖合并结果；不包括 libmpv DLL 内部组件，也不代表二进制分发的完整 notices 或兼容性审计。
+2026-10-12：来自当前 Cargo.lock + cargo metadata --filter-platform x86_64-pc-windows-msvc，筛选 workspace normal / build 可达依赖。仅记录锁定源码元数据，feature 可能包含开发依赖合并结果；不包括 libmpv DLL 内部组件，也不代表二进制分发的完整 notices 或兼容性审计。
 
 | 包 | 锁定版本 | 上游 license 表达式 |
 | --- | --- | --- |
@@ -44,8 +44,8 @@
 | bytes | 1.12.1 | MIT |
 | cc | 1.5.1 | MIT OR Apache-2.0 |
 | cexpr | 0.6.0 | Apache-2.0/MIT |
-| cfg-if | 1.0.5 | MIT OR Apache-2.0 |
 | cfg_aliases | 0.2.2 | MIT |
+| cfg-if | 1.0.5 | MIT OR Apache-2.0 |
 | chrono | 0.4.45 | MIT OR Apache-2.0 |
 | clang-sys | 1.9.1 | Apache-2.0 |
 | clipboard-win | 5.4.1 | BSL-1.0 |
@@ -83,6 +83,8 @@
 | error-code | 3.4.0 | BSL-1.0 |
 | euclid | 0.22.14 | MIT OR Apache-2.0 |
 | exr | 1.74.2 | BSD-3-Clause |
+| fallible-iterator | 0.3.0 | MIT/Apache-2.0 |
+| fallible-streaming-iterator | 0.1.9 | MIT/Apache-2.0 |
 | fax | 0.2.7 | MIT |
 | fdeflate | 0.3.7 | MIT OR Apache-2.0 |
 | femtovg | 0.25.1 | MIT OR Apache-2.0 |
@@ -108,9 +110,9 @@
 | glob | 0.3.4 | MIT OR Apache-2.0 |
 | glow | 0.17.0 | MIT OR Apache-2.0 OR Zlib |
 | glutin | 0.32.3 | Apache-2.0 |
-| glutin-winit | 0.5.0 | MIT |
 | glutin_egl_sys | 0.7.1 | Apache-2.0 |
 | glutin_wgl_sys | 0.6.1 | Apache-2.0 |
+| glutin-winit | 0.5.0 | MIT |
 | grid | 1.0.1 | MIT |
 | half | 2.7.1 | MIT OR Apache-2.0 |
 | harfrust | 0.8.4 | MIT |
@@ -166,9 +168,10 @@
 | libc | 0.2.189 | MIT OR Apache-2.0 |
 | libloading | 0.8.9 | ISC |
 | libm | 0.2.16 | MIT |
+| libsqlite3-sys | 0.38.2 | MIT |
 | linebender_resource_handle | 0.1.1 | Apache-2.0 OR MIT |
-| linked-hash-map | 0.5.6 | MIT/Apache-2.0 |
 | linked_hash_set | 0.1.6 | Apache-2.0 |
+| linked-hash-map | 0.5.6 | MIT/Apache-2.0 |
 | litemap | 0.8.3 | Unicode-3.0 |
 | lofty | 0.25.1 | MIT OR Apache-2.0 |
 | lofty_attr | 0.13.0 | MIT OR Apache-2.0 |
@@ -194,14 +197,14 @@
 | nom | 7.1.3 | MIT |
 | nom | 8.0.0 | MIT |
 | noop_proc_macro | 0.3.0 | MIT |
+| num_enum | 0.7.6 | BSD-3-Clause OR MIT OR Apache-2.0 |
+| num_enum_derive | 0.7.6 | BSD-3-Clause OR MIT OR Apache-2.0 |
 | num-bigint | 0.4.8 | MIT OR Apache-2.0 |
 | num-complex | 0.4.6 | MIT OR Apache-2.0 |
 | num-derive | 0.4.2 | MIT OR Apache-2.0 |
 | num-integer | 0.1.47 | MIT OR Apache-2.0 |
 | num-rational | 0.4.2 | MIT OR Apache-2.0 |
 | num-traits | 0.2.19 | MIT OR Apache-2.0 |
-| num_enum | 0.7.6 | BSD-3-Clause OR MIT OR Apache-2.0 |
-| num_enum_derive | 0.7.6 | BSD-3-Clause OR MIT OR Apache-2.0 |
 | ogg_pager | 0.7.2 | MIT OR Apache-2.0 |
 | once_cell | 1.21.4 | MIT OR Apache-2.0 |
 | parlance | 0.1.0 | Apache-2.0 OR MIT |
@@ -217,6 +220,10 @@
 | pin-utils | 0.1.0 | MIT OR Apache-2.0 |
 | pin-weak | 1.1.0 | MIT |
 | pkg-config | 0.3.34 | MIT OR Apache-2.0 |
+| player-core | 0.5.4 | GPL-3.0-only |
+| player-mpv | 0.5.4 | GPL-3.0-only |
+| player-platform | 0.5.4 | GPL-3.0-only |
+| player-ui | 0.5.4 | GPL-3.0-only |
 | png | 0.18.1 | MIT OR Apache-2.0 |
 | polycool | 0.4.0 | MIT OR Apache-2.0 |
 | portable-atomic | 1.15.0 | Apache-2.0 OR MIT |
@@ -253,9 +260,10 @@
 | rowan | 0.16.1 | MIT OR Apache-2.0 |
 | roxmltree | 0.21.1 | MIT OR Apache-2.0 |
 | rspolib | 0.1.2 | MIT |
+| rusqlite | 0.40.2 | MIT |
+| rustc_version | 0.4.1 | MIT OR Apache-2.0 |
 | rustc-hash | 1.1.0 | Apache-2.0/MIT |
 | rustc-hash | 2.1.3 | Apache-2.0 OR MIT |
-| rustc_version | 0.4.1 | MIT OR Apache-2.0 |
 | rustls | 0.23.45 | Apache-2.0 OR ISC OR MIT |
 | rustls-pki-types | 1.15.1 | MIT OR Apache-2.0 |
 | rustls-platform-verifier | 0.7.1 | MIT OR Apache-2.0 |
@@ -273,8 +281,8 @@
 | sha2 | 0.10.9 | MIT OR Apache-2.0 |
 | shlex | 1.3.0 | MIT OR Apache-2.0 |
 | shlex | 2.0.1 | MIT OR Apache-2.0 |
-| simd-adler32 | 0.3.10 | MIT |
 | simd_helpers | 0.1.0 | MIT |
+| simd-adler32 | 0.3.10 | MIT |
 | simdutf8 | 0.1.5 | MIT OR Apache-2.0 |
 | simplecss | 0.2.2 | Apache-2.0 OR MIT |
 | siphasher | 1.0.4 | MIT OR Apache-2.0 |
@@ -345,10 +353,11 @@
 | ureq-proto | 0.6.4 | MIT OR Apache-2.0 |
 | url | 2.5.8 | MIT OR Apache-2.0 |
 | usvg | 0.47.0 | Apache-2.0 OR MIT |
-| utf8-zero | 0.8.1 | MIT OR Apache-2.0 |
 | utf8_iter | 1.0.4 | Apache-2.0 OR MIT |
+| utf8-zero | 0.8.1 | MIT OR Apache-2.0 |
 | uuid | 1.26.1 | Apache-2.0 OR MIT |
 | v_frame | 0.3.9 | BSD-2-Clause |
+| vcpkg | 0.2.15 | MIT/Apache-2.0 |
 | version_check | 0.9.5 | MIT/Apache-2.0 |
 | vtable | 0.4.0 | MIT OR Apache-2.0 |
 | vtable-macro | 0.4.0 | MIT OR Apache-2.0 |
@@ -360,6 +369,7 @@
 | webpki-roots | 1.0.9 | CDLA-Permissive-2.0 |
 | weezl | 0.1.12 | MIT OR Apache-2.0 |
 | windows | 0.62.2 | MIT OR Apache-2.0 |
+| windows_x86_64_msvc | 0.52.6 | MIT OR Apache-2.0 |
 | windows-collections | 0.3.2 | MIT OR Apache-2.0 |
 | windows-core | 0.62.2 | MIT OR Apache-2.0 |
 | windows-future | 0.3.2 | MIT OR Apache-2.0 |
@@ -374,7 +384,6 @@
 | windows-sys | 0.61.2 | MIT OR Apache-2.0 |
 | windows-targets | 0.52.6 | MIT OR Apache-2.0 |
 | windows-threading | 0.2.1 | MIT OR Apache-2.0 |
-| windows_x86_64_msvc | 0.52.6 | MIT OR Apache-2.0 |
 | winit | 0.30.13 | Apache-2.0 |
 | winnow | 1.0.4 | MIT |
 | writeable | 0.6.4 | Unicode-3.0 |
@@ -384,6 +393,7 @@
 | yazi | 0.2.1 | Apache-2.0 OR MIT |
 | yoke | 0.8.3 | Unicode-3.0 |
 | yoke-derive | 0.8.4 | Unicode-3.0 |
+| yyplayer-app | 0.5.4 | GPL-3.0-only |
 | zeno | 0.3.3 | Apache-2.0 OR MIT |
 | zerocopy | 0.8.59 | BSD-2-Clause OR Apache-2.0 OR MIT |
 | zerocopy-derive | 0.8.59 | BSD-2-Clause OR Apache-2.0 OR MIT |

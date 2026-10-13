@@ -1,0 +1,19 @@
+{
+  "portable_zip": "E:\\SourceFiles\\rust\\yyplayer\\dist\\windows-20261013-091954-d7f2bc7c\\YYPlayer-0.5.3-5618134cf301-windows-x64-portable.zip",
+  "system_dpi_aware": true,
+  "eof_phase": "Ended",
+  "setup": "E:\\SourceFiles\\rust\\yyplayer\\dist\\windows-20261013-091954-d7f2bc7c\\YYPlayer-0.5.3-5618134cf301-windows-x64-setup.exe",
+  "playback_position": 4.477048,
+  "wave_sha256": "ba20cf4582da96618f78d007b1df707bb99eeb960eb6e9a6ed036021a0b19948",
+  "renderer_initializations": 0,
+  "setup_sha256": "43b6d8e7075c35280f9754f9a71ec30d54a14deca576adbdc898a189a0108fe7",
+  "executable_sha256": "af34daacb5b9aba6997b23ee5c2ee81a32638c1140586d65890066fa630e8c9b",
+  "playback_phase": "Playing",
+  "fixture": "E:\\SourceFiles\\rust\\yyplayer\\target\\final-package-0.5.3-abe16a9a12c646069fc80870388c312b",
+  "native_window_queries": 1,
+  "eof_position": 3.9997730000000002,
+  "zip_sha256": "b3aabc3fe76313c07f68ddecfb108ee661e9c28281f634a147997c1bcea65f21",
+  "result": "PASS",
+  "runtime": "mpv v0.41.0-1087-ge470f8986",
+  "version": "0.5.3"
+}

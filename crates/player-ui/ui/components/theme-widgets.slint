@@ -1,26 +1,10 @@
 import { ScrollView } from "std-widgets.slint";
 import { Theme, Icons } from "../theme.slint";
-import { Icon } from "controls.slint";
+import { Icon, PageButton } from "controls.slint";
 
 // Standard Palette colors are read-only in Slint 1.17.1. Playback widgets
 // consume our semantic Theme directly, including popup and focus colors.
-export component ThemeButton inherits Rectangle {
-    in property <string> text;
-    in property <bool> primary;
-    in property <bool> enabled: true;
-    callback clicked();
-    preferred-width: label.preferred-width + 28px; min-width: 28px; min-height: 32px; preferred-height: 34px;
-    horizontal-stretch: 0; vertical-stretch: 0;
-    border-radius: 7px; border-width: 1px;
-    border-color: focus.has-focus ? Theme.accent-text : (root.primary ? transparent : Theme.border);
-    background: root.primary ? Theme.accent : (touch.has-hover ? Theme.raised : Theme.surface);
-    opacity: root.enabled ? 1 : 0.45;
-    forward-focus: focus; accessible-enabled: root.enabled;
-    accessible-role: button; accessible-label: root.text;
-    label := Text { x: min(12px, parent.width * 0.2); width: parent.width - self.x * 2; height: parent.height; text: root.text; color: root.primary ? Theme.accent-ink : Theme.text; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
-    focus := FocusScope { enabled: root.enabled; key-pressed(event) => { if event.text == " " || event.text == "\n" { root.clicked(); return accept; } return reject; } }
-    touch := TouchArea { enabled: root.enabled; mouse-cursor: pointer; clicked => { focus.focus(); root.clicked(); } }
-}
+export component ThemeButton inherits PageButton { }
 
 export component ThemeCheckBox inherits Rectangle {
     in property <bool> checked;
@@ -95,7 +79,9 @@ export component ThemeComboBox inherits Rectangle {
     in property <bool> enabled: true;
     in property <bool> above;
     callback selected(string, int);
+    callback focus-changed(bool);
     out property <bool> input-focused: focus.has-focus || popup.is-open;
+    changed input-focused => { root.focus-changed(root.input-focused); }
     out property <string> current-text: root.model[root.display-index];
     min-height: 34px; preferred-height: 34px; min-width: 70px;
     background: touch.has-hover ? Theme.raised : Theme.surface; border-radius: 6px; border-width: 1px;

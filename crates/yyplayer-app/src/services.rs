@@ -3,6 +3,9 @@ use player_core::settings::Settings;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 
+#[path = "music_store.rs"]
+pub(crate) mod music_store;
+
 pub fn settings_path() -> PathBuf {
     if let Some(path) = std::env::var_os("YYPLAYER_CONFIG") {
         return PathBuf::from(path);
@@ -66,13 +69,41 @@ pub fn load(path: &Path) -> (Settings, String) {
         }
     }
 }
+#[allow(dead_code)] // Fixture setup; production persistence owns a long-lived connection.
 pub fn atomic_save(path: &Path, settings: &Settings) -> Result<(), String> {
     settings.validate()?;
-    let bytes = serde_json::to_vec_pretty(settings).map_err(|e| e.to_string())?;
+    let bytes = preference_bytes(settings)?;
+    let legacy = if path.exists() {
+        let (value, warning) = load(path);
+        if !warning.is_empty() {
+            return Err(warning);
+        }
+        value
+    } else {
+        settings.clone()
+    };
+    let mut store = music_store::MusicStore::open(path, &legacy)?;
+    store.save_collections(&music_store::Collections {
+        library: settings.library.clone(),
+        playlists: settings.playlists.clone(),
+    })?;
+    atomic_bytes(path, &bytes)
+}
+fn preference_bytes(settings: &Settings) -> Result<Vec<u8>, String> {
+    settings.validate()?;
+    let mut preferences = settings.clone();
+    preferences.library = Default::default();
+    preferences.playlists = Default::default();
+    let mut value = serde_json::to_value(&preferences).map_err(|e| e.to_string())?;
+    let object = value.as_object_mut().ok_or("设置不是对象")?;
+    object.insert("version".into(), 2.into());
+    object.remove("library");
+    object.remove("playlists");
+    let bytes = serde_json::to_vec_pretty(&value).map_err(|e| e.to_string())?;
     if bytes.len() > 2_000_000 {
         return Err("设置超过 2MB，原文件保留；请减少文件覆盖或预设数量".into());
     }
-    atomic_bytes(path, &bytes)
+    Ok(bytes)
 }
 pub fn atomic_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
     if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
@@ -119,25 +150,100 @@ pub fn atomic_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
     Ok(())
 }
 pub struct Persistence {
-    pub commands: SyncSender<(u64, Settings, bool)>,
+    pub commands: SyncSender<SaveRequest>,
     pub replies: Receiver<(u64, Result<(), String>, bool)>,
+    pub music: Receiver<Result<music_store::Collections, String>>,
+    pub retry_music: SyncSender<()>,
     worker: Option<std::thread::JoinHandle<()>>,
+}
+pub struct SaveRequest {
+    pub revision: u64,
+    pub settings: Settings,
+    pub notify: bool,
+    pub music_ready: bool,
 }
 impl Persistence {
     pub fn start(path: PathBuf) -> Self {
-        let (tx, rx) = sync_channel::<(u64, Settings, bool)>(4);
+        let (tx, rx) = sync_channel::<SaveRequest>(4);
         let (done_tx, done_rx) = sync_channel(4);
+        let (music_tx, music_rx) = sync_channel(1);
+        let (retry_tx, retry_rx) = sync_channel(1);
         let worker = std::thread::spawn(move || {
             let preference = |settings: &Settings| {
-                let mut value = serde_json::to_value(settings).ok()?;
+                let collections = music_store::Collections {
+                    library: settings.library.clone(),
+                    playlists: settings.playlists.clone(),
+                };
+                let mut preferences = settings.clone();
+                preferences.library = Default::default();
+                preferences.playlists = Default::default();
+                let mut value = serde_json::to_value(&preferences).ok()?;
                 value.as_object_mut()?.remove("recent");
-                Some(value)
+                Some((value, collections))
             };
-            let mut prior = preference(&load(&path).0);
-            while let Ok((revision, settings, notify)) = rx.recv() {
+            let mut prior = None;
+            let mut store = None;
+            let mut initialize = true;
+            loop {
+                if initialize {
+                    let (mut legacy, warning) = load(&path);
+                    let result = if !warning.is_empty() {
+                        Err(warning)
+                    } else {
+                        music_store::MusicStore::open(&path, &legacy).and_then(|opened| {
+                            let collections = opened.collections()?;
+                            legacy.library = collections.library.clone();
+                            legacy.playlists = collections.playlists.clone();
+                            prior = preference(&legacy);
+                            store = Some(opened);
+                            Ok(collections)
+                        })
+                    };
+                    let _ = music_tx.send(result);
+                    initialize = false;
+                }
+                if retry_rx.try_recv().is_ok() {
+                    store = None;
+                    initialize = true;
+                    continue;
+                }
+                let request = match rx.recv_timeout(std::time::Duration::from_millis(50)) {
+                    Ok(value) => value,
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
+                    Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                };
+                let SaveRequest {
+                    revision,
+                    mut settings,
+                    notify,
+                    music_ready,
+                } = request;
+                if !music_ready && let Some(store) = &store {
+                    match store.collections() {
+                        Ok(value) => {
+                            settings.library = value.library;
+                            settings.playlists = value.playlists;
+                        }
+                        Err(error) => {
+                            let _ = done_tx.send((revision, Err(error), false));
+                            continue;
+                        }
+                    }
+                }
                 let current = preference(&settings);
                 let changed = current != prior;
-                let result = atomic_save(&path, &settings);
+                let result = settings.validate().and_then(|_| {
+                    let bytes = preference_bytes(&settings)?;
+                    let store = store
+                        .as_mut()
+                        .ok_or("音乐数据库尚未恢复，原设置保留；点击音乐库重扫重试")?;
+                    store.save_collections(&music_store::Collections {
+                        library: settings.library.clone(),
+                        playlists: settings.playlists.clone(),
+                    })?;
+                    atomic_bytes(&path, &bytes)
+                        .map_err(|e| format!("音乐库已提交，应用设置保存失败：{e}"))
+                });
                 if result.is_ok() {
                     prior = current;
                 }
@@ -149,15 +255,37 @@ impl Persistence {
         Self {
             commands: tx,
             replies: done_rx,
+            music: music_rx,
+            retry_music: retry_tx,
             worker: Some(worker),
         }
     }
     pub fn finish(mut self) {
         drop(self.commands);
+        drop(self.music);
+        drop(self.retry_music);
         for _ in self.replies {}
         if let Some(worker) = self.worker.take() {
             let _ = worker.join();
         }
+    }
+    pub fn finish_with_latest(self, mut latest: SaveRequest) {
+        // Called after the UI event loop stops. Drain replies while making room;
+        // never drop the newest edit merely because the bounded queue is full.
+        loop {
+            match self.commands.try_send(latest) {
+                Ok(()) => break,
+                Err(std::sync::mpsc::TrySendError::Disconnected(_)) => break,
+                Err(std::sync::mpsc::TrySendError::Full(value)) => {
+                    latest = value;
+                    let _ = self.music.try_recv();
+                    let _ = self
+                        .replies
+                        .recv_timeout(std::time::Duration::from_millis(50));
+                }
+            }
+        }
+        self.finish();
     }
 }
 pub enum DialogRequest {
@@ -263,6 +391,129 @@ impl Dialogs {
 mod tests {
     use super::*;
     #[test]
+    fn startup_snapshot_and_full_queue_exit_preserve_database_collections() {
+        let directory = std::env::temp_dir().join(format!(
+            "yyplayer-startup-sqlite-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let path = directory.join("settings.json");
+        let mut legacy = Settings {
+            version: 1,
+            ..Default::default()
+        };
+        legacy.library.roots.push("失联目录".into());
+        legacy
+            .playlists
+            .add(1, vec!["失联目录/收藏.flac".into()])
+            .unwrap();
+        std::fs::write(&path, serde_json::to_vec(&legacy).unwrap()).unwrap();
+        let service = Persistence::start(path.clone());
+        let mut early = Settings {
+            volume: 43.,
+            ..Default::default()
+        };
+        service
+            .commands
+            .send(SaveRequest {
+                revision: 1,
+                settings: early.clone(),
+                notify: false,
+                music_ready: false,
+            })
+            .unwrap();
+        let initial = service
+            .music
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .unwrap()
+            .unwrap();
+        assert_eq!(initial.playlists, legacy.playlists);
+        let (_, result, _) = service
+            .replies
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .unwrap();
+        result.unwrap();
+        for revision in 2..14 {
+            early.volume = revision as f32;
+            let _ = service.commands.try_send(SaveRequest {
+                revision,
+                settings: early.clone(),
+                notify: false,
+                music_ready: false,
+            });
+        }
+        early.volume = 73.;
+        service.finish_with_latest(SaveRequest {
+            revision: 100,
+            settings: early,
+            notify: false,
+            music_ready: false,
+        });
+        let (saved, warning) = load(&path);
+        assert!(warning.is_empty());
+        assert_eq!(saved.volume, 73.);
+        let store = music_store::MusicStore::open(&path, &saved).unwrap();
+        assert_eq!(store.collections().unwrap(), initial);
+        let json: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(json["version"], 2);
+        assert!(json.get("library").is_none() && json.get("playlists").is_none());
+        drop(store);
+        for file in std::fs::read_dir(&directory).unwrap() {
+            std::fs::remove_file(file.unwrap().path()).unwrap();
+        }
+        std::fs::remove_dir(directory).unwrap();
+    }
+    #[test]
+    fn failed_open_can_retry_without_overwriting_a_corrupt_database() {
+        let directory = std::env::temp_dir().join(format!(
+            "yyplayer-retry-sqlite-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let path = directory.join("settings.json");
+        let legacy = Settings {
+            version: 1,
+            ..Default::default()
+        };
+        std::fs::write(&path, serde_json::to_vec(&legacy).unwrap()).unwrap();
+        let database = music_store::database_path(&path);
+        std::fs::write(&database, b"broken database").unwrap();
+        let service = Persistence::start(path.clone());
+        assert!(
+            service
+                .music
+                .recv_timeout(std::time::Duration::from_secs(5))
+                .unwrap()
+                .is_err()
+        );
+        assert_eq!(std::fs::read(&database).unwrap(), b"broken database");
+        std::fs::rename(&database, directory.join("original.sqlite3")).unwrap();
+        service.retry_music.send(()).unwrap();
+        assert_eq!(
+            service
+                .music
+                .recv_timeout(std::time::Duration::from_secs(5))
+                .unwrap()
+                .unwrap()
+                .playlists,
+            legacy.playlists
+        );
+        service.finish();
+        for file in std::fs::read_dir(&directory).unwrap() {
+            std::fs::remove_file(file.unwrap().path()).unwrap();
+        }
+        std::fs::remove_dir(directory).unwrap();
+    }
+    #[test]
     fn persistence_notifies_only_changed_preferences() {
         let path =
             std::env::temp_dir().join(format!("yyplayer-notice-test-{}.json", std::process::id()));
@@ -270,7 +521,15 @@ mod tests {
         atomic_save(&path, &settings).unwrap();
         let service = Persistence::start(path.clone());
         let receive = |revision, state: Settings, notify| {
-            service.commands.send((revision, state, notify)).unwrap();
+            service
+                .commands
+                .send(SaveRequest {
+                    revision,
+                    settings: state,
+                    notify,
+                    music_ready: true,
+                })
+                .unwrap();
             let (received, result, notification) = service
                 .replies
                 .recv_timeout(std::time::Duration::from_secs(5))

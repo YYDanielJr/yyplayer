@@ -223,10 +223,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings.online.music_enabled = false;
     settings.online.lyrics_enabled = false;
     services::atomic_save(&path, &settings)?;
-    slint::BackendSelector::new()
-        .backend_name("winit".into())
-        .renderer_name("femtovg".into())
-        .select()?;
+    player_ui::select_gpu_backend()?;
     let c = Rc::new(RefCell::new(controller::AppController::live(
         player_mpv::MpvEngine::start(),
         player_platform::current(),

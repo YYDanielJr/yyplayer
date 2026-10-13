@@ -1,0 +1,24 @@
+{
+  "fixture_sha256": "3cbbf6d3a5d62541a5574528b224802acbd586338625c4dcf889193ced65ecd2",
+  "results": [
+    {
+      "frames": 155,
+      "case": "hardware",
+      "hwdec": "d3d11va-copy",
+      "exit_code": 0
+    },
+    {
+      "frames": 149,
+      "case": "software",
+      "hwdec": "no",
+      "exit_code": 0
+    },
+    {
+      "frames": 149,
+      "case": "deband",
+      "hwdec": "d3d11va-copy",
+      "exit_code": 0
+    }
+  ],
+  "passed": true
+}

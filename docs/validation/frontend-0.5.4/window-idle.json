@@ -1,0 +1,11 @@
+{
+  "percent_of_one_logical_cpu": 0.0,
+  "native_window_queries": 1,
+  "result": "PASS",
+  "seconds": 8,
+  "sample_ms": 3003.2609,
+  "executable_sha256": "0e9a0d2b128d7a1688f6f0cf61e311c2b63a0ab21f81ac979213a938bb15f637",
+  "renderer_initializations": 0,
+  "process_cpu_ms": 0.0,
+  "fixture": "E:\\SourceFiles\\rust\\yyplayer\\target\\window-idle-qa-75209636590a4cdf86238adea50a213b"
+}

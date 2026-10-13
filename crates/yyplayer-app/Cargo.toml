@@ -30,6 +30,7 @@ indexmap = { version = "=2.14.2", features = ["serde"] }
 sha2.workspace = true
 crossbeam-channel.workspace = true
 raw-window-handle = "0.6"
+rusqlite = { version = "=0.40.2", default-features = false, features = ["bundled"] }
 image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg"] }
 
 [target.'cfg(windows)'.dependencies]

@@ -1,5 +1,96 @@
 # YYPlayer 进度与证据
 
+## 2026-10-13：按当前 0.5.4 整理文档并精简 README
+
+状态：Done（文档更新与一致性检查范围）。按用户要求，在 dev 的 `a95dd38` 功能提交和干净工作区基础上更新文档，版本保持 0.5.4。
+
+- 目标 / 文件：README 改为面向使用者的功能、基本操作、数据备份与源码启动说明，从 153 行精简为 76 行，文本从 9611 字符减至 2290 字符；版本流水账留在 CHANGELOG，打包与技术证据通过专门文档链接提供。同步 AGENTS、CONTRIBUTING、PUBLISHING、MUSIC_PLAYLISTS、LINUX、DEVELOPMENT_PLAN 和本文件，共 8 份文档。
+- 内容核对：按 Cargo.toml / Cargo.lock、实际模块、默认快捷键、存储路径、NSIS manifest、安装器与工作流更新说明；修正旧的 0.3.1 开发版本、SQLite 尚属候选、GPL 许可未确定、播放选项挤窄页面、模块目录和重新创建样机等过时表述。保留 dev 开发 / master 仅合入规则及线程、GL、数据迁移约束；规划目标与历史验收不改写成已交付功能。
+- 检查：一次性 Python 文档检查核对 121 处相对链接 / 图片、UTF-8 和代码围栏，未发现缺失引用；Cargo 配置确认五个 crate 继承 0.5.4 / GPL-3.0-only，Slint / slint-build 1.17.1，NSIS manifest 3.12。对照当前 CI 确认 Windows 为 master push、Linux 包为 dev-linux push、最低版本矩阵只手动运行。`git diff --check` 通过。
+- 范围 / 限制：只修改文档，未更改应用、依赖、版本、工作流或安装器，未重新编译 / 打包或运行 GUI / 硬件测试。沿用此前报告的明确适用范围，不新增 Linux / macOS、真实安装、DPI、DAC 或 HDR 验收结论。本轮文档尚未提交 / 合入 master / 推送。
+- 下一步：后续实现继续从 dev 开始；资格验证优先在 Linux 复验最新 SQLite 迁移 / 歌单重启及下拉 / 抽屉，再补 Windows 真实管理员升级与多 DPI。README 后续只更新当前功能和用法，不逐版追加开发流水账。
+
+## 2026-10-13：0.5.4 dev 本地集中提交
+
+用户授权将当前全部修改提交到 dev。本轮将此前 0.5.2 SQLite 迁移、0.5.3 窗口事件 / 按钮 / 升级安装、0.5.4 布局 / 抽屉 / 下拉，以及版本、脚本、文档和自有验收证据纳入一次本地提交；提交号以 Git 历史为准。授权范围为 dev 本地提交。
+
+- 提交审查：确认当前 dev，检查全部 tracked / untracked 修改与暂存差异；保留 Cargo.lock、ADR 0012 和验证摘要 / 截图。仅对 0.5.4 报告引用的三个验收日志添加精确忽略例外，避免报告链接缺文件；target / dist、runtime、安装包、SQLite 和用户配置仍保持忽略。
+- 验证依据：沿用前轮最终 73 项测试、严格 Clippy、Windows GUI / GPU / 隔离安装 / 完整包与独立启动证据；本轮只补提交记录和日志追踪，重新运行 fmt / diff 检查，不重复应用与硬件测试。平台限制继续见对应验收报告。
+- 后续：继续从 dev 开发；合入 master、推送和发布按后续用户授权执行。
+
+## 2026-10-13：0.5.4 视频库布局、最近打开与抽屉 / 下拉统一
+
+状态：Done（本轮实现、Windows GUI / GPU 回归和完整 0.5.4 包范围）。在 dev 保留此前工作区修改；未提交 / 合入 master / 推送。详情和持久化证据见 [验收](validation/frontend-0.5.4.md)。
+
+- 目标 / 改动：VideoLibraryPage 的目录筛选 / 重扫 / 移除 / 数量与导入按钮同一行，继续观看移到批量行；Recent QueueRow 标题 15px、路径 / 时长 12px、行高 76px。AppWindow / SideDrawer / QueueDrawer / VideoOptions 共用滑入覆盖层、遮罩和主题表面，不再挤窄库 / 歌词或改变视频尺寸。所有 ComboBox 改用 ThemeComboBox，受控选择通过新 choice 提交，补浏览 / 窗口模式焦点保护。根版本、锁文件、EXE / 包、当前文档和打包 fixture 更新至 0.5.4。
+- 检查：最终 fmt / diff、locked / offline workspace all-targets Clippy 通过；workspace tests 73 项通过、1 项既有 HTTPS 测试 ignored；metadata 五个 crate 均为 0.5.4。没有更新第三方依赖或改变数据库 schema / runtime。
+- GUI：ui-consistency 的 FemtoVG / software 各 18 阶段通过，实测两种抽屉的滑动过程、统一间距、鼠标 / 键盘新选择值、最小宽度、遮罩不穿透、隐藏焦点、减少动画及全屏尺寸；GPU 弹层快照的黑图用独立软件视觉证据补齐。navigation-ui 11 / ui-feedback 17 / audio-ui / UiCustomization 通过。Collections 29 阶段 / SQLite 重启，新增关闭遮罩后的真实分类点击通过。
+- GPU / 播放：VideoLibrary 十次释放重建、恢复位置、EOF 后暂停继续通过；Test-Render 自有 4K HEVC 硬解 / 软解 / 去色带 GPU 像素对照，145 / 151 / 154 帧通过；Test-Video 的生产控制、模式、暂停重载、保存、软件解码和退出通过。串行 GUI / GPU、自有 fixture / target 独立配置。
+- 打包：PS 5.1 packaging 8 / launcher 10 / 私有 NSIS installer 8 项通过，补 0.5.3→0.5.4，保留 0.5.1→0.5.4、失败回滚 / 原目录 / 数据保留与 DPI 声明。完整包位于 `dist/windows-20261013-100632-039a3f1b/`；EXE 35,876,864 字节，SHA-256 `0e9a0d2b128d7a1688f6f0cf61e311c2b63a0ab21f81ac979213a938bb15f637`，版本 / hash / 固定 runtime / Setup DPI 核验通过。ZIP 解压后的 EXE 独立空闲 8 秒仅查询原生状态 1 次，实际 WAV 5 秒为 Playing / 位置 4.383749，均无错误、数据库 ready、0 次 libmpv renderer、正常退出。
+- 限制 / 下一步：macOS / Linux 本轮编译和真机、实体键鼠 / 多屏 DPI、真实管理员旧版本升级待验；正式二进制许可闭包沿用既有报告。下一步在 Linux / macOS 验证相同源码的下拉焦点、抽屉与视频尺寸 / 退出；Windows 补真实升级和多 DPI，Git 操作依后续授权。
+
+## 2026-10-13：0.5.3 页面按钮、窗口查询与 Windows 升级
+
+状态：Done（本轮实现、Windows 回归与完整 0.5.3 包范围）。在 dev 保留既有 0.5.2 SQLite 工作区改动，修复用户提出的页面按钮、Mac 高频窗口查询、安装升级与 DPI 问题，版本更新为 0.5.3。未提交 / 合入 master / 推送。
+
+- 涉及文件：player-ui controls / theme-widgets、各页和设置 / 工具栏 Button 导入、window_controls；app bootstrap / window_state / window_surface、ui-customization 例子；Windows .nsi / Package-Windows / CI、Test-WindowsInstaller 与打包 fixture；Cargo.toml / Cargo.lock、README / CHANGELOG / 版本与验证文档。
+- 验收目标：统一主题色 / 圆角 / 输入状态，真实 Slint 导航与播放选项；原生查询计数证明空闲无 60ms 轮询，实际模式切换与播放 / render 释放正常；真实隔离 NSIS 升级、失败恢复和数据保留，完整 0.5.3 Release ZIP / Setup。
+- 检查：fmt / diff、最终 Clippy workspace all-targets 通过；workspace 73 项测试通过、1 项既有 HTTPS QA CA 测试 ignored。Windows 打包最终 PS 5.1 8 项 / launcher 10 项 / 真实 NSIS 隔离安装升级 7 项通过；含锁 DLL 恢复、同版重装、拒绝降级、用户文件保留、生成 Setup / 卸载器的 DPI 声明。
+- 本机回归：ui-feedback / navigation-ui / audio-ui / Test-UiCustomization / Test-Collections / Test-VideoLibrary / Test-Render / Test-Video 均通过；实际窗口动作、队列 / SQLite、10 次渲染器释放重建、EOF 暂停 / 继续、自有 4K HEVC 硬解 / 软解 / 去色带 GPU 图片对照正常。最终窄 EQ 按钮边距修正后再次编译并回归 navigation-ui / audio-ui / Clippy。
+- 最终包：`dist/windows-20261013-091954-d7f2bc7c/` 中 0.5.3 ZIP / Setup 已生成。Release EXE 36,114,432 字节，SHA-256 `af34daacb5b9aba6997b23ee5c2ee81a32638c1140586d65890066fa630e8c9b`；包内版本 / hash / runtime / DPI 清单核验通过。ZIP 解压 EXE 使用独立配置，8 秒空闲仅 1 次原生窗口查询、0 次 libmpv renderer；实际自有 WAV 播放 / EOF / 正常退出通过。证据、截图、完整命令和限制见 [本轮验收](validation/frontend-installer-0.5.3.md)。
+- 已知边界 / 下一步：MacBook Air CPU / macOS 编译、Linux 共用路径、实体多 DPI / 跨屏与本机真实管理员升级待验。用相同 0.5.3 源码在 MacBook Air 复验空闲 / 最大化 / 全屏 / 退出和 CPU；Windows 继续真实 0.5.1 管理员升级及 125–200% / 跨屏，Linux 做原生 UI / 生命周期回归。文件复制失败恢复不是断电事务；旧版本非冲突过时文件可能保留。正式二进制许可闭包仍依既有报告，未宣称补齐。
+
+## 2026-10-12：0.5.2 SQLite 音乐库迁移
+
+状态：Done（Windows 实现、迁移 / 数据 / 播放回归与最终 Release 范围）。在 dev 从 5618134 开始，版本更新为 0.5.2；本轮未提交 / 合入 master / 推送。用户要求不做性能对比。决定见 [ADR 0012](adr/0012-sqlite-music-library.md)，完整结果见 [迁移验收](validation/sqlite-music-library.md)。
+
+- 结果 / 文件：新增 services::music_store，以后台 SQLite 事务保存音乐标签索引、目录 / 文件 / 排除项、歌单 / 我喜欢和有序成员；原始路径 BLOB、稳定歌曲 ID 与外键保留。services / library_service / controller 初始化、重试、导入排队与退出同步；设置 JSON 格式 2 移除音乐字段，视频 JSON / 会话队列保持独立。core Settings 兼容 1 / 2；collections / library-theme / video-library 例子及脚本、版本 / lock、notices / 依赖元数据与相关文档更新。
+- 迁移：首次事务导入旧设置 / 索引，保存原始设置备份并保留旧索引；后续只使用数据库。扫描 UPSERT、取消 / 非法批次回滚，歌单重命名保留成员行；坏库 / 缺库 / 未知版本 / 忙 / 只读报告错误并保留数据。启动前导入不丢失，启动保存不清空收藏，队列满退出仍提交最新编辑；扫描失败后重试不以旧快照覆盖会话编辑。音乐事务与 JSON 设置分开提交，失败提示区分。
+- 检查：fmt check、严格 locked / offline workspace / all-targets clippy、workspace lib / bins tests 与最终 Release build 通过；70 项独立测试，既有 HTTPS 环境测试 1 项 ignored。Windows UTF-16 非法 Unicode 路径经实际保存 / 重开无损，Unix cfg 测试未运行。
+- 实机：最终 Collections 28 阶段与新 controller 恢复、UiCustomization 22 阶段、LibraryTheme 13 阶段、导航 11 / ui-feedback 17 与 audio-ui 通过；VideoLibrary 十次释放 / 重建 / EOF 暂停及音乐 SQL 隔离、Test-Video 控件 / 暂停重载 / 软件解码 / 退出通过。GUI / 硬件串行、自有素材 / target 独立配置，未修改用户 APPDATA / 媒体 / 系统偏好。启动导入超时已修正为有界排队；视频脚本的旧 PowerShell 中文错码副本清理后在 UTF-8 宿主复跑通过。
+- GPU：Test-Render 三场景通过，Radeon 860M 桌面 GL 3.3 / d3d11va-copy，硬解 / 去色带相对软件平均 RGB 差 0.062545 / 0.225618，坏像素比例均 0，shader 无编译错误。保持原 presenter / prepare_gl / 渲染生命周期及固定 mpv，未继续 Vulkan 探索。
+- Release：五个 crate 与 EXE 资源均为 0.5.2；target/release/yyplayer.exe 32,204,800 字节，SHA-256 `f095eb20048b008df88aea5290ba90867fc9a671354f3cd15fb499bcce1b2cca`。独立配置各 4 秒空闲启动 / 实际 FLAC 播放 / 退出通过，数据库 ready=true，格式 2，无错误 / libmpv renderer 初始化。首次检查残留空值环境变量已纠正，同一 EXE 复跑通过。Windows PowerShell 5.1 打包隔离 7 / 10 项通过，未生成完整应用 ZIP / Setup。
+- 限制 / 下一步：仍限 20000 首、128 歌单 / 合计 20000 成员，无数据库分页 / FTS / 实时监听 / 改名追踪；未做性能对比。Linux / macOS 本轮编译 / 真机、AMD 独显、物理输入 / 多屏、DAC / 位准确 / HDR、安装 / 卸载与发行闭包保持待验。下一步在 Linux 用自有 fixture 复验 Unix 路径迁移 / 歌单重启及 bundled SQLite 打包；Git 操作继续按明确授权执行。
+
+## 2026-10-12：0.5.1 OpenGL 决定与本地提交
+
+用户确认继续使用 OpenGL 并停止 Vulkan 探索，授权在 dev 更新版本和本地提交；本轮纳入此前未提交的歌单 / 分类、独立播放列表、紧凑工具栏和去色带修复。没有合入 master、推送或发布授权。
+
+状态：Done（0.5.1 版本、构建和提交准备验收完成）；本轮成果按授权本地提交到 dev，提交号以 Git 历史为准。
+
+- 修改：Cargo.toml、Cargo.lock 的五个 workspace crate 与两套打包 fixture 更新为 0.5.1；README / CHANGELOG / DEVELOPMENT_PLAN / PUBLISHING / AGENTS 与 ADR 0011 同步当前版本和 OpenGL 决定。保留历史 0.5.0 验收版本与 hash，不重写历史证据。
+- Vulkan：探索结束，已有样机与结果只作历史证据；不继续测试或开发 Vulkan 集成。
+- 检查：`cargo metadata --locked --offline --no-deps --format-version 1` 确认五个 crate 均为 0.5.1；`cargo fmt --all -- --check`、`cargo clippy --locked --offline --workspace --all-targets -- -D warnings`、`cargo test --locked --offline --workspace --lib --bins` 与 `cargo build --locked --offline --release -p yyplayer-app --bin yyplayer` 通过。57 项测试通过，既有 HTTPS 环境测试 1 项 ignored；日志位于 target/frontend-0.5.1-{clippy,tests,release}.log。
+- 打包验收：Windows PowerShell 5.1 下 Test-WindowsPackaging 的 [7 项](validation/version-0.5.1/packaging.json)与 Test-WindowsPackagingLauncher 的 [10 项](validation/version-0.5.1/packaging-launcher.json)全部通过，检查 0.5.1 版本 / hash、编译与 NSIS 失败、重试、旧 EXE / 已有包保护和双击入口；产物是 target 下的隔离 fixture，不是应用发行包。
+- Release：target/release/yyplayer.exe 为 30,511,104 字节，FileVersion / ProductVersion 均为 0.5.1，SHA-256 `84365cf4ed0aa5efb546161db27d6753e86ea8f4b62de4ab57a4cfaf81afcee4`，见 [产物信息](validation/version-0.5.1/release-artifact.json)。target 独立配置 4 秒启动 / 正常退出 exit 0、ready=true、Idle、error / render_error 空、视频 renderer 初始化 0，见 [启动证据](validation/version-0.5.1/release-idle.json)。
+- 限制 / 下一步：本轮未改变功能实现，沿用前轮真实 UI / GPU 图像验收，没有重跑交互 / GPU 图像矩阵或 Vulkan 样机。AMD 独显与其他驱动、Linux / macOS、物理输入 / 多屏、DAC / HDR 和正式发行资格仍待验；下一步仅补 OpenGL 去色带 / 暂停重载的对应设备资格。
+
+## 2026-10-12：音乐库紧凑工具栏与 AMD 去色带调查
+
+状态：Done（音乐库紧凑布局、本机 Radeon 860M 去色带修复与 Vulkan 原生样机 / 接入能力调查范围）。在 dev 沿用未提交的 0.5.0 修改，版本保持 0.5.0，未提交 / 合入 master / 推送。详见 [验收](validation/compact-toolbar-amd-deband.md)与 [ADR 0011](adr/0011-desktop-gl-and-vulkan-probe.md)。
+
+- 布局：导入、四种分类、目录 / 歌单筛选与管理、新建歌单并入同一工具栏；常规 / 较宽窗口为一行，节省 96px 歌曲空间，最小窗口两行，打开选项后较窄内容三行。实际分类点击、列宽拖动与歌曲行移除已同步；条件播放选项的入场进度移到稳定窗口状态，避免真实持续投影时面板停在透明，补实际透明度断言。
+- GPU 原因 / 修复：旧上下文实际为 AMD GLES 3.2，固定 mpv 的 average 函数名被编译器拒绝，两个去色带 shader 编译 / 链接失败。Windows 统一请求桌面 GL 3.3，实际 3.3 Core / GLSL 4.60；presenter 检查实际类型 / 版本，不静默降级。去色带仍可开启，默认关闭未改；保留 prepare_gl / FBO / 借用纹理 / 线程边界与固定 runtime，无正常视频 CPU 回读。Linux / macOS 的图形选择保持原样。
+- 文件：MusicPage / AppWindow / VideoOptions、shell 投影、player-ui 统一 GPU 后端与 presenter 能力检查；bootstrap 与十个 GPU 例子共用选择；Engine 仅 Debug 的显式日志入口、deband 例子、Test-Render shader / 版本断言、Test-GpuBackends 原生样机；collections / 导航 / 列宽点击验收与说明 / 截图 / JSON。
+- 验证：fmt、严格 locked / offline workspace / all-targets clippy、完整 tests 与最终 Release build 通过，57 项独立测试，既有 HTTPS 默认 ignored。Collections 28 阶段 / 正常退出 / 重启、UiCustomization 22 阶段、navigation-ui 11 阶段、ui-feedback 17 阶段、audio-ui、VideoLibrary 十次释放 / 重建与 Video 控件 / 暂停重载 / 退出通过。GUI / GPU 场景串行、自有素材 / target 独立配置，不改用户 APPDATA / 媒体 / 系统偏好。
+- 图像：Test-Render 完整通过，实际 d3d11va-copy，无去色带 / 去色带相对软件平均 RGB 差 0.062545 / 0.225618，坏像素均 0；旧失败约 92.408906 / 99.9995%。deband 八阶段验证暂停位置保持、开关与软硬解重载、释放 / 继续观看，四组 GPU 图像通过。一次并行 Release 编译时的 collections 结束阶段触发现有五秒 Engine finish 超时；没有改大超时，编译结束后独立串行复跑 / 正常退出和新 controller 恢复通过，重负载退出的广泛资格仍需补证。
+- Vulkan：固定 DLL / 同一 Radeon 860M 的原生 gpu / gpu-next，OpenGL / Vulkan、去色带开 / 关六场景与五组图像通过；原生截图 480×270，不能扩展为 4K 输出 / 性能 / HDR资格。Vulkan Render API 创建实测 -19 / operation not implemented，固定公开 API 只支持 GL / 软件；Slint 当前借用纹理不能直接接 Vulkan。生产保持已验证桌面 GL，原生样机不冒充应用 Vulkan 支持。
+- Release：最终 target/release/yyplayer.exe 为 30,511,616 字节，FileVersion / ProductVersion 0.5.0，SHA-256 `dfdaf6998b50b167b14097405aa75997d7b2fa1079f25b5bc2ef15cecb8924c1`。独立配置空闲启动 / 去色带硬解播放与正常退出通过；空闲 renderer 初始化 0。未创建新 ZIP / Setup，打包隔离测试本轮未重跑。
+- 未验证 / 下一步：本机是 Radeon 860M 核显，AMD 独显和其他驱动 / GPU组合、Linux / macOS 的本轮功能、物理输入 / 多 DPI / 多屏、DAC / 位准确 / HDR及正式发行资格仍待验。下一步在 AMD 独显 / Linux 使用同一 fixture 复验去色带 / 暂停重载；后续用户已明确停止 Vulkan 探索。后续 Git 操作继续按明确授权执行。
+
+## 2026-10-12：0.5.0 歌单、分类与独立播放列表
+
+状态：Done（请求的前端、歌单与队列功能及 Windows 本轮验收范围）。在 dev 从已提交的 0.4.1 `d793c4e` 和干净工作区开始，版本更新为 0.5.0；本轮修改未提交 / 合入 master / 推送。此前条目的未提交描述保留为当时记录。详见 [0.5.0 验收](validation/frontend-0.5.0.md)、[歌单指南](MUSIC_PLAYLISTS.md)与 [ADR 0010](adr/0010-playlists-and-separated-queues.md)。
+
+- 结果：搜索历史改为自然宽度、两端圆角的胶囊按钮；右下角新增独立右侧播放列表抽屉，音乐 / 视频各自保留队列和播放顺序，切标签仅浏览。支持顺序、列表循环、单曲循环、随机与随机历史回溯，追加 / 调整顺序 / 移除 / 清空、批量播放和加入队列。
+- 音乐库：歌曲 / 歌手 / 专辑 / 歌单四种分类，专辑键包含歌手；支持多选 / 全选，创建 / 重命名 / 删除歌单、批量添加 / 移出成员与持久化我喜欢。歌单使用稳定 ID 和原始 PathBuf，失联 / 未索引成员保留，编辑歌单不删除媒体文件或改变当前队列；队列仅为会话状态，歌单和两种播放顺序后台原子保存。
+- 文件：core playlists / queue / Settings；app collection / queue controller 和库 / 视频 / 联网加载入口；Slint 音乐库、搜索历史、PlayerBar、视频库批量栏、右侧覆盖抽屉及 revision 投影；collections 实机例子 / Test-Collections、受影响的 UI 点击坐标、Test-Video 独立证据目录；Cargo workspace / lock 五个 crate、打包 fixture 版本及说明文档。没有 Engine / presenter / prepare_gl、运行时、依赖或默认音频策略改动。
+- 检查：`cargo fmt --all -- --check`、locked / offline workspace / all-targets 严格 clippy、完整 tests 与 Release build 通过；57 项独立测试覆盖迁移、路径 / 容量、播放顺序、随机历史与隔离，既有 HTTPS 默认 ignored。最终 Release Test-Collections 23 阶段及新 controller 重启恢复通过；真实 Slint 点击、三种窗口尺寸截图、EOF / 音视频切换、队列独立和正常退出均有记录。
+- 回归：Test-UiCustomization 22 阶段、navigation-ui 11 阶段、ui-feedback 17 阶段、audio-ui、Test-VideoLibrary 10 次 renderer 循环和 Test-Video 通过。所有 GUI / 硬件测试串行、自有素材 / target 独立配置，不改用户 APPDATA / 媒体或系统设置。修正 EOF 后下一首停在开头的明确播放意图，保留 Engine 输出确认 / blocked 边界；抽屉覆盖画面，不改变视频 FBO 尺寸。
+- GPU 限制：Test-Render 的默认 Auto / deband=false 图像比较通过（实际 d3d11va-copy，平均 RGB 差 0.062566、坏像素比例 0）。本机 AMD Radeon 860M 在 deband=true 出现蓝色画面，完整 Test-Render 未通过；同一素材 / runtime 在只读归档构建的原 0.4.1 上复现完全相同的差异，确认先于本轮改动。没有修改默认设置掩盖问题，根因仍待单独调查，证据已保存。
+- Release：`target/release/yyplayer.exe` 为 31,685,120 字节，FileVersion / ProductVersion 均 0.5.0，SHA-256 `b3a4176e41c97cd005bc792ee99b8c0b145048c3c80493be2d1455ef6e4229eb`。独立配置 4 秒启动 / 正常退出 exit0、ready=true、Idle、error / render_error 空、视频 renderer 初始化 0。本轮未生成完整 0.5.0 ZIP / Setup，打包回归仅同步 fixture 版本，未重新执行。
+- 未验证与下一步：Linux / macOS 的本轮功能、物理键鼠 / 多 DPI / 多屏、USB DAC / 位准确 / HDR、安装 / 卸载与正式发行闭包仍待验。当前单曲在线代理播放时不追加本地音乐到该队列，下载后可加入；歌单最多 128 个、合计 20000 成员、单队列 20000 项，配置仍限 2MB。下一步在 Linux 复验歌单 / 队列与 EOF，并独立定位本机 AMD 去色带问题；Git 提交 / 集成 / 推送按后续明确授权执行。
+
 ## 2026-10-12：0.4.1 歌词文字提前收拢 / 淡出
 
 状态：Done（Windows 实现、Release 转场与相关回归范围）。先按用户要求将现有 0.4.0 全部改动提交到 dev（`676a699`），随后在 dev 完成 0.4.1；本轮新修改未提交、无推送或 master 合入。此前条目的未提交描述保留为当时记录，以本条为最新状态。详见 [0.4.1 验收](validation/frontend-0.4.1.md)。

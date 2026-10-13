@@ -1,0 +1,22 @@
+[
+  {
+    "name": "player-core",
+    "version": "0.5.4"
+  },
+  {
+    "name": "player-mpv",
+    "version": "0.5.4"
+  },
+  {
+    "name": "player-platform",
+    "version": "0.5.4"
+  },
+  {
+    "name": "player-ui",
+    "version": "0.5.4"
+  },
+  {
+    "name": "yyplayer-app",
+    "version": "0.5.4"
+  }
+]

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory = $true)][string]$NsisArchive)
+﻿param([Parameter(Mandatory = $true)][string]$NsisArchive)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -31,7 +31,7 @@ Write-Fixture 'Cargo.toml' @'
 members = ["crates/yyplayer-app"]
 resolver = "3"
 [workspace.package]
-version = "0.4.1"
+version = "0.5.4"
 '@
 Write-Fixture 'crates/yyplayer-app/Cargo.toml' @'
 [package]
@@ -141,7 +141,7 @@ try {
     Expand-Archive -LiteralPath $zip.FullName -DestinationPath $unpacked
     $exe = Join-Path $env:CARGO_TARGET_DIR 'x86_64-pc-windows-msvc/release/yyplayer.exe'
     if ((Get-FileHash -LiteralPath (Join-Path $unpacked 'yyplayer.exe')).Hash -ne (Get-FileHash -LiteralPath $exe).Hash) { throw 'Launcher packaged the wrong executable.' }
-    if ((Get-Item -LiteralPath (Join-Path $unpacked 'yyplayer.exe')).VersionInfo.ProductVersion -ne '0.4.1') { throw 'Launcher packaged the wrong version.' }
+    if ((Get-Item -LiteralPath (Join-Path $unpacked 'yyplayer.exe')).VersionInfo.ProductVersion -ne '0.5.4') { throw 'Launcher packaged the wrong version.' }
     $results.Add('actual-artifact-version-and-hash')
 
     Write-Fixture 'crates/yyplayer-app/src/main.rs' 'deliberately invalid Rust'

@@ -2,6 +2,7 @@ use crate::{
     demo,
     services::{self, DialogReply, DialogRequest, Dialogs, Persistence},
 };
+use player_core::queue::{QueueKind, SessionQueue};
 use player_core::settings::{DecodeMode, DecodeOptions, Settings};
 use player_core::shortcuts::{HoldEffect, HoldGesture, ShortcutSettings};
 use player_core::{MediaSource, PlaybackCommand, PlaybackEngine, PlaybackPhase};
@@ -19,6 +20,8 @@ mod audio_controller;
 mod background_controller;
 #[path = "backgrounds.rs"]
 mod backgrounds;
+#[path = "collection_controller.rs"]
+mod collection_controller;
 #[path = "font_controller.rs"]
 mod font_controller;
 #[path = "font_service.rs"]
@@ -37,6 +40,8 @@ mod navigation;
 mod online;
 #[path = "online_controller.rs"]
 mod online_controller;
+#[path = "queue_controller.rs"]
+mod queue_controller;
 #[path = "thumbnails.rs"]
 mod thumbnails;
 #[path = "video_controller.rs"]
@@ -74,7 +79,12 @@ pub struct AppController {
     history_dirty: Option<Instant>,
     persistence: Option<Persistence>,
     dialogs: Option<Dialogs>,
-    queue: Vec<MediaSource>,
+    queue: SessionQueue,
+    other_queue: SessionQueue,
+    queue_kind: QueueKind,
+    queue_tab: QueueKind,
+    queue_open: bool,
+    browser: collection_controller::Browser,
     queue_version: u64,
     queue_projection: std::cell::RefCell<QueueProjection>,
     pending_load: bool,
@@ -105,6 +115,9 @@ pub struct AppController {
     plain_lyrics: std::rc::Rc<String>,
     pending_asset: Option<music_assets::Request>,
     library_service: Option<library_service::Service>,
+    music_ready: bool,
+    music_retry: bool,
+    pending_music_import: player_core::library::LibrarySettings,
     thumbnails: Option<thumbnails::Thumbnails>,
     library_pending: Option<library_service::Request>,
     library_songs: Vec<player_core::library::Song>,
@@ -156,7 +169,12 @@ impl AppController {
             history_dirty: None,
             persistence: None,
             dialogs: None,
-            queue: vec![],
+            queue: Default::default(),
+            other_queue: Default::default(),
+            queue_kind: QueueKind::Music,
+            queue_tab: QueueKind::Music,
+            queue_open: false,
+            browser: Default::default(),
             queue_version: 1,
             queue_projection: Default::default(),
             pending_load: false,
@@ -187,6 +205,9 @@ impl AppController {
             plain_lyrics: Default::default(),
             pending_asset: None,
             library_service: None,
+            music_ready: true,
+            music_retry: false,
+            pending_music_import: Default::default(),
             thumbnails: None,
             library_pending: None,
             library_songs: vec![],
@@ -215,6 +236,12 @@ impl AppController {
         controller.shortcut_draft = settings.shortcuts.clone();
         controller.decode_draft = settings.global.clone();
         controller.settings = settings;
+        let seed = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+        controller.queue.seed(seed);
+        controller.other_queue.seed(seed ^ 0x9e3779b97f4a7c15);
         controller.online.service = Some(online::Service::start());
         if let Some(service) = &controller.online.service {
             service.set_permissions(
@@ -228,10 +255,9 @@ impl AppController {
         for kind in 0..2 {
             controller.request_background(kind);
         }
-        controller.library_service = Some(library_service::Service::start(
-            path.with_extension("library.json"),
-            controller.settings.library.clone(),
-        ));
+        controller.music_ready = false;
+        controller.library_busy = true;
+        controller.library_message = "正在打开音乐数据库…".into();
         controller.video_service = Some(library_service::Service::start_video(
             path.with_extension("videos.json"),
             controller.settings.video_library.clone(),
@@ -242,16 +268,14 @@ impl AppController {
             controller.scan_video();
         }
         controller.appearance_observer = Some(player_platform::appearance::Observer::start());
-        if !controller.settings.library.roots.is_empty()
-            || !controller.settings.library.files.is_empty()
-        {
-            controller.scan_library();
-        }
         controller.persistence = Some(Persistence::start(path));
         controller.dialogs = Some(Dialogs::start());
         controller.assets_service = Some(music_assets::Service::start());
         controller.eq_draft = controller.settings.audio.global_eq.clone();
         controller
+    }
+    pub fn music_library_ready(&self) -> bool {
+        self.music_ready
     }
     pub fn dispatch(&mut self, action: UiAction) {
         match action {
@@ -289,7 +313,7 @@ impl AppController {
                     self.send(PlaybackCommand::SetVolume(self.settings.volume));
                 }
             }
-            UiAction::ToggleFavorite => self.favorite = !self.favorite,
+            UiAction::ToggleFavorite => self.toggle_favorite(),
             UiAction::OpenFile => self.dialog(DialogRequest::Open),
             UiAction::RequestPlayback => self.toggle_pause(),
             UiAction::Previous => self.select_adjacent(-1),
@@ -391,8 +415,8 @@ impl AppController {
                 .skip(first.max(0) as usize)
                 .take(count.clamp(0, 64) as usize)
             {
-                if let Some(song) = self.library_songs.get(row.id as usize) {
-                    thumbnails.request(&song.path);
+                if let Some(path) = self.browser.paths.get(row.id as usize) {
+                    thumbnails.request(path);
                 }
             }
         }
@@ -407,8 +431,34 @@ impl AppController {
         if paths.is_empty() {
             return;
         }
-        self.queue = paths.into_iter().map(MediaSource::Local).collect();
-        self.queue_version += 1;
+        let first_video = !player_core::library::is_audio(&paths[0]);
+        let (music, video): (Vec<_>, Vec<_>) = paths
+            .into_iter()
+            .partition(|p| player_core::library::is_audio(p));
+        let kind = if first_video {
+            QueueKind::Video
+        } else {
+            QueueKind::Music
+        };
+        let (active, other) = if first_video {
+            (video, music)
+        } else {
+            (music, video)
+        };
+        if !other.is_empty() {
+            let other_kind = if first_video {
+                QueueKind::Music
+            } else {
+                QueueKind::Video
+            };
+            self.enqueue(
+                other_kind,
+                other.into_iter().map(MediaSource::Local).collect(),
+            );
+        }
+        if !self.replace_queue(kind, active.into_iter().map(MediaSource::Local).collect()) {
+            return;
+        }
         self.preview = false;
         self.load_index(0);
     }
@@ -416,6 +466,16 @@ impl AppController {
         let Some(source) = self.queue.get(index as usize).cloned() else {
             return;
         };
+        if self.queue.selected != Some(index as usize) {
+            self.queue.select(index as usize);
+        }
+        self.selected_id = index;
+        if matches!(&source, MediaSource::Url(_))
+            && self.online.playing_source.as_ref() != Some(&source)
+        {
+            self.status = "串流已失效，请从联网搜索结果重新播放".into();
+            return;
+        }
         if self.online.playing_source.as_ref() == Some(&source) {
             if self.online.streaming
                 && (!self.settings.online.music_enabled
@@ -427,7 +487,7 @@ impl AppController {
             self.send(PlaybackCommand::Load {
                 source,
                 decode: self.settings.global.clone(),
-                resume: None,
+                resume: Some((0.0, false)),
                 video: false,
             });
             return;
@@ -438,7 +498,8 @@ impl AppController {
             .video_resume
             .take()
             .filter(|(saved, _)| video && saved == &source)
-            .map(|(_, position)| (position.as_secs_f64(), false));
+            .map(|(_, position)| (position.as_secs_f64(), false))
+            .unwrap_or((0.0, false));
         self.video_session = video;
         self.cancel_hold();
         self.send(PlaybackCommand::SetAbLoop(None));
@@ -484,18 +545,18 @@ impl AppController {
         self.send(PlaybackCommand::Load {
             source,
             decode,
-            resume: restore,
+            // keep-open EOF can pause the outgoing file after Load's initial
+            // unpause. Restore the explicit play intent at matching FILE_LOADED;
+            // Engine still waits for exclusive output confirmation when needed.
+            resume: Some(restore),
             video,
         });
     }
     fn select_adjacent(&mut self, offset: i32) {
         if self.preview {
             self.selected_id = (self.selected_id + offset).rem_euclid(demo::tracks().len() as i32);
-        } else if !self.queue.is_empty() {
-            let index = self.selected_id + offset;
-            if index >= 0 && (index as usize) < self.queue.len() {
-                self.load_index(index);
-            }
+        } else {
+            self.advance_queue(offset > 0, false);
         }
     }
     fn toggle_pause(&mut self) {
@@ -527,10 +588,12 @@ impl AppController {
         self.history_dirty = None;
         self.save_revision += 1;
         if let Some(persistence) = &self.persistence
-            && let Err(error) =
-                persistence
-                    .commands
-                    .try_send((self.save_revision, self.settings.clone(), notify))
+            && let Err(error) = persistence.commands.try_send(services::SaveRequest {
+                revision: self.save_revision,
+                settings: self.settings.clone(),
+                notify,
+                music_ready: self.music_ready,
+            })
         {
             self.status = format!("设置保存未提交：{error}");
             self.notice_revision += 1;
@@ -634,6 +697,9 @@ impl AppController {
         self.reload();
     }
     fn control(&mut self, action: &str, value: &str) {
+        if self.queue_control(action, value) || self.collection_control(action, value) {
+            return;
+        }
         if self.online_control(action, value) {
             return;
         }
@@ -814,6 +880,7 @@ impl AppController {
             }
             "panel" | "info" => {
                 self.cancel_hold();
+                self.queue_open = false;
                 self.panel_open = !self.panel_open;
                 self.settings_revision += 1;
             }
@@ -843,7 +910,9 @@ impl AppController {
             }),
             "escape" => {
                 self.cancel_hold();
-                if self.window_mode == 2 {
+                if self.queue_open {
+                    self.queue_open = false;
+                } else if self.window_mode == 2 {
                     self.set_window_mode(self.prior_window_mode);
                 } else {
                     self.panel_open = false;
@@ -995,7 +1064,7 @@ impl AppController {
             }
             return true;
         }
-        if chord == "Escape" && (self.window_mode == 2 || self.panel_open) {
+        if chord == "Escape" && (self.window_mode == 2 || self.panel_open || self.queue_open) {
             if !repeat {
                 self.control("escape", "");
             }
@@ -1201,9 +1270,9 @@ impl AppController {
                 && self.last_phase != PlaybackPhase::Ended
                 && !self.pending_load
                 && (!snapshot.video || self.video_session)
-                && (self.selected_id as usize + 1) < self.queue.len()
+                && snapshot.source.as_ref() == self.queue.get(self.selected_id as usize)
             {
-                self.select_adjacent(1);
+                self.advance_queue(true, true);
             }
             self.last_phase = snapshot.phase;
         }
@@ -1285,6 +1354,8 @@ impl AppController {
             "下一帧",
         ];
         ShellViewModel {
+            drawer: self.drawer_view(),
+            collection: self.collection_view(),
             online: self.online_view(),
             audio: self.audio_view(),
             library: self.library_view(),
@@ -1345,7 +1416,7 @@ impl AppController {
             } else {
                 self.settings.volume
             },
-            favorite: self.favorite,
+            favorite: snapshot.source.as_ref().is_some_and(|s| matches!(s,MediaSource::Local(p) if self.settings.playlists.contains(player_core::playlists::FAVORITES,p))),
             status: if self.preview {
                 format!("{} · 界面预览", self.platform.name)
             } else {
@@ -1446,54 +1517,73 @@ impl AppController {
         u64,
     ) {
         let snapshot = self.engine.snapshot();
-        let key = (
-            self.queue_version,
-            self.selected_id,
-            self.asset_projection_revision,
-            snapshot.duration,
-            self.search.clone(),
-            self.preview,
-        );
+        let key = QueueProjectionKey {
+            queue: self.queue_version,
+            selected: self.selected_id,
+            assets: self.asset_projection_revision,
+            library: self.library_revision,
+            video: self.video_revision,
+            duration: snapshot.duration,
+            search: self.search.clone(),
+            preview: self.preview,
+        };
         let mut cache = self.queue_projection.borrow_mut();
         if cache.key.as_ref() != Some(&key) {
+            let metadata_by_path: std::collections::BTreeMap<_, _> = self
+                .library_songs
+                .iter()
+                .chain(self.video_songs.iter())
+                .map(|s| (&s.path, s))
+                .collect();
             let queue = if self.preview {
                 demo::tracks()
             } else {
                 self.queue
                     .iter()
                     .enumerate()
-                    .map(|(index, source)| MediaPreview {
-                        id: index as i32,
-                        title: if index == self.selected_id as usize
-                            && !self.assets.title.is_empty()
-                        {
-                            self.assets.title.clone()
-                        } else {
-                            source_title(source)
-                        },
-                        artist: if index == self.selected_id as usize {
-                            self.assets.artist.clone()
-                        } else {
-                            String::new()
-                        },
-                        collection: if index == self.selected_id as usize
-                            && !self.assets.album.is_empty()
-                        {
-                            self.assets.album.clone()
-                        } else {
-                            "本地媒体".into()
-                        },
-                        duration: if index == self.selected_id as usize {
-                            format_time(snapshot.duration)
-                        } else {
-                            String::new()
-                        },
-                        cover: -1,
-                        artwork: if index == self.selected_id as usize {
-                            self.cover.clone()
-                        } else {
-                            Default::default()
-                        },
+                    .map(|(index, source)| {
+                        let metadata = match source {
+                            MediaSource::Local(p) => metadata_by_path.get(p).copied(),
+                            _ => None,
+                        };
+                        MediaPreview {
+                            id: index as i32,
+                            title: if index == self.selected_id as usize
+                                && !self.assets.title.is_empty()
+                            {
+                                self.assets.title.clone()
+                            } else {
+                                metadata
+                                    .map(|s| s.title.clone())
+                                    .unwrap_or_else(|| source_title(source))
+                            },
+                            artist: if index == self.selected_id as usize {
+                                self.assets.artist.clone()
+                            } else {
+                                metadata.map(|s| s.artist.clone()).unwrap_or_default()
+                            },
+                            collection: if index == self.selected_id as usize
+                                && !self.assets.album.is_empty()
+                            {
+                                self.assets.album.clone()
+                            } else {
+                                metadata.map(|s| s.album.clone()).unwrap_or_default()
+                            },
+                            duration: if index == self.selected_id as usize {
+                                format_time(snapshot.duration)
+                            } else {
+                                metadata
+                                    .filter(|s| s.seconds > 0)
+                                    .map(|s| format_time(Some(Duration::from_secs(s.seconds))))
+                                    .unwrap_or_default()
+                            },
+                            cover: -1,
+                            artwork: if index == self.selected_id as usize {
+                                self.cover.clone()
+                            } else {
+                                Default::default()
+                            },
+                        }
                     })
                     .collect()
             };
@@ -1509,6 +1599,32 @@ impl AppController {
                 .cloned()
                 .collect();
             cache.queue = std::rc::Rc::new(queue);
+            cache.other = std::rc::Rc::new(
+                self.other_queue
+                    .iter()
+                    .enumerate()
+                    .map(|(i, source)| {
+                        let metadata = match source {
+                            MediaSource::Local(p) => metadata_by_path.get(p).copied(),
+                            _ => None,
+                        };
+                        MediaPreview {
+                            id: i as i32,
+                            title: metadata
+                                .map(|s| s.title.clone())
+                                .unwrap_or_else(|| source_title(source)),
+                            artist: metadata.map(|s| s.artist.clone()).unwrap_or_default(),
+                            collection: metadata.map(|s| s.album.clone()).unwrap_or_default(),
+                            duration: metadata
+                                .filter(|s| s.seconds > 0)
+                                .map(|s| format_time(Some(Duration::from_secs(s.seconds))))
+                                .unwrap_or_default(),
+                            cover: -1,
+                            artwork: Default::default(),
+                        }
+                    })
+                    .collect(),
+            );
             cache.tracks = std::rc::Rc::new(tracks);
             cache.key = Some(key);
             cache.revision += 1;
@@ -1531,7 +1647,12 @@ impl AppController {
             self.save_with_notice(self.settings_dirty.is_some());
         }
         if let Some(persistence) = self.persistence.take() {
-            persistence.finish();
+            persistence.finish_with_latest(services::SaveRequest {
+                revision: self.save_revision + 1,
+                settings: self.settings.clone(),
+                notify: false,
+                music_ready: self.music_ready,
+            });
         }
         if let Some(service) = self.library_service.take() {
             service.finish();
@@ -1553,10 +1674,22 @@ impl AppController {
 }
 #[derive(Default)]
 struct QueueProjection {
-    key: Option<(u64, i32, u64, Option<Duration>, String, bool)>,
+    key: Option<QueueProjectionKey>,
     queue: std::rc::Rc<Vec<MediaPreview>>,
+    other: std::rc::Rc<Vec<MediaPreview>>,
     tracks: std::rc::Rc<Vec<MediaPreview>>,
     revision: u64,
+}
+#[derive(PartialEq)]
+struct QueueProjectionKey {
+    queue: u64,
+    selected: i32,
+    assets: u64,
+    library: u64,
+    video: u64,
+    duration: Option<Duration>,
+    search: String,
+    preview: bool,
 }
 
 fn source_title(source: &MediaSource) -> String {

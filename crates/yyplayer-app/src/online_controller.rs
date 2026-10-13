@@ -5,6 +5,7 @@ use super::{
         repository::{Song, eligible},
     },
 };
+use player_core::queue::QueueKind;
 use player_core::{MediaSource, PlaybackCommand};
 use player_ui::view_model::{MediaPreview, OnlineViewModel};
 use std::{
@@ -527,8 +528,10 @@ impl AppController {
         self.online.playing_source = Some(source.clone());
         self.online.active_id = self.online.ids[1];
         self.online.streaming = !self.online.download;
-        self.queue = vec![source.clone()];
-        self.queue_version += 1;
+        if !self.replace_queue(QueueKind::Music, vec![source.clone()]) {
+            return;
+        }
+        self.queue.select(0);
         self.selected_id = 0;
         self.video_session = false;
         self.video_resume = None;
@@ -549,7 +552,7 @@ impl AppController {
         self.send(PlaybackCommand::Load {
             source,
             decode: self.settings.global.clone(),
-            resume: None,
+            resume: Some((0.0, false)),
             video: false,
         });
     }
