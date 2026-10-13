@@ -2,11 +2,11 @@
 
 Linux 与 Windows 共用 core、controller、Slint 界面和 libmpv GL presenter，通过目标平台 cfg 选择实现及依赖。Linux 当前验证目标是 Ubuntu 26.04 amd64；实际资格以 [Linux 验收](validation/linux.md) 和 [STATUS](STATUS.md) 为准。Windows 的 WASAPI 名称与确认规则不会用于 Linux。
 
-Linux 适配起于 `dev-linux`，已于 `5390a3d` 合入 `master`；直接在 `master` 构建即可，无需按系统切换分支。0.3.0 的 Windows 自动编译打包见 [打包记录](validation/windows-packaging.md)，此前用户反馈见 [共用源码合并准备记录](validation/shared-source-merge-preparation.md)；本轮版本更新没有新增 Linux 实机验收。
+当前开发版本为 **0.5.4**，所有修改从 `dev` 开始；Windows 和 Linux 不需要分别维护源码分支。Ubuntu 的既有编译、播放和包验收记录保留当时版本，0.5.2–0.5.4 的 SQLite 迁移、窗口事件、下拉框和抽屉尚需 Linux 编译 / 真机回归，不能沿用旧报告宣布最新版本已经通过。
 
 ## 构建
 
-需要 Rust >= 1.92（本轮工具链 1.99.0），Slint / slint-build 仍固定 1.17.1。先执行只读审计：
+Cargo 声明 Rust >= 1.92，既有 Linux 构建使用 1.99.0，最低版本尚未专项验证；Slint / slint-build 固定 1.17.1。先执行只读审计：
 
 ```bash
 python3 scripts/check-linux-deps.py
@@ -24,13 +24,13 @@ Winit + FemtoVG 同时构建原生 Wayland 和 X11。诊断时可使用 `WINIT_U
 
 ## 桌面与输出
 
-- 设置保存在 `${XDG_CONFIG_HOME:-$HOME/.config}/YYPlayer/settings.json`，音乐与视频索引分开。`YYPLAYER_CONFIG` 仅用于独立开发配置。deb 与 AppImage 使用同一用户配置；卸载程序不会删除它或媒体文件。
+- 设置保存在 `${XDG_CONFIG_HOME:-$HOME/.config}/YYPlayer/settings.json`；音乐索引、目录配置与歌单保存在同目录的 `settings.library.sqlite3`，视频索引仍是 `settings.videos.json`。SQLite 静态内置，无需安装数据库。`YYPLAYER_CONFIG` 用于独立开发配置，数据库跟随该配置路径。deb 与 AppImage 使用同一用户数据；卸载程序不会删除它或媒体文件。迁移与备份见[歌单指南](MUSIC_PLAYLISTS.md)。
 - 文件选择使用 XDG desktop portal，在后台对话框服务运行。主题、系统强调色与减少动画通过只读 Settings portal 查询；没有偏好或接口缺失时保留应用回退。字体在后台枚举。
 - 共享模式沿用已验证 Ubuntu runtime 的自动 AO 优先顺序（本机为 PipeWire），兼容 PulseAudio / ALSA；不设置会覆盖具体设备后端的固定 `ao` 列表。自动采样率、70% 音量和无额外 DSP 默认保持。设备下拉显示具体桌面设备和按稳定 card ID 枚举的 ALSA `hw:` 直连设备。
 - Linux 独占请选择具体设备。PipeWire 独占结合 mpv 0.41 AO 的 exclusive flag、成功流连接与实际 `current-ao`；它是独占流语义，不等同直接占用 DAC。ALSA `hw:` 必须结合实际打开设备、成功 HW 参数协商与实际 AO，`plughw:` / `dmix:` 不能显示硬件独占已确认。
 - 优先独占只回退同一个明确设备的共享路径。PulseAudio 不提供这里的独占能力，优先模式可直接透明回退同设备共享，严格模式暂停。ALSA 直连失败不会猜测对应的桌面 sink，也不会切换扬声器。
 - 设备失联暂停；输出重试恢复位置并保留暂停。请求独占、API PCM 和物理 DAC 格式分开。源采样率保护比较源与 API 输出；数字位准确仍需真实数字捕获。
-- 原始非 UTF-8 文件名以带版本的字节身份保存在 JSON 中；正常 UTF-8 配置仍沿用旧字符串。播放时 mpv file URI 恢复原始字节，FILE_LOADED 用原始 bytes 比较，截图目标也使用原始 bytes。
+- 原始非 UTF-8 文件名无损保留：SQLite 音乐路径使用带平台标识的 BLOB，仍存 JSON 的视频 / EQ / 歌词 / 背景路径使用字节标记，普通 UTF-8 路径兼容旧字符串。播放时 mpv file URI 恢复原始字节，FILE_LOADED 用原始 bytes 比较，截图目标也使用原始 bytes；最新 SQLite Unix 路径分支尚需本机回归。
 - 自绘窗口按钮和拖动 / 边缘缩放继续调用 Winit 的原生动作。圆角与阴影由具体 Linux compositor 决定，Windows DWM 角部验收不能用于 Linux。HDR 显示输出、USB DAC / 位准确与多屏睡眠等资格按验收报告区分。
 
 ## 回归

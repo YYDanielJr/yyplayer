@@ -1,153 +1,76 @@
-# ![YYPlayer](./assets/icons/yyplayer/liquid-orbit-disc/yyplayer-128.png) YYPlayer
+# YYPlayer
 
+一个用 Rust、Slint 和 libmpv 做的音视频播放器，主要用来播放和管理本地音乐、视频。
 
-使用 Rust、Slint 和 libmpv 构建的本地音视频播放器。Windows x64 / Ubuntu 26.04 amd64 共用同一份源码，通过条件编译选择平台实现；实际验收与限制见 [STATUS](docs/STATUS.md)。
+当前开发版本：**0.5.4**。Windows x64 是目前主要测试的平台；Ubuntu 26.04 amd64 已有运行记录，最近几次更新还需复测。macOS 尚未测试。
 
-当前 dev 开发版本为 **0.5.4**。唯一顶层开发分支为 `dev`，`master` 只合入已验证的 dev 改动，用于集成 / 发布。Windows 自动编译打包已有本机证据；安装 / 卸载与正式二进制发行资格仍待补齐。
+## 能做什么
 
-0.5.4 将视频库筛选并入导入工具栏、增大最近打开字号；播放选项与播放列表共用滑入抽屉，覆盖内容而不改变视频尺寸；全应用下拉框统一为主题样式。详见 [0.5.4 验收](docs/validation/frontend-0.5.4.md)。
+- **听音乐、看视频**：调进度、音量和倍速，选择音轨、字幕；视频支持全屏、逐帧、截图和 A–B 循环。
+- **整理媒体库**：添加文件或整个目录，搜索音乐和视频，按歌手、专辑浏览音乐。移出媒体库不会删除原文件。
+- **建歌单、收藏歌曲**：支持多选、批量播放和“我喜欢”。音乐与视频各有自己的播放列表，可顺序播放、循环或随机播放。
+- **看歌词**：自动读取同名 LRC 或内嵌歌词，也能手动导入 LRC / TXT，调整字体、行距和双语显示。
+- **调整声音**：选择输出设备、设置均衡器，支持共享和独占输出。默认音量为 70%，不开额外音效。
+- **调整界面**：浅色 / 深色、主题色、背景图片、字体、快捷键和减少动画。
+- **联网搜歌**：配置兼容的 API 后，可以搜索、播放和下载音乐。歌曲和歌词的联网功能默认关闭，在“设置 → 联网服务”中开启。
 
-0.5.3 统一页面按钮的主题色与外观，窗口状态改为事件触发查询；Windows Setup 识别原目录中的旧版本并升级，支持同版本重装、阻止降级与文件替换失败恢复。安装器使用 NSIS 3.12 并显式启用系统 DPI 感知。详见 [0.5.3 验收](docs/validation/frontend-installer-0.5.3.md)。
+目前不保证 HDR 显示输出、位准确或无缝播放，也未提供 ASIO / 原生 DSD 输出。独占输出不等于位准确输出。
 
-0.5.2 将音乐索引、库目录配置、歌单和我喜欢迁移到 SQLite，首次启动自动导入旧 JSON 并保留迁移备份。应用偏好仍用 JSON，播放队列仍为独立会话，视频库索引保持独立。数据库静态内置，无需安装 SQLite；存储与恢复见 [歌单指南](docs/MUSIC_PLAYLISTS.md)、[ADR 0012](docs/adr/0012-sqlite-music-library.md)和 [迁移验收](docs/validation/sqlite-music-library.md)。
+## 怎么用
 
-0.5.0 新增歌曲 / 歌手 / 专辑 / 歌单分类、多选与批量播放、持久化歌单和我喜欢；右下角可打开音乐 / 视频各自独立的播放列表，设置顺序、列表循环、单曲循环或随机播放。联网搜索历史改为小型胶囊按钮。操作及边界见 [歌单与队列指南](docs/MUSIC_PLAYLISTS.md)，验证见 [0.5.0 验收](docs/validation/frontend-0.5.0.md)。
+Windows 安装包的文件名以 `-setup.exe` 结尾，运行后按提示安装；已有旧版时会识别并升级。便携版需要完整解压 ZIP，再运行其中的 `yyplayer.exe`。
 
-0.5.1 合并音乐库工具栏以增加歌曲区域，修正播放选项入场显示。Windows 视频明确使用桌面 OpenGL 3.3 或更高版本，已在 Radeon 860M 验证去色带蓝色画面修复；需要显卡驱动提供对应桌面 GL 上下文。用户已确认继续使用 OpenGL，Vulkan 探索结束，既有样机结果保留为历史证据；详见 [工具栏与去色带验收](docs/validation/compact-toolbar-amd-deband.md)。
+启动后：
 
-0.4.1 将歌词、歌曲信息与页头朝左下封面位置收拢，在封面返回约一半路程时完全淡出；快速反向沿同一曲线接续，封面的移动 / 回弹保持。详见 [歌词指南](docs/LYRICS.md)与 [0.4.1 验收](docs/validation/frontend-0.4.1.md)。
+1. 在“音乐库”或“视频库”里添加目录，也可以用“打开文件”直接播放。
+2. 点击左下角封面打开歌词页；点击右下角播放列表按钮查看和调整队列。
+3. 在“播放选项”里调整输出设备、均衡器、字幕和解码设置；在“设置”里调整外观、字体与快捷键。
 
-0.4.0 调整联网搜索三列、操作 / 音乐库字号与设置卡片；歌词按实际字号独立换行，进入时立即定位当前行，歌曲信息和歌词随封面展开 / 收回。歌曲信息展示真实类型、源音频参数与已确认的输出状态，未知项保持可见。证据见 [前端验收](docs/validation/frontend-0.4.0.md)。
+默认快捷键：空格播放 / 暂停，左右方向键短按前后跳转 5 秒、长按临时 3 倍速，上下方向键调音量，`F` 切换全屏，`Ctrl+O` 打开文件。
 
-## 功能
+歌单会保存，播放列表是本次使用的临时队列，重启后为空。视频返回库后，可以在本次使用期间继续观看。
 
-- 音视频播放：队列、进度、倍速、音量、音轨与字幕选择；视频支持逐帧、截图、章节和 A–B 循环。
-- 音频输出：设备选择，Windows WASAPI 与 Linux PipeWire / PulseAudio / ALSA 输出，共享 / 优先独占 / 严格独占策略与实际状态；默认不强制升采样，不启用额外音效。
-- 均衡器：手动调节、预设导入 / 导出，支持全局、设备和单文件设置，音视频共用。
-- 音乐库：添加歌曲或递归扫描目录，搜索、筛选、重扫，按歌手 / 专辑查找，多选、批量播放与加入队列；歌单创建 / 重命名 / 删除，成员批量增删及我喜欢收藏。移除记录不删除原文件。
-- 播放列表：右下角打开右侧抽屉，音乐 / 视频列表各自保留，支持移除、重排、清空及独立播放顺序；歌单与顺序持久化，队列仅限本次会话。
-- 歌词页：左下封面平滑展开 / 收回并轻微回弹，整窗采用封面取色的柔光背景，播放 / 暂停、进度与音量、倍速和播放选项共用主题色；浏览页往返与换歌平滑换色。自动加载同名 LRC 或内嵌歌词，也可手动导入 LRC / TXT。普通 / 当前行的字号、字重、行距和普通行不透明度可独立调整；「 / 」双语歌词上下行显示，可调副语言字重与语言间距。详见[歌词页设置](docs/LYRICS.md)。
-- 页面返回：侧栏「返回上一页」、设置返回、歌词封面与视频页返回共用本次会话的页面历史栈；默认可用 Alt+Left 逐层返回，搜索 → 设置 → 返回保留搜索条件。
-- 视频库：添加目录或单个视频，搜索、筛选、重扫与移除；点击后进入播放器，返回库保留本次观看位置。
-- 视频界面：按需初始化 libmpv 视频渲染器；窗口、最大化与全屏，控件自动隐藏；可配置快捷键，方向键默认调音量、短按跳转 5 秒、长按临时 3 倍速。
-- 播放设置：查看媒体与实际解码器信息，按全局、文件夹或单文件设置解码方式。
-- 界面定制：简洁 / 时尚主题、浅色 / 深色与主题色，可跟随 Windows 系统偏好或 Linux desktop portal；音乐 / 视频库及歌词页各有 4 款主题色背景，也可分别选本地图片并调透明度、模糊；支持减少动效，以及界面、歌词、字幕字体设置。
+Windows 设置保存在 `%APPDATA%\YYPlayer`，便携版也使用这里。音乐库和歌单保存在该目录下的 SQLite 数据库中，无需另外安装数据库。升级会保留这些数据；备份时先退出播放器，再备份整个设置目录。详细操作见[歌单指南](docs/MUSIC_PLAYLISTS.md)、[歌词指南](docs/LYRICS.md)和[联网搜索指南](docs/ONLINE_API.md)。
 
-Linux 使用 PipeWire / PulseAudio 与 ALSA 直连路径，保留相同的媒体库、歌词、EQ、视频控件和主题设置；平台音频语义与打包说明见 [Linux 指南](docs/LINUX.md)。macOS 尚未验收；HDR 显示输出、位准确输出、ASIO / DSD 和无缝播放仍待完善。独占输出不等于位准确输出。
+## 从源码运行
 
-## 系统版本与包兼容性
+Windows 和 Linux 共用一份源码，开发分支是 `dev`。
 
-以下为 2026-10-03 根据代码、锁定依赖、运行时 API 和现有二进制推测的最低条件；推测不等于旧系统已经通过验收。架构限定 Windows x64 / Linux amd64。
+### Windows
 
-| 平台 | 推测最低版本 / 条件 | 实际验证状态 |
-| --- | --- | --- |
-| Windows 核心功能 | **Windows 10 1607（Build 14393）**；Rust MSVC 的下限是 Windows 10，mpv 0.41 的下限是 1607。固定 DLL 的完整导入与显卡驱动仍可能提高实际门槛 | 已有 Windows 11 x64 验收；Windows 10 未验证 |
-| Windows 原生圆角 | **Windows 11 21H2（Build 22000）**；`DWMWA_WINDOW_CORNER_PREFERENCE` 从此版本提供。代码将它作为可选提示，失败不会阻止核心播放 | 已有 Windows 11 验收；Windows 10 不提供这项原生效果 |
-| Ubuntu 现有 deb / AppImage | **Ubuntu 26.04 LTS**；当前主程序实际要求 `GLIBC_2.43`，deb 还要求 `libmpv2 >= 0.41.0` | Ubuntu 26.04.1 amd64 原生 Wayland 播放 / GPU 和独立 X11 UI 通过；干净系统安装待验 |
-| Debian 现有 Linux 包 | **Debian 14 / forky（目前 testing）作为依赖满足的候选**；当前仓库提供 glibc 2.43 与 libmpv 0.41。Debian 13 的 glibc 2.41 / libmpv 0.40 不满足当前包要求 | Debian 未编译 / 真机验收；不承诺 testing 或未来正式版必然兼容 |
+需要 Rust MSVC、Visual Studio C++ Build Tools 和 Windows SDK。在仓库根目录执行：
 
-Windows 推测依据：[Rust MSVC 系统要求](https://doc.rust-lang.org/rustc/platform-support/windows-msvc.html)、[mpv 0.41 系统要求](https://github.com/mpv-player/mpv/blob/v0.41.0/README.md)、[Microsoft 圆角 API 要求](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwm_window_corner_preference)。Debian 仓库依据：[trixie libc6](https://packages.debian.org/trixie/libc6) / [libmpv2](https://packages.debian.org/trixie/libmpv2)、[forky libc6](https://packages.debian.org/forky/libc6) / [libmpv2](https://packages.debian.org/forky/libmpv2)；版本以查询日期为准。
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/Get-Mpv.ps1
+cargo run --locked --release -p yyplayer-app --bin yyplayer
+```
 
-Rust crate 通常链接进程序，但这不等于整个应用完全静态链接。本项目的 Linux GNU 产物动态依赖 glibc、libm、fontconfig 等，libmpv 由 `libloading` 运行时加载；图形和音频库也有动态加载路径。当前 ELF 的 `acosf` / `atan2f` 实际引用 `GLIBC_2.43`，因此当前 AppImage 同样不能绕过这个宿主门槛。
+首次获取播放内核需要联网，解压需要 7-Zip 或支持 7z 的 Windows `tar`。想自己打包时，准备好上述环境和 Git，双击根目录的 **`Package-Windows.cmd`**；它会编译当前代码，生成 ZIP 和安装包，并打开输出目录。更多选项见[打包说明](docs/PUBLISHING.md)。
 
-deb 是 Debian 系包格式，仍受架构、包名、ABI、库版本与桌面驱动限制，不能通用于所有 Debian 系系统。[Arch 使用 pacman / `.pkg.tar.zst`](https://wiki.archlinux.org/title/Creating_packages)，不能用 pacman 原生安装 deb；可以另做 Arch 包，或在满足 glibc / GPU / 桌面服务条件后验证 AppImage，当前未验收 Arch。
+### Ubuntu 26.04
 
-较早的 Ubuntu / Debian 可能通过在较旧系统上重新编译应用及配套运行时获得支持，但不能直接使用本次包。源码本身没有一个与发行版年号一一对应的 API 下限；例如 Ubuntu 24.04 的系统 libmpv 为 0.37、Debian 13 为 0.40，若要保持本轮完整音频策略，需要另行提供并验证 libmpv >= 0.41 及其依赖。`mpv_get_time_ns` 已在 client API 2.2 引入，不能把仅有 `libmpv.so.2` 当成所有符号 / 日志协议均兼容。详情与核查命令见 [最低版本推测记录](docs/validation/platform-minimums.md)。
+先准备 Rust 和系统依赖。下面的检查脚本会列出缺少的依赖及安装命令：
+
+```bash
+python3 scripts/check-linux-deps.py
+cargo run --locked --release -p yyplayer-app --bin yyplayer
+```
+
+Linux 安装、音频输出及 deb / AppImage 打包方法见[Linux 指南](docs/LINUX.md)。
 
 ## 截图
-![音乐库](./images/musiclib.png)
-![歌词页](./images/musicdetail.png)
-![音频选项](./images/musicsetting.png)
-![视频库](./images/videolib.png)
-![视频播放](./images/videoplay.png)
-![项目设置](./images/settings.png)
 
-## 编译
+<details>
+<summary>展开查看音乐库、歌词页和视频播放</summary>
 
-Windows 和 Linux 共用 Cargo workspace、Cargo.lock 与业务 / UI 代码，不需要切换到各自专用的源码分支。在相应系统准备构建依赖后，都使用：
+![音乐库](images/musiclib.png)
+![歌词页](images/musicdetail.png)
+![视频播放](images/videoplay.png)
 
-```bash
-cargo build --locked --release -p yyplayer-app --bin yyplayer
-```
+</details>
 
-默认本机目标下，Windows MSVC 生成 `target/release/yyplayer.exe`，Linux GNU 生成 `target/release/yyplayer`；显式传入 `--target` 时产物位于对应的 target 子目录。编译成功后仍需各平台的 libmpv 运行时与系统库。
+## 更多资料
 
-用户已确认：对 `dev-linux` 的共用代码运行 **Windows x64 packages** 工作流可以完成 Windows 编译打包。此次确认限编译与打包，实际播放 / 安装 / 设备回归见 [状态与证据](docs/STATUS.md)。
+[更新日志](CHANGELOG.md) · [参与开发](CONTRIBUTING.md) · [开发规则](AGENTS.md) · [开发规划](docs/DEVELOPMENT_PLAN.md) · [测试记录与待办](docs/STATUS.md) · [平台兼容性记录](docs/validation/platform-minimums.md)
 
-### Windows x64
-
-需要 Windows x64、Rust MSVC 工具链、Visual Studio C++ Build Tools 和 Windows SDK。本轮已验证 Rust / Cargo 1.99.0，Slint / slint-build 固定为 1.17.1。
-
-在仓库根目录用 PowerShell 执行：
-
-```powershell
-# 获取固定版本 libmpv，并校验下载文件和 DLL
-powershell -ExecutionPolicy Bypass -File scripts/Get-Mpv.ps1
-cargo build --locked --release -p yyplayer-app --bin yyplayer
-```
-
-首次获取依赖需要联网。运行时脚本优先使用 7-Zip，未安装时尝试能解压 7z 的 Windows `tar.exe`；解压失败时见 [运行时说明](third_party/mpv/README.md)。
-
-### Windows 打包（0.5.4）
-
-**双击仓库根目录的 `Package-Windows.cmd` 即可打包。** 它自动定位项目，优先用 PATH 中的 pwsh，缺失时用 Windows 自带 PowerShell 5.1；无需输入命令或安装 Python。仍需提前准备 Rust x64 MSVC、Visual Studio C++ Build Tools / Windows SDK 和 Git。
-
-入口会准备缺失的固定 libmpv 与便携 NSIS（首次需要联网；libmpv 解压需要 7-Zip 或支持 7z 的 Windows tar），自动编译当前源码，然后生成 ZIP 和 Setup。成功后自动打开 `dist/windows-<时间>-<随机标识>/`；每次使用独立目录，反复打包不会覆盖旧包。窗口保留结果直到按键关闭，成功 / 失败日志保存在 `target/windows-packaging-runs/<本次标识>/packaging.log`。便携 NSIS 校验固定归档 SHA-256 后重新解压，不修改系统安装或全局执行策略；规则见 [工具说明](packaging/windows/NSIS-BUILD-TOOL.md)。
-
-需要离线或禁止自动打开目录时，可使用高级入口：
-
-```powershell
-.\scripts\Package-Windows-Interactive.ps1 -Offline -NoOpen
-```
-
-原有命令行 / CI 入口保留。准备上述编译环境、固定 libmpv 运行时与 NSIS 后，在 PowerShell 执行：
-
-本地修改和重新打包在 dev 进行；不直接在 master 更新版本或代码。此前 0.3.1 打包验收见 [打包记录](docs/validation/windows-packaging-0.3.1.md)。
-
-```powershell
-.\scripts\Package-Windows.ps1
-# 依赖已缓存时可离线编译打包；便携 NSIS 可指定完整路径
-.\scripts\Package-Windows.ps1 -Offline -NsisCompiler 'C:\Tools\NSIS\makensis.exe'
-```
-
-脚本自动执行锁定依赖的 Windows x64 MSVC Release 编译，再使用该次 Cargo 返回的 EXE 生成 `dist/` 内的 portable ZIP 与 NSIS Setup，无需提前手动编译。支持 `CARGO_TARGET_DIR` / Cargo `build.target-dir`，调用目录不必是仓库根目录；可用 `-OutputDirectory` 指定输出目录。编译或 NSIS 失败不发布新包，已有同版本 / 提交号的包不会被覆盖。NSIS 可放入 PATH、安装在标准 Program Files 目录，或通过参数指定。EXE 文件属性、安装器与包名使用同一应用版本，包内 `BUILD-INFO.txt` 记录 EXE SHA-256。打包证据与限制见 [验收记录](docs/validation/windows-packaging.md)，双击入口见 [本轮记录](docs/validation/windows-packaging-launcher.md)。
-
-## 运行
-
-Windows 打包脚本默认编译到 `target/x86_64-pc-windows-msvc/release/yyplayer.exe`；便携 ZIP 解压后运行其中的 `yyplayer.exe`。下面命令对应未指定 `--target` 的手动构建。自定义 Cargo 产物目录建议放在 `target/` 子目录或仓库外，源码提交不包含编译缓存、运行时 DLL、包或用户配置。
-
-```powershell
-.\target\release\yyplayer.exe
-# 也可以直接打开本地媒体
-.\target\release\yyplayer.exe "D:\Videos\example.mp4"
-```
-
-开发时使用 `cargo run --locked -p yyplayer-app`。保留 `third_party/mpv/windows-x64` 中的固定运行时，应用会自动查找并校验 DLL。
-
-启动后在音乐库添加目录或歌曲，也可拖入文件。输出设备、独占、EQ 和歌词导入位于“播放选项”；外观、字体与快捷键位于“设置”。Windows 配置保存在 `%APPDATA%\YYPlayer\settings.json`。
-
-## Ubuntu 26.04
-
-```bash
-python3 scripts/check-linux-deps.py   # 汇总本机缺少的 apt 依赖
-cargo build --locked --release -p yyplayer-app --bin yyplayer
-./target/release/yyplayer
-python3 scripts/package-linux.py --skip-build  # deb / AppImage / 对应源码与清单 → dist/
-```
-
-支持原生 Wayland / X11 构建，配置保存在 `${XDG_CONFIG_HOME:-$HOME/.config}/YYPlayer/settings.json`。deb 使用系统 libmpv；AppImage 携带经校验的内核和非驱动依赖，仍需要宿主图形驱动与桌面服务。完整安装、输出策略和验收命令见 [Linux 指南](docs/LINUX.md)。
-
-## 手动测试 Linux 最低编译版本
-
-GitHub Actions 的 **Linux compatibility compile matrix** 仅手动触发。默认逐一编译 Ubuntu **18.04 / 20.04 / 22.04 / 24.04 / 26.04** 和 Debian **9 / 10 / 11 / 12 / 13**，可选 Debian 14 testing；统一 Rust 1.99.0 和 Cargo.lock，完成 Release 编译后汇总 Ubuntu / Debian 各自的最早成功版本。
-
-在 **Actions → Linux compatibility compile matrix → Run workflow** 选择 `master`，或选择包含共用代码及该工作流的功能分支。若修改了工作流，需先将修改推送到相应分支；GitHub 的手动入口要求工作流存在于默认分支。运行完成后查看 Summary，或下载 `linux-compatibility-report-<attempt>` 内的 `report.md` / `report.json`；各系统另有完整日志。环境失败或超时会标为未决，编译通过不代表播放或安装兼容。具体参数、报告规则与限制见 [手动编译矩阵指南](docs/LINUX_COMPATIBILITY_CI.md)。当前尚无已保存的远端矩阵报告，最低编译版本仍待实测。
-
-## 文档与许可
-
-[更新日志](CHANGELOG.md) · [开发指南](CONTRIBUTING.md) · [完整规划](docs/DEVELOPMENT_PLAN.md) · [实际状态与验收](docs/STATUS.md) · [GitHub 发布说明](docs/PUBLISHING.md)
-
-项目自身源码与原创 UI 资源采用 **GPL-3.0-only**，见 [LICENSE](LICENSE)。第三方组件保留各自许可，见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。Windows/Linux 共用代码已于 `5390a3d` 合入 `master`，联网搜索与页面返回代码已包含在 `e99d67c` 中。开发分支用于组织变更，不决定编译平台；开发包不代替发行与硬件资格验收。
-## 音乐联网搜索
-
-侧栏提供独立音乐联网搜索，包含 Android JSON v1 API、历史、来源 / 音质、封面、联网歌词、下载与 libmpv 串流。设置 → 联网服务分别开启歌曲 / 歌词，设置 API、歌曲下载、歌词、图片与串流缓存目录。可把同一份 Android JSON 放到 EXE 旁 `config/cloud_api` 并重读；无文件时使用 GD 示例。详见 [使用与配置](docs/ONLINE_API.md)、[验收](docs/validation/online-api.md)。
+项目源码和原创 UI 资源采用 **GPL-3.0-only**，见 [LICENSE](LICENSE)。第三方组件的许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

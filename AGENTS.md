@@ -1,6 +1,8 @@
 # YYPlayer 开发执行规则
 
-本文件面向后续人类开发者和代码代理。项目概览与启动方法见 [README.md](README.md)，产品目标、选型依据、模块接口与逐阶段任务以 [开发规划](docs/DEVELOPMENT_PLAN.md) 为准，已交付更新见 [CHANGELOG.md](CHANGELOG.md)。当前为 Windows x64 / Ubuntu 26.04 amd64 共用源码的 libmpv 开发预览：真实播放、GPU 合成、分级解码设置、快捷键、媒体库、EQ 与本地歌词已接入；Windows 使用 WASAPI，Linux 使用 PipeWire / PulseAudio / ALSA。用户已确认 dev-linux 的 Windows Actions 编译打包通过；USB DAC / 位准确、系统集成和广泛平台资格仍未完成。不能把规划描述或示例 UI 当成已实现功能。
+本文件面向开发者和代码代理。使用方法见 [README](README.md)，环境、模块和检查入口见 [CONTRIBUTING](CONTRIBUTING.md)，实际进度与证据见 [STATUS](docs/STATUS.md)，版本历史见 [CHANGELOG](CHANGELOG.md)。[开发规划](docs/DEVELOPMENT_PLAN.md) 保留产品目标与未完成任务，不能把规划或示例 UI 当成已实现功能。
+
+当前 dev 版本为 **0.5.4**，功能改动已提交为 `a95dd38`。已有真实音视频播放、GL 合成、媒体库、歌单 / 收藏、独立音乐 / 视频队列、SQLite 音乐存储、EQ、歌词和联网搜索；页面按钮 / 下拉框与侧边抽屉统一，窗口状态按事件查询，Windows 安装器支持升级并使用 NSIS 3.12。Windows x64 已有本轮回归与完整包证据；Ubuntu 26.04 amd64 有此前运行证据，0.5.2–0.5.4 尚需 Linux 复测。macOS 尚未编译 / 真机验收，MacBook Air CPU 修复也没有真机测量。USB DAC / 位准确、HDR、系统集成和正式二进制发行仍按 STATUS 保留未完成项。
 
 ## 0. 顶层分支规则（用户明确要求，2026-10-12）
 
@@ -12,9 +14,9 @@
 
 ## 1. 接手时的执行顺序
 
-1. 读 README 的项目概览与启动方法，再读 docs/DEVELOPMENT_PLAN.md 中选型结论、视频呈现、音频策略与当前任务对应章节。
+1. 读 README 的项目概览与使用方法、CONTRIBUTING 的环境和模块说明，再按任务查开发规划与对应 ADR。
 2. 读 [docs/STATUS.md](docs/STATUS.md)，检查实际文件、工作区修改、runtime manifest、上一任务的验收证据。
-3. 用户没有另行指定范围时，从 S00 起按前置依赖选取第一个未完成任务。当前 UI 优先交付来自用户明确要求，范围见 `docs/adr/0000-framework-preview.md`；本轮视频优先交付见 ADR 0001；复用现有实现并按 STATUS 补齐剩余资格验证，不重新创建工程。
+3. 用户没有另行指定范围时，从 S00 起按前置依赖选取第一个未完成任务，并按 STATUS 补齐证据。ADR 0000 / 0001 记录早期 UI / 视频优先交付，后续音乐库、队列、桌面 GL 与 SQLite 决策见 ADR 0010 / 0011 / 0012。复用现有实现，不重新创建工程，不把已接入的功能重新降为样例。
 4. 写清本轮目标、涉及模块、验收方式；实现一个可审查的任务或其明确子步骤。
 5. 完成适当检查与运行验证，把结果、限制和下一具体步骤写入 STATUS。环境缺失记录待验证，完成其他独立工作。
 
@@ -24,8 +26,8 @@
 
 - Rust + Slint + libmpv，音视频使用统一内核和 AppController。
 - 同一 Cargo workspace / Cargo.lock 支持 Windows x64 MSVC 与 Linux amd64 GNU；平台实现和依赖用 cfg 隔离，Linux 已接入 Wayland / X11。macOS 仍保留边界，未编译 / 真机验收。
-- 技术关卡必须先验证：共享 / 独占音频、GL Render API 合成、Windows HWND / D3D11 呈现。
-- 当前 Windows 开发预览采用 GL Render API + Slint 借用纹理，事实与限制见 ADR 0001；HWND / D3D11 和 HDR 输出专项仍需独立验证。
+- 共享 / 独占音频与呈现路径必须有独立证据；选择新的呈现路径前先做技术样机，不能直接替换生产实现。
+- 当前采用 GL Render API + Slint 借用纹理；Windows 请求桌面 OpenGL 3.3，Linux 使用现有 GL 路径。事实与限制见 ADR 0001 / 0011；原生 HWND / D3D11 未作为生产 presenter，HDR 显示输出尚未资格化。按用户决定不继续 Vulkan 探索。
 - 不默认引入第二套音频引擎、自建时钟、插件系统、网络服务或全局异步 runtime。
 
 必要选型变化写入 `docs/adr/`：背景、事实证据、候选、决定、影响和验证。不能仅因为 wrapper API 不方便换内核。
@@ -84,9 +86,11 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 
 交付说明用中文，简述实现结果、验证、限制。不能以“已支持所有平台”“完美音质”“零拷贝”“无缝”“HDR”替代明确的适用组合与测量。
 
+文档按读者和用途分工：README 只写简明功能、基本操作和启动入口；CONTRIBUTING 写环境、模块和检查；CHANGELOG 写版本变化；DEVELOPMENT_PLAN 写目标；ADR 写决策；STATUS 与 validation 写实际证据。不要在 README 逐版追加验收日志、提交历史、ABI 推测或内部实现术语。只改文档时核对当前代码、命令、路径和链接，并做 diff 检查；无需重编译或重跑硬件测试，也不能声称新增运行资格。
+
 ## 7. 接续当前实现
 
-先查 STATUS 与 ADR 0001 / 0002 / 0003。此前用户目标已在各轮实现前记录，已交付变更现汇总于 CHANGELOG，完整规划保留于 docs/DEVELOPMENT_PLAN.md；音频版本已合入 `master` 的 `8467ca9`，视频 `4eca722` 已保留在 master 的提交历史中；旧框架 `d10a4e8` 保留在 Git 历史。用户没有明确新任务时，优先补齐当前实现的格式 / 多设备 / 生命周期资格验证和 S00 工具链 / 发行许可；再补齐 S01 的 USB DAC / 位准确资格。不要把视频预览重新降为假状态或占位引擎。
+先查 STATUS 的最新条目和当前任务对应 ADR。0.5.4 的最终 Windows 检查见 `docs/validation/frontend-0.5.4.md`，SQLite 迁移见 ADR 0012 与 `docs/validation/sqlite-music-library.md`，窗口事件 / 安装器见 `docs/validation/frontend-installer-0.5.3.md`。历史提交和报告保留当时版本，不改写成最新版本已验证。用户没有明确新任务时，优先补齐当前实现的格式 / 多设备 / 生命周期资格、最新代码 Linux 回归与 S00 工具链 / 发行许可，再补 S01 的 USB DAC / 位准确资格。不要恢复假状态或占位引擎。
 
 - 固定运行时见 `third_party/mpv/manifest.json`，获取脚本 `scripts/Get-Mpv.ps1`，不要提交 DLL / archive。
 - `YYPLAYER_MPV_LIBRARY` 明确绕过 hash，仅供开发；发行路径必须受控。
@@ -103,7 +107,7 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 状态提示是 UI 层临时浮空信息，重复状态投影不得重置超时 / 恢复手动关闭；新保存 revision 可以再次通知。全屏控制栏覆盖视频，隐藏不能改变视频 / FBO 尺寸，按住拖动、悬停控件和打开选项时保留可操作性。修改此交互后运行开发例子 ui-feedback；它只证明 Slint 计时 / 点击逻辑，不代替物理设备验收。
 - 视频顶部工具栏也覆盖画面并自动隐藏，不恢复原顶部空白占位；播放按钮组相对整个窗口居中，不依赖左右内容宽度分配。实际倍速统一由下拉显示，非预设值也必须正确选中。布局修改后核对 ui-feedback 的最小 / 常规 / 较宽窗口中心点击与截图。
 - `scripts/Test-Video.ps1` 使用独立配置；新增验收不能改用户默认 APPDATA 设置。
-- 当前媒体位置重载已验证，快速连续打开 / EOF / 设备失联 / 睡眠 / 多屏仍需增加证据。
+- 当前媒体位置重载、视频 EOF 重播后暂停 / 继续与十次 renderer 释放 / 重建已有回归；快速连续打开、设备失联、睡眠、多屏及长时压力仍需补齐对应设备证据。
 
 启动命令与操作见 README。Ubuntu 26.04 amd64 已有编译 / 本机播放 / GPU 与包提取启动证据，Linux 接续以第 12 节为准；其他发行版与 macOS 仍需各自验收。运行报告里区分生产 controller 脚本、状态机单测和实际键盘 / 对话框人工验收。
 
@@ -116,11 +120,13 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 标签 / 图片 / 歌词 / 预设文件在有界后台服务读取；过期媒体 revision 不覆盖当前歌曲，歌词模型和图片仅资源 revision 更新。动画只在相关大页面运行；Slint 主线程不读整首音频或解码图片。
 - Test-Audio / Test-AudioBusy 使用自有 fixture / 独立配置；audio-ui 是布局样例。不得把设备竞争双失败测试当作成功共享回退，或把 PCM 位宽当成 DAC 实际格式。USB 拔插 / 成功回退 / 数字捕获仍按报告补证据。
 
-## 9. 工程缓存清理
+## 9. 缓存、媒体库与主题
+
+### 工程缓存清理
 
 `scripts/Clean-Workspace.ps1 -WhatIf` 先预览；不带参数清理 target 的编译 / 测试产物和 runtime 下载 archive / 未使用导入库，保留 target/release/yyplayer.exe、可执行文件旁 runtime（若存在）、固定开发 DLL / 头文件、源码、Git 与 docs。脚本校验工作区路径及 junction / symlink，不处理用户 APPDATA 或媒体目录。先完成验证并保存必要证据，再清理；下一次 cargo build 会完整重编译。锁定文件不得通过终止用户播放器来强行删除。
 
-## 9. 目录音乐库与主题接续
+### 目录音乐库与主题接续
 
 - 库、播放队列分开；移除目录 / 曲目不删除磁盘文件，不停止已开始播放。目录 / 原始路径身份留在 core，后台规范化路径、读标签和保存缓存；禁止 Slint 回调读整目录。
 - 扫描 revision / 取消 generation 与媒体 generation 分开；过期扫描不能覆盖新配置，待提交请求合并最新项；ListView 虚拟化，库模型只按 revision 更新。失联目录缓存保留，手动重扫可恢复。
@@ -130,11 +136,11 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - Windows 外观观察只读注册表 / DWM / 动画偏好；测试不得改系统主题来证明同步。Linux 使用只读 Settings portal，缺失接口时保持回退；macOS 系统外观尚未验证。
 - Test-LibraryTheme 使用独立配置、自有 WAV 和真实 controller / GL presenter；截图不证明位准确或功耗。ui-feedback / audio-ui 的真实 Slint 点击与计时需继续回归。用户魅蓝 DSP 独占确认是用户实测，不能推断格式矩阵 / 数字捕获。
 
-## 源码发布与共用主分支接续（2026-10-03）
+## 源码与发行接续
 
 - 用户已确定 GPL-3.0-only；workspace 与五个 crate 继承该字段，根 LICENSE 保留标准原文。第三方记录不能替代 runtime 二进制完整 notices / 对应源码安排。
-- 正式集成 / 发布分支为 master，唯一顶层开发分支为 dev，所有修改遵循第 0 节；dev-linux 共用代码已在 `5390a3d` 合入，联网搜索与页面返回已在 `e99d67c` 中。dev-linux / dev-api 为历史功能分支；分支名不决定编译平台。原 main 提交保留在 master 历史中；当前分支状态按 git 检查，进度以 STATUS 和 docs/PUBLISHING.md 为准。
-- 用户在自己的完整仓库根目录操作，Windows 工作区为 E:\SourceFiles\rust\yyplayer，Linux 工作区为 /home/yydaniel/sourcefiles/yyplayer；路径不决定平台。2026-10-03 的文档合并准备未执行提交 / 合并 / 推送；后续 Git 操作以当轮用户授权为准。发布源码不代表 USB / HDR / 广泛跨平台资格或二进制发行已完成。
+- 正式集成 / 发布分支为 master，唯一顶层开发分支为 dev，所有修改遵循第 0 节。dev-linux / dev-api 是历史功能分支；分支名和开发者本机路径不决定编译平台。0.5.4 功能已本地提交到 dev，不代表已合入 master、推送或发布；分支进度按 Git 检查，打包步骤见 docs/PUBLISHING.md。
+- 在完整仓库根目录操作，不把开发者绝对路径写成构建前置。发布源码不代表 USB / HDR / 广泛跨平台资格或二进制发行已完成。用户数据、SQLite 数据库和迁移备份不纳入源码或程序包。
 - 用户于 2026-10-03 确认 Windows x64 packages 可以编译打包 dev-linux 的共用代码。记录为用户反馈的编译打包证据，不虚构 run URL / 提交号，也不扩展为播放、安装 / 卸载、WASAPI / GPU 或退出回归通过。修改共用逻辑时继续回归受影响的 Windows / Linux 路径，环境缺失记待验证。
 - `.github/workflows/windows-release.yml` 在 master push 生成短期 Actions CI artifact（portable ZIP + NSIS x64 Setup）；没有自动创建 GitHub Release。NSIS 安装目标限定 x64 Windows。完整 libmpv build notices / corresponding-source arrangement 与 DLL 闭包完成后，才能把 CI 包作为正式二进制发行，不能以成功构建代替发行资格。
 
@@ -156,10 +162,10 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - EOF 重播不会重发 FILE_LOADED；快照需在真实 active / 非 EOF 时从 Ended 恢复 Playing / Paused，不在 UI 假设成功。播放回归覆盖普通暂停和 EOF 重播后再次暂停 / 继续，核对位置冻结、generation / renderer 不重建。
 - 保留 prepare_gl / 同上下文 render / 先 render_free 后 core；Slint UI 仍用 OpenGL，音频 0 次 libmpv renderer 不等于 UI 不用 GPU。修改后回归 Test-VideoLibrary、Test-Video / Test-Render 真实 GPU 图片、导航 / ui-feedback / 音乐 UI。测试独立配置 / 自有素材；内存以 Release 同素材 / 同设置 / 同口径比较。
 
-## 12. Ubuntu Linux 接续（2026-10-03）
+## 12. Ubuntu Linux 接续
 
-- Linux 适配起于 dev-linux，当前共用源码已在 master；包含当前共用代码的分支在对应系统都应能使用相同 Cargo 命令构建，禁止用分支名 / 开发者绝对路径选择平台。平台 API / 依赖维持 target cfg，Linux apt / Python 打包工具不得变成 Windows 编译前置。
-- 用户明确要求已创建 dev-linux，Ubuntu 26.04 amd64 本机开发预览和 deb / AppImage 适配以当前 STATUS、docs/LINUX.md、ADR 0007 为准；旧章节 Linux 未编译描述为历史边界。其他发行版、AMD / Intel / Xorg 真机、USB / HDR / 物理输入与多屏仍未资格化，不把 Wayland / Xvfb 结果泛化。
+- Windows / Linux 共用源码，当前开发从 dev 开始；在对应系统使用相同 Cargo 构建命令，禁止用分支名 / 开发者绝对路径选择平台。平台 API / 依赖维持 target cfg，Linux apt / Python 打包工具不得变成 Windows 编译前置。
+- Ubuntu 26.04 amd64 已有本机播放与 deb / AppImage 证据，见 STATUS、docs/LINUX.md、ADR 0007；0.5.2–0.5.4 的 SQLite 迁移、窗口事件和新控件尚需 Linux 编译 / 真机回归。其他发行版、AMD / Intel / Xorg 真机、USB / HDR / 物理输入与多屏仍未资格化，不把 Wayland / Xvfb 结果泛化。
 - Linux deb / 开发使用绝对系统 libmpv2 路径和发行版安全更新，策略在 third_party/mpv/linux.json；AppImage 包内 runtime 必须通过自身 manifest / SHA-256，损坏不得静默回退系统库。Windows 固定 hash 策略保持。
 - Linux 不强制 ao 列表，它会覆盖 audio-device 中的具体后端。具体 PipeWire / Pulse / ALSA 设备必须核对实际 AO；ALSA hw 成功打开 / Final HW params 才确认，PipeWire exclusive stream 不等于硬件 DAC 独占 / 位准确。自动设备独占拒绝，失联暂停，ALSA hw 失败不猜测桌面 sink；源率保护比较源与 API。
 - Linux 启动文件在首次 UI tick 前处理；保存的输出策略必须先于首次 Load，Engine 先获得真实设备列表。不可用请求保留 blocked、禁止 Load / Resume，audio_blocked 错误不能因 pending_load 的媒体身份过滤被隐藏。验收要求无默认 AO 初始化，不能只看位置 / Paused。
@@ -168,15 +174,15 @@ STATUS 中填写：当前任务 / 子步骤、改动文件、检查命令及结�
 - 外观 portal 只读后台查询、字体后台枚举不变。Linux 圆角 / 阴影由 compositor 决定；Wayland 不提供客户端最小化状态 / 还原，例子不能写假确认。UI 截图可能延迟同次 timer 回调，验收等待真实状态并保留明确超时，不能删透明度断言。
 - scripts/check-linux-deps.py 先只读汇总 apt；scripts/test-linux.py / test-linux-packages.py 用独立配置、自有素材，不停止系统音频服务或修改系统主题。硬件 / 竞争测试串行，防自己的不同验收互相占设备。库、字幕、背景、快捷键和音频仍复用同一 controller / Engine。
 - scripts/package-linux.py 固定 appimagetool 归档和 runtime 源码 hash，每次从核验归档重新提取工具；两种包使用同一 Release 快照。源码包必须包含当前完整锁定图（含 Cargo 解析所需其他平台条件依赖）的原始归档 / notices 与空 Cargo home 的离线解析证据，614 crate 是此前 Linux 资格记录的数量，不把解析称为再次完整编译。
-- 当前 Ubuntu 26.04 packages 仅在 dev-linux push 自动运行，并支持手动选择 master 或其他包含工作流的分支。Linux compatibility compile matrix 仍仅手动运行。文档不得把未修改的 Linux push 触发器写成 master 自动运行。
+- 当前 Ubuntu 26.04 packages 仅在 dev-linux push 自动运行，并支持手动选择 dev、master 或其他包含工作流的分支。Linux compatibility compile matrix 仍仅手动运行。文档不得把未修改的 Linux push 触发器写成 master 自动运行。
 - 新 Linux workflow 只生成短期 CI artifact，不代替用户推送 / 发布，也不代替安装 / 升级 / 卸载真机验收。包是开发预览：上游 AppImage runtime 的完整 Alpine 静态闭包 / 可重链接安排仍待补证，见 packaging/linux/runtime-notices/README.md；Windows DLL 闭包保留既有未完成状态。
 
-## 13. Windows 自动编译打包接续（2026-10-12）
+## 13. Windows 自动编译打包接续
 
 - 当前 dev 应用版本为 0.5.4，五个 workspace crate 继承根版本，保留更新后的 Cargo.lock；EXE 版本资源、NSIS 与包名从同一 Cargo 版本生成，不添加独立硬编码默认。master 仅在授权合入 dev 后接收版本更新。
 - Package-Windows 在预检后自动执行 locked x64 MSVC Release build；使用本次 Cargo compiler-artifact.executable，检查实际退出码 / build-finished / 版本与 hash。不要恢复为读取固定旧 EXE，CI 不再另做重复编译。
-- 自定义 Cargo 产物目录放 target 子目录或仓库外；.gitignore 不替代暂存 diff 检查，不强制加入运行时二进制、包、缓存或用户配置。临时 NSIS 工具仅在 target 内使用，无需修改全局设置。
-- 修改打包执行 Test-WindowsPackaging，覆盖旧 EXE / 编译失败 / 自定义目录 / NSIS 失败 / 重试 / 已有包保护；兼容 PowerShell 5.1 / 7 原生 stderr。当前本机 ZIP / Setup 与独立启动证据见 docs/validation/windows-packaging.md，安装 / 卸载及正式发行资格仍待验。
+- 自定义 Cargo 产物目录放 target 子目录或仓库外；.gitignore 不替代暂存 diff 检查，不强制加入运行时二进制、包、缓存或用户配置。本地便携 NSIS 放 target，CI 使用 runner 临时目录，无需修改全局安装或设置。
+- 修改打包执行 Test-WindowsPackaging、Test-WindowsPackagingLauncher 和 Test-WindowsInstaller，覆盖旧 EXE / 编译失败 / 自定义目录 / NSIS 失败 / 重试 / 已有包保护 / 升级 / 恢复；兼容 PowerShell 5.1 / 7 原生 stderr。当前完整 0.5.4 包与独立启动证据见 docs/validation/frontend-0.5.4.md；隔离安装测试不代替真实管理员安装 / 升级 / 卸载和多 DPI 验收，正式发行资格仍待补齐。
 
 ## 14. 0.5.0 歌单与独立播放列表接续
 
